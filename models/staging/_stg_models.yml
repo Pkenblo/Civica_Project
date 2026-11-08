@@ -1,0 +1,365 @@
+# _stg_models.yml
+# Configura, documenta y valida las vistas de staging en BRONZE.STG.
+
+version: 2
+
+models:
+
+  #################STG_PET_LICENSES##############
+  - name: stg_pet_licenses
+
+    config:
+      materialized: view
+      database: "{{ target.name | upper }}_BRONZE"
+      schema: STG
+
+    description: >
+      Licencias de mascotas con nombres y tipos normalizados.
+      Conserva los registros del origen sin deduplicar.
+
+    columns:
+      - name: license_issue_date
+        data_type: date
+        description: Fecha de emisión de la licencia.
+        data_tests:
+          - not_null
+
+      - name: license_number
+        data_type: varchar
+        description: Identificador de la licencia.
+        data_tests:
+          - not_null
+
+      - name: animal_name
+        data_type: varchar
+        description: Nombre de la mascota.
+
+      - name: species
+        data_type: varchar
+        description: Especie de la mascota.
+        data_tests:
+          - not_null
+
+      - name: primary_breed
+        data_type: varchar
+        description: Raza principal de la mascota.
+        data_tests:
+          - not_null
+
+      - name: secondary_breed
+        data_type: varchar
+        description: Raza secundaria, cuando está informada.
+
+      - name: zip_code
+        data_type: varchar
+        description: Código postal del propietario.
+
+      - name: ingested_at
+        data_type: timestamp_ltz
+        description: Fecha y hora de carga del registro en RAW.
+
+      - name: source_file
+        data_type: varchar
+        description: Archivo del que procede el registro.
+
+      - name: batch_id
+        data_type: varchar
+        description: Identificador de la carga.
+
+
+  #################STG_CRIMES##############
+  - name: stg_crimes
+
+    config:
+      materialized: view
+      database: "{{ target.name | upper }}_BRONZE"
+      schema: STG
+
+    description: >
+      Registros de delitos con nombres, tipos y marcadores normalizados.
+      Conserva las versiones y las filas asociadas a distintos tipos de tiroteo.
+
+    columns:
+      - name: report_number
+        data_type: varchar
+        description: Número de informe policial en el formato del origen.
+        data_tests:
+          - not_null
+
+      - name: report_date_time
+        data_type: timestamp_ntz
+        description: Fecha y hora de registro del informe, sin conversión de zona horaria.
+        data_tests:
+          - not_null
+
+      - name: offense_id
+        data_type: varchar
+        description: Identificador del delito concreto, que puede aparecer en varias filas.
+        data_tests:
+          - not_null
+
+      - name: offense_date
+        data_type: timestamp_ntz
+        description: Fecha y hora del delito, sin conversión de zona horaria.
+        data_tests:
+          - not_null
+
+      - name: nibrs_group_a_b
+        data_type: varchar
+        description: Grupo A o B de la clasificación NIBRS.
+
+      - name: nibrs_crime_against_category
+        data_type: varchar
+        description: Categoría NIBRS según aquello contra lo que se dirige el delito.
+
+      - name: offense_sub_category
+        data_type: varchar
+        description: Subcategoría del delito publicada por el origen.
+
+      - name: shooting_type_group
+        data_type: varchar
+        description: Clasificación del tiroteo cuando está informada.
+
+      - name: block_address
+        data_type: varchar
+        description: Dirección aproximada a nivel de bloque; NULL si está vacía u ocultada.
+
+      - name: latitude
+        data_type: number(18,12)
+        description: Latitud publicada; NULL si no es convertible o contiene el marcador -1.
+
+      - name: longitude
+        data_type: number(18,12)
+        description: Longitud publicada; NULL si no es convertible o contiene el marcador -1.
+
+      - name: beat
+        data_type: varchar
+        description: Código de la zona de patrulla policial.
+
+      - name: precinct
+        data_type: varchar
+        description: Distrito policial.
+
+      - name: sector
+        data_type: varchar
+        description: Sector policial.
+
+      - name: neighborhood
+        data_type: varchar
+        description: Barrio publicado por el origen.
+
+      - name: reporting_area
+        data_type: varchar
+        description: Código del área de reporte; NULL si está vacío u ocultado.
+
+      - name: offense_category
+        data_type: varchar
+        description: Categoría del delito publicada por el origen.
+        data_tests:
+          - not_null
+
+      - name: nibrs_offense_code_description
+        data_type: varchar
+        description: Descripción del código de delito NIBRS.
+
+      - name: nibrs_offense_code
+        data_type: varchar
+        description: Código del delito en la clasificación NIBRS.
+
+      - name: census_block_2020
+        data_type: varchar
+        description: Referencia censal de 2020 en el formato publicado por el origen.
+
+      - name: is_location_redacted
+        data_type: boolean
+        description: Indica si la dirección, latitud o longitud contienen REDACTED en el origen.
+
+      - name: ingested_at
+        data_type: timestamp_ltz
+        description: Fecha y hora de carga del registro en RAW.
+
+      - name: source_file
+        data_type: varchar
+        description: Archivo del que procede el registro.
+
+      - name: batch_id
+        data_type: varchar
+        description: Identificador de la carga.
+
+
+  #################STG_ARRESTS##############
+  - name: stg_arrests
+
+    config:
+      materialized: view
+      database: "{{ target.name | upper }}_BRONZE"
+      schema: STG
+
+    description: >
+      Registros de detenciones con nombres, tipos y marcadores normalizados.
+      Conserva las versiones y las filas asociadas a diferentes infracciones.
+
+    columns:
+      - name: arrest_number
+        data_type: varchar
+        description: Identificador del registro de detención, que puede aparecer en varias filas.
+        data_tests:
+          - not_null
+
+      - name: arrest_occurred_date_time
+        data_type: timestamp_ntz
+        description: Fecha y hora de la detención, sin conversión de zona horaria.
+        data_tests:
+          - not_null
+
+      - name: arrest_reported_date_time
+        data_type: timestamp_ntz
+        description: Fecha y hora de registro de la detención, sin conversión de zona horaria.
+        data_tests:
+          - not_null
+
+      - name: arrest_type
+        data_type: varchar
+        description: Tipo de actuación, que puede incluir citaciones o actuaciones sin ingreso en prisión.
+        data_tests:
+          - not_null
+
+      - name: beat
+        data_type: varchar
+        description: Código de la zona de patrulla policial.
+
+      - name: cad_clearance
+        data_type: varchar
+        description: Clasificación de cierre del incidente en el sistema de despacho CAD.
+
+      - name: cad_initial_call_type
+        data_type: varchar
+        description: Tipo inicial de llamada registrado en CAD.
+
+      - name: cad_priority
+        data_type: number(38,0)
+        description: Prioridad registrada en CAD; NULL cuando contiene el marcador -1.
+
+      - name: crisis_involved
+        data_type: boolean
+        description: Indica si el registro señala una situación de crisis.
+
+      - name: complaint_involved
+        data_type: boolean
+        description: Indica si el registro señala una queja asociada.
+
+      - name: force_involved
+        data_type: boolean
+        description: Indica si el registro señala uso de la fuerza.
+
+      - name: nibrs_description
+        data_type: varchar
+        description: Descripción NIBRS asociada a la infracción de esta fila.
+
+      - name: offense_type
+        data_type: varchar
+        description: Descripción de la infracción legal asociada a la detención.
+
+      - name: officer_age
+        data_type: number(38,0)
+        description: Edad del agente registrada en el origen; NULL cuando contiene el marcador -1.
+
+      - name: officer_gender
+        data_type: varchar
+        description: Género del agente según el origen.
+
+      - name: officer_id
+        data_type: varchar
+        description: Identificador del agente.
+        data_tests:
+          - not_null
+
+      - name: officer_race
+        data_type: varchar
+        description: Clasificación racial del agente según el origen.
+
+      - name: officer_squad
+        data_type: varchar
+        description: Descripción de la unidad del agente.
+
+      - name: officer_title
+        data_type: varchar
+        description: Cargo o rango del agente.
+
+      - name: precinct
+        data_type: varchar
+        description: Distrito policial.
+
+      - name: report_number
+        data_type: varchar
+        description: Número de informe policial en el formato del origen.
+        data_tests:
+          - not_null
+
+      - name: sector
+        data_type: varchar
+        description: Sector policial.
+
+      - name: subject_age_range
+        data_type: varchar
+        description: Rango de edad del sujeto según el origen.
+
+      - name: subject_gender
+        data_type: varchar
+        description: Género del sujeto según el origen.
+
+      - name: subject_id
+        data_type: varchar
+        description: Identificador del sujeto; NULL cuando contiene el marcador -1.
+
+      - name: subject_race
+        data_type: varchar
+        description: Clasificación racial del sujeto según el origen.
+
+      - name: terry_stop
+        data_type: boolean
+        description: Indica si el registro señala una parada de investigación Terry Stop.
+
+      - name: block_address
+        data_type: varchar
+        description: Dirección aproximada a nivel de bloque; NULL si está vacía u ocultada.
+
+      - name: latitude
+        data_type: number(18,12)
+        description: Latitud publicada; NULL si no es convertible o contiene el marcador -1.
+
+      - name: longitude
+        data_type: number(18,12)
+        description: Longitud publicada; NULL si no es convertible o contiene el marcador -1.
+
+      - name: neighborhood
+        data_type: varchar
+        description: Barrio publicado por el origen.
+
+      - name: reporting_area
+        data_type: varchar
+        description: Código del área de reporte; NULL si está vacío u ocultado.
+
+      - name: demonstration
+        data_type: boolean
+        description: Indica si el registro está relacionado con una manifestación.
+
+      - name: census_block_2020
+        data_type: varchar
+        description: Referencia censal de 2020 en el formato publicado por el origen.
+
+      - name: is_location_redacted
+        data_type: boolean
+        description: Indica si la dirección, latitud o longitud contienen REDACTED en el origen.
+
+      - name: ingested_at
+        data_type: timestamp_ltz
+        description: Fecha y hora de carga del registro en RAW.
+
+      - name: source_file
+        data_type: varchar
+        description: Archivo del que procede el registro.
+
+      - name: batch_id
+        data_type: varchar
+        description: Identificador de la carga.
