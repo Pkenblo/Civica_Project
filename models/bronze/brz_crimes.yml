@@ -1,0 +1,109 @@
+version: 2
+
+sources:
+  - name: brz_crimes
+    description: "Delitos publicados por Seattle Open Data."
+    database: "{{ target.name | upper }}_BRONZE"
+    schema: RAW
+
+    tables:
+      - name: crimes
+        identifier: CRIMES
+        description: "Datos originales de delitos, incluyendo las versiones recibidas en las cargas."
+
+        columns:
+          - name: REPORT_NUMBER
+            data_type: varchar
+            description: "Número del informe policial. Un informe puede contener varios delitos."
+
+          - name: REPORT_DATE_TIME
+            data_type: varchar
+            description: "Fecha y hora de registro del informe, en texto."
+
+          - name: OFFENSE_ID
+            data_type: varchar
+            description: "Identificador del delito. Puede repetirse por etiquetas de tiroteo o versiones posteriores."
+
+          - name: OFFENSE_DATE
+            data_type: varchar
+            description: "Fecha y hora de ocurrencia del delito publicada por el origen, en texto."
+
+          - name: NIBRS_GROUP_A_B
+            data_type: varchar
+            description: "Grupo A o B de la clasificación NIBRS."
+
+          - name: NIBRS_CRIME_AGAINST_CATEGORY
+            data_type: varchar
+            description: "Categoría NIBRS según contra qué se dirige el delito."
+
+          - name: OFFENSE_SUB_CATEGORY
+            data_type: varchar
+            description: "Subcategoría del delito utilizada por Seattle para sus informes."
+
+          - name: SHOOTING_TYPE_GROUP
+            data_type: varchar
+            description: "Etiqueta relacionada con disparos o tiroteos. Un delito puede tener varias."
+
+          - name: BLOCK_ADDRESS
+            data_type: varchar
+            description: "Dirección aproximada del delito por bloque de calle."
+
+          - name: LATITUDE
+            data_type: varchar
+            description: "Latitud aproximada, en texto. Puede contener valores no disponibles o censurados."
+
+          - name: LONGITUDE
+            data_type: varchar
+            description: "Longitud aproximada, en texto. Puede contener valores no disponibles o censurados."
+
+          - name: BEAT
+            data_type: varchar
+            description: "Zona de patrulla policial donde ocurrió el delito."
+
+          - name: PRECINCT
+            data_type: varchar
+            description: "Distrito policial donde ocurrió el delito."
+
+          - name: SECTOR
+            data_type: varchar
+            description: "Sector policial donde ocurrió el delito."
+
+          - name: NEIGHBORHOOD
+            data_type: varchar
+            description: "Barrio o agrupación territorial MCPP donde ocurrió el delito."
+
+          - name: REPORTING_AREA
+            data_type: varchar
+            description: "Área geográfica de reporte asociada a la ubicación del informe."
+
+          - name: OFFENSE_CATEGORY
+            data_type: varchar
+            description: "Categoría general del delito utilizada por Seattle."
+
+          - name: NIBRS_OFFENSE_CODE_DESCRIPTION
+            data_type: varchar
+            description: "Descripción del código NIBRS del delito."
+
+          - name: NIBRS_OFFENSE_CODE
+            data_type: varchar
+            description: "Código del delito según la clasificación NIBRS."
+
+          - name: CENSUS_BLOCK_2020
+            data_type: varchar
+            description: "Referencia del tracto y bloque censal de 2020, separados por un punto."
+
+          - name: _INGESTED_AT
+            data_type: timestamp_ltz
+            description: "Fecha y hora de carga en Snowflake."
+
+          - name: _SOURCE_FILE
+            data_type: varchar
+            description: "Ruta del archivo de origen dentro del stage."
+
+          - name: _BATCH_ID
+            data_type: varchar
+            description: "Identificador del lote de carga."
+
+          - name: _SOURCE_UPDATED_AT
+            data_type: timestamp_tz
+            description: "Fecha de modificación en origen, si se proporciona. Actualmente NULL."

@@ -1,0 +1,57 @@
+version: 2
+
+sources:
+  - name: brz_pet_licenses
+    description: "Licencias de mascotas publicadas por Seattle Open Data."
+    database: "{{ target.name | upper }}_BRONZE"
+    schema: RAW
+
+    tables:
+      - name: pet_licenses
+        identifier: PET_LICENSES
+        description: "Datos originales de licencias de mascotas, sin transformar."
+
+        columns:
+          - name: LICENSE_ISSUE_DATE
+            data_type: varchar
+            description: "Fecha de expedición de la licencia, en texto."
+
+          - name: LICENSE_NUMBER
+            data_type: varchar
+            description: "Número de licencia. Puede aparecer repetido en RAW."
+
+          - name: ANIMAL_S_NAME
+            data_type: varchar
+            description: "Nombre de la mascota."
+
+          - name: SPECIES
+            data_type: varchar
+            description: "Especie del animal."
+
+          - name: PRIMARY_BREED
+            data_type: varchar
+            description: "Raza principal registrada."
+
+          - name: SECONDARY_BREED
+            data_type: varchar
+            description: "Raza secundaria o indicación de mezcla."
+
+          - name: ZIP_CODE
+            data_type: varchar
+            description: "Código postal del propietario."
+
+          - name: _INGESTED_AT
+            data_type: timestamp_ltz
+            description: "Fecha y hora de carga en Snowflake."
+
+          - name: _SOURCE_FILE
+            data_type: varchar
+            description: "Ruta del archivo de origen dentro del stage."
+
+          - name: _BATCH_ID
+            data_type: varchar
+            description: "Identificador del lote de carga."
+
+          - name: _SOURCE_UPDATED_AT
+            data_type: timestamp_tz
+            description: "Fecha de modificación en origen, si se proporciona. Actualmente NULL."
