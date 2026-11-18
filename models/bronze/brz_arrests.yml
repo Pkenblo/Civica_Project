@@ -3,7 +3,7 @@ version: 2
 sources:
   - name: brz_arrests
     description: "Registros de detenciones publicados por Seattle Open Data."
-    database: "{{ target.name | upper }}_BRONZE"
+    database: "{{ env_var('DBT_BRONZE') }}"
     schema: RAW
 
     tables:

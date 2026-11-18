@@ -10,7 +10,7 @@ models:
 
     config:
       materialized: view
-      database: "{{ target.name | upper }}_BRONZE"
+      database: "{{ env_var('DBT_BRONZE') }}"
       schema: STG
 
     description: >
@@ -72,7 +72,7 @@ models:
 
     config:
       materialized: view
-      database: "{{ target.name | upper }}_BRONZE"
+      database: "{{ env_var('DBT_BRONZE') }}"
       schema: STG
 
     description: >
@@ -192,7 +192,7 @@ models:
 
     config:
       materialized: view
-      database: "{{ target.name | upper }}_BRONZE"
+      database: "{{ env_var('DBT_BRONZE') }}"
       schema: STG
 
     description: >
@@ -370,7 +370,7 @@ models:
 
     config:
       materialized: view
-      database: "{{ target.name | upper }}_BRONZE"
+      database: "{{ env_var('DBT_BRONZE') }}"
       schema: STG
 
     description: >
