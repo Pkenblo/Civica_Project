@@ -1,0 +1,54 @@
+{
+    "files.associations": {
+        "*.sql": "jinja-sql"
+    },
+    "[jinja-sql]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 4,
+        "editor.defaultFormatter": "yassun7010.vscode-shandy-sqlfmt",
+        "editor.formatOnSave": false,
+        "editor.quickSuggestions": {
+            "other": "on",
+            "comments": "off",
+            "strings": "on"
+        },
+        "editor.suggestOnTriggerCharacters": true,
+        "editor.snippetSuggestions": "top"
+    },
+    "shandy-sqlfmt.path": "${userHome}/.local/share/venvs/sqlfmt/bin/sqlfmt",
+    "[yaml]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 2,
+        "editor.defaultFormatter": "redhat.vscode-yaml",
+        "editor.quickSuggestions": {
+            "other": "on",
+            "comments": "off",
+            "strings": "on"
+        },
+        "editor.suggestOnTriggerCharacters": true
+    },
+    "yaml.validate": true,
+    "yaml.completion": true,
+    "yaml.schemas": {
+        "https://raw.githubusercontent.com/dbt-labs/dbt-jsonschema/main/schemas/latest/dbt_project-latest.json": [
+            "/dbt_project.yml"
+        ],
+        "https://raw.githubusercontent.com/dbt-labs/dbt-jsonschema/main/schemas/latest/packages-latest.json": [
+            "/packages.yml"
+        ],
+        "https://raw.githubusercontent.com/dbt-labs/dbt-jsonschema/main/schemas/latest/selectors-latest.json": [
+            "/selectors.yml"
+        ],
+        "https://raw.githubusercontent.com/dbt-labs/dbt-jsonschema/main/schemas/latest/dbt_yml_files-latest.json": [
+            "/models/**/*.{yml,yaml}",
+            "/analyses/**/*.{yml,yaml}",
+            "/seeds/**/*.{yml,yaml}",
+            "/snapshots/**/*.{yml,yaml}",
+            "/tests/**/*.{yml,yaml}",
+            "/macros/**/*.{yml,yaml}"
+        ]
+    },
+    "dbt.dbtIntegration": "core",
+    "dbt.dbtPythonPathOverride": "/usr/bin/python3.14",
+    "dbt.installDepsOnProjectInitialization": false
+}

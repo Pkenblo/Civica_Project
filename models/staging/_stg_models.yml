@@ -363,3 +363,75 @@ models:
       - name: batch_id
         data_type: varchar
         description: Identificador de la carga.
+
+
+  #################STG_ZIPCODE_AREAS##############
+  - name: stg_zipcode_areas
+
+    config:
+      materialized: view
+      database: "{{ target.name | upper }}_BRONZE"
+      schema: STG
+
+    description: >
+      Zonas postales de King County y alrededores con atributos y geometría tipados.
+      Conserva una fila por entidad del origen, sin unir piezas ni seleccionar una versión.
+
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - boundary_version
+              - object_id
+
+    columns:
+      - name: object_id
+        data_type: number(38,0)
+        description: Identificador de la entidad en la versión cartográfica de origen.
+        data_tests:
+          - not_null
+
+      - name: zip_code
+        data_type: varchar
+        description: Código postal como texto. Puede repetirse si tiene varias piezas.
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "rlike '^[0-9]{5}$'"
+
+      - name: zip_type
+        data_type: varchar
+        description: Tipo de código postal según King County.
+
+      - name: county_name
+        data_type: varchar
+        description: Nombre del condado según la cartografía de origen.
+
+      - name: preferred_city
+        data_type: varchar
+        description: Ciudad postal preferida según la cartografía de origen.
+
+      - name: geography
+        data_type: geography
+        description: Geometría de la entidad en Snowflake. Si no se puede convertir, queda nula y falla la prueba.
+        data_tests:
+          - not_null
+
+      - name: boundary_version
+        data_type: varchar
+        description: Versión de la descarga cartográfica, no fecha de vigencia de los límites.
+        data_tests:
+          - not_null
+
+      - name: ingested_at
+        data_type: timestamp_ltz
+        description: Fecha y hora de carga del registro en RAW.
+
+      - name: source_file
+        data_type: varchar
+        description: Archivo del que procede el registro.
+
+      - name: batch_id
+        data_type: varchar
+        description: Identificador de la carga.

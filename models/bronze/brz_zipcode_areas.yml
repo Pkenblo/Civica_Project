@@ -1,0 +1,33 @@
+version: 2
+
+sources:
+  - name: brz_zipcode_areas
+    description: "Límites postales de King County y alrededores."
+    database: "{{ target.name | upper }}_BRONZE"
+    schema: RAW
+
+    tables:
+      - name: zipcode_areas
+        identifier: ZIPCODE_AREAS
+        description: "Una fila por entidad de la cartografía exportada en EPSG:4326 para cada versión cargada. Un mismo código postal puede ocupar varias filas."
+
+        columns:
+          - name: FEATURE
+            data_type: variant
+            description: "Entidad GeoJSON original, con sus propiedades y su geometría."
+
+          - name: BOUNDARY_VERSION
+            data_type: varchar
+            description: "Versión de la descarga cartográfica, no fecha de vigencia postal."
+
+          - name: _INGESTED_AT
+            data_type: timestamp_ltz
+            description: "Fecha y hora de carga en Snowflake."
+
+          - name: _SOURCE_FILE
+            data_type: varchar
+            description: "Ruta del archivo de origen dentro del stage."
+
+          - name: _BATCH_ID
+            data_type: varchar
+            description: "Identificador del lote de carga."

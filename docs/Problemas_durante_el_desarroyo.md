@@ -1,0 +1,5 @@
+1. Al comenzar y ver las tablas parecia mucho mas facil pero realmente los terminos policiales los distintos tipos de codigo, la forma que la que tengo que relacionar ambas tablas, crimenes y arrestos es rara por lo que se complica esa parte un poco
+
+2. Todo lo de la task que he hecho para cargar todos los dias los datos nuevos actualizados se ejecuta alas 4am aunque en estados unidos son las 7 de la tarde del dia anterior. por lo que al principio no entendia esto muy bien.
+
+3. Problema con las direccione. las tablas de arrests y de crimes no tienen cp como tal tienen la direccion. Ademas algunas estan censuradas totalmente o parcialmente para no ser tan concretas. por lo que asociarlas directamente a un codigo postal en algunos casos es imposible. -- Solucion: Me he descargado la base publica de codigos postales y he cruzado los datos. ahora tengo una tabla ref_zipcode_areas que las relaciona 

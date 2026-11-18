@@ -1,0 +1,8 @@
+{
+    "recommendations": [
+        "samuelcolvin.jinjahtml",
+        "bastienboutonnet.vscode-dbt",
+        "yassun7010.vscode-shandy-sqlfmt",
+        "redhat.vscode-yaml"
+    ]
+}
