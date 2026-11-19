@@ -86,7 +86,7 @@ models:
     columns:
       - name: report_number
         data_type: varchar
-        description: Número de informe policial en el formato del origen.
+        description: Número de informe policial YYYY-NNNNNN, ya en formato común en el origen de delitos.
         data_tests:
           - not_null
 
@@ -129,11 +129,11 @@ models:
         description: Dirección aproximada a nivel de bloque; NULL si está vacía u ocultada.
 
       - name: latitude
-        data_type: number(18,12)
+        data_type: number(18,5)
         description: Latitud publicada; NULL si no es convertible o contiene el marcador -1.
 
       - name: longitude
-        data_type: number(18,12)
+        data_type: number(18,5)
         description: Longitud publicada; NULL si no es convertible o contiene el marcador -1.
 
       - name: beat
@@ -300,7 +300,9 @@ models:
 
       - name: report_number
         data_type: varchar
-        description: Número de informe policial en el formato del origen.
+        description: >
+          Número de informe común con delitos. Solo transforma YYYY0000NNNNNN en YYYY-NNNNNN.
+          Los demás formatos se conservan para revisión; Reports comprueba el formato esperado.
         data_tests:
           - not_null
 
@@ -333,11 +335,11 @@ models:
         description: Dirección aproximada a nivel de bloque; NULL si está vacía u ocultada.
 
       - name: latitude
-        data_type: number(18,12)
+        data_type: number(18,5)
         description: Latitud publicada; NULL si no es convertible o contiene el marcador -1.
 
       - name: longitude
-        data_type: number(18,12)
+        data_type: number(18,5)
         description: Longitud publicada; NULL si no es convertible o contiene el marcador -1.
 
       - name: neighborhood

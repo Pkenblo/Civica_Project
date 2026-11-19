@@ -156,3 +156,41 @@ unit_tests:
     expect:
       rows:
         - {object_id: 1, zip_code: '00501', zip_type: STANDARD, county_name: KING, preferred_city: SEATTLE, boundary_version: kc_v1, source_file: Folder/Map.geojson, batch_id: batch-a}
+
+  - name: stg_crimes_conserva_formato_y_ceros_del_numero_de_informe
+    description: >
+      Comprueba que el informe de delitos ya usa YYYY-NNNNNN, conserva ceros iniciales
+      y elimina espacios exteriores. No inventa números para nulos.
+    model: stg_crimes
+    given:
+      - input: source('brz_crimes', 'crimes')
+        rows:
+          - {REPORT_NUMBER: ' 2026-000001 '}
+          - {REPORT_NUMBER: '2026-912738'}
+          - {REPORT_NUMBER: null}
+    expect:
+      rows:
+        - {report_number: '2026-000001'}
+        - {report_number: '2026-912738'}
+        - {report_number: null}
+
+  - name: stg_arrests_normaliza_informes_solo_con_el_patron_aprobado
+    description: >
+      Comprueba la conversión de YYYY0000NNNNNN a YYYY-NNNNNN sin perder ceros iniciales.
+      Los formatos distintos se conservan, no se recortan por suposición.
+    model: stg_arrests
+    given:
+      - input: source('brz_arrests', 'arrests')
+        rows:
+          - {REPORT_NUMBER: ' 20260000912738 '}
+          - {REPORT_NUMBER: '20260000000001'}
+          - {REPORT_NUMBER: '2026-123456'}
+          - {REPORT_NUMBER: '20261234123456'}
+          - {REPORT_NUMBER: null}
+    expect:
+      rows:
+        - {report_number: '2026-912738'}
+        - {report_number: '2026-000001'}
+        - {report_number: '2026-123456'}
+        - {report_number: '20261234123456'}
+        - {report_number: null}

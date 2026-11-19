@@ -1,6 +1,8 @@
 -- stg_arrests.sql
 -- Normaliza nombres, tipos y marcadores de los registros de detenciones.
 -- Textos descriptivos y códigos en mayúsculas; identificadores y trazabilidad sin cambiar de caso.
+-- El informe YYYY0000NNNNNN se publica como YYYY-NNNNNN; el valor original sigue en RAW.
+-- Coordenadas persistidas a cinco decimales; los indicadores validan los valores RAW antes de redondear.
 
 with source as (
 
@@ -32,7 +34,11 @@ renamed as (
         , {{ nullif_any("upper(trim(AS_ON_SQUAD_DESC))", "", "-") }}                                    as officer_squad
         , {{ nullif_any("upper(trim(INV_OFFICER_TITLE))", "", "-") }}                                   as officer_title
         , {{ nullif_any("upper(trim(PRECINCT))", "", "-") }}                                            as precinct
-        , nullif(trim(REPORT_NUMBER), '')                                                               as report_number
+        , case
+            when regexp_like(trim(REPORT_NUMBER), '^[0-9]{4}0000[0-9]{6}$')
+                then left(trim(REPORT_NUMBER), 4) || '-' || right(trim(REPORT_NUMBER), 6)
+            else nullif(trim(REPORT_NUMBER), '')
+          end                                                                                           as report_number
         , {{ nullif_any("upper(trim(SECTOR))", "", "-") }}                                              as sector
         , {{ nullif_any("upper(trim(SUBJECT_AGE_RANGE))", "", "-") }}                                   as subject_age_range
         , {{ nullif_any("upper(trim(SUBJECT_GENDER))", "", "-") }}                                      as subject_gender
@@ -46,8 +52,8 @@ renamed as (
             else upper(trim(BLOCK_ADDRESS))
           end                                                                                           as block_address
 
-        , nullif(try_to_decimal(trim(LATITUDE), 18, 12), -1)                                            as latitude
-        , nullif(try_to_decimal(trim(LONGITUDE), 18, 12), -1)                                           as longitude
+        , round(nullif(try_to_decimal(trim(LATITUDE), 18, 12), -1), 5)::number(18, 5)                   as latitude
+        , round(nullif(try_to_decimal(trim(LONGITUDE), 18, 12), -1), 5)::number(18, 5)                  as longitude
         , {{ nullif_any("upper(trim(NEIGHBORHOOD))", "", "-") }}                                        as neighborhood
         , {{ nullif_any("upper(trim(REPORTING_AREA))", "", "-", "REDACTED") }}                          as reporting_area
         , try_to_boolean(trim(DEMONSTRATION))                                                           as demonstration
@@ -61,6 +67,25 @@ renamed as (
             ),
             false
           )                                                                                             as is_location_redacted
+
+        -- Solo valida conversión y rangos globales; estar fuera de Seattle no es un error.
+        , coalesce(
+            LATITUDE is null or trim(LATITUDE) in ('', '-')
+            or try_to_decimal(trim(LATITUDE), 18, 12) = -1
+            or LONGITUDE is null or trim(LONGITUDE) in ('', '-')
+            or try_to_decimal(trim(LONGITUDE), 18, 12) = -1,
+            false
+          )                                                                                             as has_missing_coordinates
+
+        , coalesce(
+            (upper(trim(LATITUDE)) not in ('', '-', 'REDACTED')
+                and try_to_decimal(trim(LATITUDE), 18, 12) is null)
+            or (upper(trim(LONGITUDE)) not in ('', '-', 'REDACTED')
+                and try_to_decimal(trim(LONGITUDE), 18, 12) is null)
+            or try_to_decimal(trim(LATITUDE), 18, 12) not between -90 and 90
+            or try_to_decimal(trim(LONGITUDE), 18, 12) not between -180 and 180,
+            false
+          )                                                                                             as has_invalid_coordinates
 
         , _INGESTED_AT                                                                                  as ingested_at
         , _SOURCE_FILE                                                                                  as source_file

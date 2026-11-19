@@ -1,0 +1,87 @@
+version: 2
+
+models:
+  - name: arrest
+    description: >
+      Una fila consolidada por arrest_number. Las infracciones legítimas permanecen en
+      arrest_offenses. MERGE procesa IDs con versiones normalizadas nuevas o diferentes,
+      identificadas por la ingesta real de RAW y una firma del histórico, nunca por la fecha
+      del arresto ni el orden de batch_id. Los campos se completan individualmente; los
+      conflictos priorizan completitud informativa, ingesta reciente y fingerprint descendente.
+      La completitud excluye la PK, metadatos, flags derivados e infracciones.
+      RAW conserva todos los candidatos. No se mezclan personas ni se reconstruyen datos REDACTED.
+    columns:
+      - name: arrest_number
+        data_tests: [not_null, unique]
+      - name: last_ingested_at
+        data_tests: [not_null]
+      - name: source_signature
+        data_tests: [not_null]
+      - name: source_version_count
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "> 0"
+      - name: max_completeness_score
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "between 0 and 31"
+      - name: consolidation_conflicts
+        description: Objeto campo -> valores no nulos distintos que compiten por el mismo atributo.
+        data_tests: [not_null]
+      - name: consolidation_choices
+        description: Valores de negocio consolidados, antes de generar las referencias a catálogos.
+        data_tests: [not_null]
+      - name: address_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: "ref('full_address')", field: address_id}
+      - name: agent_key
+        data_tests:
+          - relationships:
+              arguments: {to: "ref('agents')", field: agent_key}
+      - name: subject_key
+        data_tests:
+          - relationships:
+              arguments: {to: "ref('subject')", field: subject_key}
+      - name: police_area_id
+        data_tests:
+          - relationships:
+              arguments: {to: "ref('police_add')", field: police_area_id}
+      - name: report_id
+        data_tests:
+          - relationships:
+              arguments: {to: "ref('reports')", field: report_id}
+      - name: arrest_type_id
+        data_tests:
+          - relationships:
+              arguments: {to: "ref('arrest_types')", field: arrest_type_id}
+
+  - name: arrest_offenses
+    description: >
+      Una asociación observada por detención, tipo de infracción y descripción NIBRS.
+      No se filtra al último lote ni se eliminan cargos legítimos al consolidar arrest.
+    columns:
+      - name: arrest_offense_id
+        data_tests: [not_null, unique]
+      - name: arrest_number
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: "ref('arrest')", field: arrest_number}
+
+  - name: arrest_conflicts
+    description: Valores contradictorios observados y valor elegido por la regla documentada.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [arrest_number, field_name]
+    columns:
+      - name: arrest_number
+        data_tests: [not_null]
+      - name: field_name
+        data_tests: [not_null]

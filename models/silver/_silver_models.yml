@@ -133,6 +133,144 @@ models:
               arguments:
                 expression: "rlike '^[0-9]{5}$'"
 
+  - name: nibrs
+    config:
+      materialized: table
+      database: "{{ env_var('DBT_SILVER') }}"
+      schema: SILVER
+
+    description: >
+      Catálogo NIBRS de delitos, con una fila prevista por código y sin códigos ausentes.
+      Elimina duplicados exactos y conserva variantes contradictorias para revisión;
+      unique sobre offense_code y nibrs_key detecta esos conflictos, sin elegir una versión.
+      No se infiere una equivalencia con las descripciones de infracciones de arrestos.
+
+    columns:
+      - name: nibrs_key
+        data_type: varchar
+        description: Hash determinista de offense_code.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: offense_code
+        data_type: varchar
+        description: Código NIBRS normalizado en staging; debe identificar una clasificación sin conflictos.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: offense_description
+        data_type: varchar
+        description: Descripción del código recibida de staging.
+
+      - name: group_ab
+        data_type: varchar
+        description: Grupo NIBRS recibido de staging.
+
+      - name: crime_against_category
+        data_type: varchar
+        description: Categoría NIBRS según aquello contra lo que se dirige el delito.
+
+  - name: reports
+    config:
+      materialized: table
+      database: "{{ env_var('DBT_SILVER') }}"
+      schema: SILVER
+
+    description: >
+      Catálogo común de números de informe distintos y no nulos de delitos y arrestos.
+      Staging transforma únicamente el patrón aprobado YYYY0000NNNNNN en YYYY-NNNNNN
+      y el valor original permanece en RAW. Incluye informes presentes en un solo origen,
+      sin inventar correspondencias para los que no coinciden.
+      report_date_time procede de delitos; queda nulo cuando no hay fecha disponible,
+      sin sustituirlo por la fecha de registro del arresto. Las fechas contradictorias
+      se conservan para revisión y hacen fallar las pruebas de unicidad del informe.
+      Compartir informe no prueba una relación directa entre un delito y un arresto concreto.
+
+    columns:
+      - name: report_id
+        data_type: varchar
+        description: Hash determinista del número de informe común, independiente de la fuente.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: report_number
+        data_type: varchar
+        description: Número de informe común YYYY-NNNNNN, conservando los ceros del número de serie.
+        data_tests:
+          - not_null
+          - unique
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "rlike '^[0-9]{4}-[0-9]{6}$'"
+
+      - name: report_date_time
+        data_type: timestamp_ntz
+        description: >
+          Fecha y hora del informe recibida de stg_crimes, sin conversión de zona horaria.
+          NULL cuando no hay fecha disponible, incluidos los informes exclusivos de arrestos.
+
+  - name: shooting_types
+    config:
+      materialized: table
+      database: "{{ env_var('DBT_SILVER') }}"
+      schema: SILVER
+
+    description: >
+      Catálogo de etiquetas de tiroteo distintas y no nulas de delitos.
+      No repite la limpieza de staging ni crea un tipo para etiquetas ausentes.
+
+    columns:
+      - name: shooting_type_id
+        data_type: varchar
+        description: Hash determinista de la descripción del tipo de tiroteo.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: description
+        data_type: varchar
+        description: Etiqueta de tiroteo recibida de staging.
+        data_tests:
+          - not_null
+          - unique
+
+  - name: crime_shooting_types
+    config:
+      materialized: table
+      database: "{{ env_var('DBT_SILVER') }}"
+      schema: SILVER
+
+    description: >
+      Puente N:M entre delitos y tipos de tiroteo; una fila por pareja de identificadores.
+      Extrae todas las asociaciones de staging antes de deduplicar Crimes.
+      Un tipo ausente del catálogo no se descarta silenciosamente: produce una clave nula
+      y falla not_null. La prueba de relación con Crimes se añadirá cuando exista ese modelo.
+
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [offense_id, shooting_type_id]
+
+    columns:
+      - name: offense_id
+        data_type: varchar
+        description: Identificador del delito; puede repetirse con distintos tipos de tiroteo.
+        data_tests:
+          - not_null
+
+      - name: shooting_type_id
+        data_type: varchar
+        description: Referencia al catálogo de tipos de tiroteo; puede aparecer en distintos delitos.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('shooting_types')
+                field: shooting_type_id
+
 unit_tests:
   - name: police_add_combina_fuentes_y_conserva_areas_parciales
     description: >
@@ -225,3 +363,136 @@ unit_tests:
         - {license_number: L1, animal_name: LUNA, license_id: '1dd21505da48011481f575d710e625b4'}
         - {license_number: L1, animal_name: LOLA, license_id: '34af3f34efeea2f2493bce1b039faba5'}
         - {license_number: L2, animal_name: LUNA, license_id: 'bb5ebc71a16ef0a1b089a116518db1e9'}
+
+  - name: nibrs_deduplica_y_excluye_codigos_ausentes
+    description: >
+      Comprueba el renombrado de atributos NIBRS y la eliminación de duplicados exactos.
+      No crea clasificaciones para filas sin código, aunque tengan algún texto informado.
+    model: nibrs
+    given:
+      - input: ref('stg_crimes')
+        rows:
+          - {nibrs_offense_code: 13A, nibrs_offense_code_description: AGGRAVATED ASSAULT, nibrs_group_a_b: A, nibrs_crime_against_category: PERSON}
+          - {nibrs_offense_code: 13A, nibrs_offense_code_description: AGGRAVATED ASSAULT, nibrs_group_a_b: A, nibrs_crime_against_category: PERSON}
+          - {nibrs_offense_code: 23A, nibrs_offense_code_description: POCKET-PICKING, nibrs_group_a_b: A, nibrs_crime_against_category: PROPERTY}
+          - {nibrs_offense_code: null, nibrs_offense_code_description: null, nibrs_group_a_b: null, nibrs_crime_against_category: null}
+          - {nibrs_offense_code: null, nibrs_offense_code_description: DESCRIPTION WITHOUT CODE, nibrs_group_a_b: A, nibrs_crime_against_category: null}
+    expect:
+      rows:
+        - {offense_code: 13A, offense_description: AGGRAVATED ASSAULT, group_ab: A, crime_against_category: PERSON}
+        - {offense_code: 23A, offense_description: POCKET-PICKING, group_ab: A, crime_against_category: PROPERTY}
+
+  - name: nibrs_no_oculta_atributos_contradictorios
+    description: >
+      Comprueba que un código con dos descripciones conserva ambas variantes para revisión.
+      El unit test pasa al conservarlas; los data tests de unicidad detectarían el conflicto.
+    model: nibrs
+    given:
+      - input: ref('stg_crimes')
+        rows:
+          - {nibrs_offense_code: 13A, nibrs_offense_code_description: AGGRAVATED ASSAULT, nibrs_group_a_b: A, nibrs_crime_against_category: PERSON}
+          - {nibrs_offense_code: 13A, nibrs_offense_code_description: CONTRADICTORY DESCRIPTION, nibrs_group_a_b: A, nibrs_crime_against_category: PERSON}
+    expect:
+      rows:
+        - {offense_code: 13A, offense_description: AGGRAVATED ASSAULT}
+        - {offense_code: 13A, offense_description: CONTRADICTORY DESCRIPTION}
+
+  - name: reports_reune_origenes_y_conserva_informes_sin_coincidencia
+    description: >
+      Comprueba que un informe común y repetido produce una sola fila, sin depender del origen.
+      Conserva informes presentes solo en delitos o arrestos y excluye números nulos.
+      Conserva fecha y hora de delitos; no utiliza fechas de arresto para completar ausencias.
+      Los fixtures ya usan el formato común que produce staging.
+    model: reports
+    given:
+      - input: ref('stg_crimes')
+        rows:
+          - {report_number: '2026-912738', report_date_time: '2026-01-02 10:15:30'}
+          - {report_number: '2026-912738', report_date_time: '2026-01-02 10:15:30'}
+          - {report_number: '2026-000001', report_date_time: '2026-01-01 00:00:01'}
+          - {report_number: null, report_date_time: '2026-01-04 12:00:00'}
+      - input: ref('stg_arrests')
+        rows:
+          - {report_number: '2026-912738', arrest_reported_date_time: '2026-01-03 09:00:00'}
+          - {report_number: '2026-888888', arrest_reported_date_time: '2026-01-05 12:00:00'}
+          - {report_number: null, arrest_reported_date_time: null}
+    expect:
+      rows:
+        - {report_number: '2026-912738', report_date_time: '2026-01-02 10:15:30'}
+        - {report_number: '2026-000001', report_date_time: '2026-01-01 00:00:01'}
+        - {report_number: '2026-888888', report_date_time: null}
+
+  - name: reports_no_elige_una_fecha_si_el_informe_tiene_varias
+    description: >
+      Comprueba que un informe con dos horas distintas del mismo día conserva ambas variantes.
+      No trunca la hora ni escoge una fecha arbitraria: los data tests de unicidad detectarían el conflicto.
+    model: reports
+    given:
+      - input: ref('stg_crimes')
+        rows:
+          - {report_number: '2026-000001', report_date_time: '2026-01-01 09:00:00'}
+          - {report_number: '2026-000001', report_date_time: '2026-01-01 09:30:00'}
+      - input: ref('stg_arrests')
+        rows:
+          - {report_number: '2026-000001'}
+    expect:
+      rows:
+        - {report_number: '2026-000001', report_date_time: '2026-01-01 09:00:00'}
+        - {report_number: '2026-000001', report_date_time: '2026-01-01 09:30:00'}
+
+  - name: shooting_types_deduplica_y_excluye_nulos
+    description: >
+      Comprueba que las etiquetas repetidas generan un único tipo y que los nulos no crean categorías.
+      Las descripciones ya están normalizadas por staging y se conservan sin cambios.
+    model: shooting_types
+    given:
+      - input: ref('stg_crimes')
+        rows:
+          - {shooting_type_group: 'SHOOTING (FATAL INJURY)'}
+          - {shooting_type_group: 'SHOOTING (FATAL INJURY)'}
+          - {shooting_type_group: 'SHOOTING (NON-FATAL INJURY)'}
+          - {shooting_type_group: null}
+    expect:
+      rows:
+        - {description: 'SHOOTING (FATAL INJURY)'}
+        - {description: 'SHOOTING (NON-FATAL INJURY)'}
+
+  - name: crime_shooting_types_conserva_todos_los_tipos_sin_repetir_parejas
+    description: >
+      Comprueba que un delito con varios tipos conserva cada asociación una sola vez.
+      Un mismo tipo puede relacionarse con distintos delitos. Sin identificador o etiqueta no se crea pareja.
+    model: crime_shooting_types
+    given:
+      - input: ref('stg_crimes')
+        rows:
+          - {offense_id: C1, shooting_type_group: 'SHOOTING (FATAL INJURY)'}
+          - {offense_id: C1, shooting_type_group: 'SHOOTING (FATAL INJURY)'}
+          - {offense_id: C1, shooting_type_group: 'SHOTS FIRED (EYEWITNESS/CASINGS/PROPERTY DAMAGE)'}
+          - {offense_id: C2, shooting_type_group: 'SHOOTING (FATAL INJURY)'}
+          - {offense_id: C3, shooting_type_group: null}
+          - {offense_id: null, shooting_type_group: 'SHOOTING (FATAL INJURY)'}
+      - input: ref('shooting_types')
+        rows:
+          - {shooting_type_id: T1, description: 'SHOOTING (FATAL INJURY)'}
+          - {shooting_type_id: T2, description: 'SHOTS FIRED (EYEWITNESS/CASINGS/PROPERTY DAMAGE)'}
+    expect:
+      rows:
+        - {offense_id: C1, shooting_type_id: T1}
+        - {offense_id: C1, shooting_type_id: T2}
+        - {offense_id: C2, shooting_type_id: T1}
+
+  - name: crime_shooting_types_no_oculta_un_tipo_ausente_del_catalogo
+    description: >
+      Comprueba que una etiqueta sin correspondencia en Shooting_types no desaparece por el join.
+      Se conserva la asociación con clave nula para que falle not_null y se investigue la integridad.
+    model: crime_shooting_types
+    given:
+      - input: ref('stg_crimes')
+        rows:
+          - {offense_id: C1, shooting_type_group: 'SHOOTING (FATAL INJURY)'}
+      - input: ref('shooting_types')
+        rows:
+          - {shooting_type_id: T2, description: 'SHOOTING (NON-FATAL INJURY)'}
+    expect:
+      rows:
+        - {offense_id: C1, shooting_type_id: null}

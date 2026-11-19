@@ -1,6 +1,7 @@
 -- stg_crimes.sql
 -- Normaliza nombres, tipos y marcadores de los datos de delitos.
 -- Textos descriptivos y códigos en mayúsculas; identificadores y trazabilidad sin cambiar de caso.
+-- Coordenadas persistidas a cinco decimales; los indicadores validan los valores RAW antes de redondear.
 
 with source as (
 
@@ -27,8 +28,8 @@ renamed as (
             else upper(trim(BLOCK_ADDRESS))
           end                                                                                           as block_address
 
-        , nullif(try_to_decimal(trim(LATITUDE), 18, 12), -1)                                            as latitude
-        , nullif(try_to_decimal(trim(LONGITUDE), 18, 12), -1)                                           as longitude
+        , round(nullif(try_to_decimal(trim(LATITUDE), 18, 12), -1), 5)::number(18, 5)                   as latitude
+        , round(nullif(try_to_decimal(trim(LONGITUDE), 18, 12), -1), 5)::number(18, 5)                  as longitude
         , {{ nullif_any("upper(trim(BEAT))", "", "-") }}                                                as beat
         , {{ nullif_any("upper(trim(PRECINCT))", "", "-") }}                                            as precinct
         , {{ nullif_any("upper(trim(SECTOR))", "", "-") }}                                              as sector
@@ -47,6 +48,25 @@ renamed as (
             ),
             false
           )                                                                                             as is_location_redacted
+
+        -- Ausencia y conversión fallida se distinguen antes de perder los marcadores RAW.
+        , coalesce(
+            LATITUDE is null or trim(LATITUDE) in ('', '-')
+            or try_to_decimal(trim(LATITUDE), 18, 12) = -1
+            or LONGITUDE is null or trim(LONGITUDE) in ('', '-')
+            or try_to_decimal(trim(LONGITUDE), 18, 12) = -1,
+            false
+          )                                                                                             as has_missing_coordinates
+
+        , coalesce(
+            (upper(trim(LATITUDE)) not in ('', '-', 'REDACTED')
+                and try_to_decimal(trim(LATITUDE), 18, 12) is null)
+            or (upper(trim(LONGITUDE)) not in ('', '-', 'REDACTED')
+                and try_to_decimal(trim(LONGITUDE), 18, 12) is null)
+            or try_to_decimal(trim(LATITUDE), 18, 12) not between -90 and 90
+            or try_to_decimal(trim(LONGITUDE), 18, 12) not between -180 and 180,
+            false
+          )                                                                                             as has_invalid_coordinates
 
         , _INGESTED_AT                                                                                  as ingested_at
         , _SOURCE_FILE                                                                                  as source_file

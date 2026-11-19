@@ -1,7 +1,13 @@
 -- Catálogo común de áreas policiales de delitos y arrestos.
 -- Grano: una combinación de precinct, sector y beat, no una fila por beat.
 
-with police_areas as (
+with consolidated as (
+
+    {{ consolidate_arrests(ref('stg_arrests')) }}
+
+),
+
+police_areas as (
 
     select precinct, sector, beat
     from {{ ref('stg_crimes') }}
@@ -10,6 +16,11 @@ with police_areas as (
 
     select precinct, sector, beat
     from {{ ref('stg_arrests') }}
+
+    union all
+
+    select precinct, sector, beat
+    from consolidated
 
 ),
 
