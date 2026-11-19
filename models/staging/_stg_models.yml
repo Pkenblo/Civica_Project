@@ -15,6 +15,8 @@ models:
 
     description: >
       Licencias de mascotas con nombres y tipos normalizados.
+      Nombres, especies, razas y CP en mayúsculas, sin espacios exteriores ni cadenas vacías.
+      El identificador de licencia y los metadatos conservan su escritura de origen.
       Conserva los registros del origen sin deduplicar.
 
     columns:
@@ -32,23 +34,23 @@ models:
 
       - name: animal_name
         data_type: varchar
-        description: Nombre de la mascota.
+        description: Nombre de la mascota en mayúsculas, sin espacios exteriores.
 
       - name: species
         data_type: varchar
-        description: Especie de la mascota.
+        description: Especie de la mascota en mayúsculas, sin espacios exteriores.
         data_tests:
           - not_null
 
       - name: primary_breed
         data_type: varchar
-        description: Raza principal de la mascota.
+        description: Raza principal de la mascota en mayúsculas, sin espacios exteriores.
         data_tests:
           - not_null
 
       - name: secondary_breed
         data_type: varchar
-        description: Raza secundaria, cuando está informada.
+        description: Raza secundaria en mayúsculas y sin espacios exteriores, cuando está informada.
 
       - name: zip_code
         data_type: varchar
@@ -77,6 +79,8 @@ models:
 
     description: >
       Registros de delitos con nombres, tipos y marcadores normalizados.
+      Textos descriptivos y códigos en mayúsculas, sin espacios exteriores ni cadenas vacías.
+      Los identificadores y los metadatos conservan su escritura de origen.
       Conserva las versiones y las filas asociadas a distintos tipos de tiroteo.
 
     columns:
@@ -134,15 +138,15 @@ models:
 
       - name: beat
         data_type: varchar
-        description: Código de la zona de patrulla policial.
+        description: Código de la zona de patrulla policial en mayúsculas, sin espacios exteriores.
 
       - name: precinct
         data_type: varchar
-        description: Distrito policial.
+        description: Distrito policial en mayúsculas, sin espacios exteriores.
 
       - name: sector
         data_type: varchar
-        description: Sector policial.
+        description: Sector policial en mayúsculas, sin espacios exteriores.
 
       - name: neighborhood
         data_type: varchar
@@ -197,6 +201,8 @@ models:
 
     description: >
       Registros de detenciones con nombres, tipos y marcadores normalizados.
+      Textos descriptivos y códigos en mayúsculas, sin espacios exteriores ni cadenas vacías.
+      Los identificadores y los metadatos conservan su escritura de origen.
       Conserva las versiones y las filas asociadas a diferentes infracciones.
 
     columns:
@@ -220,13 +226,15 @@ models:
 
       - name: arrest_type
         data_type: varchar
-        description: Tipo de actuación, que puede incluir citaciones o actuaciones sin ingreso en prisión.
+        description: >
+          Tipo de actuación en mayúsculas, sin espacios exteriores y con espacios internos unificados.
+          Puede incluir citaciones o actuaciones sin ingreso en prisión.
         data_tests:
           - not_null
 
       - name: beat
         data_type: varchar
-        description: Código de la zona de patrulla policial.
+        description: Código de la zona de patrulla policial en mayúsculas, sin espacios exteriores.
 
       - name: cad_clearance
         data_type: varchar
@@ -288,7 +296,7 @@ models:
 
       - name: precinct
         data_type: varchar
-        description: Distrito policial.
+        description: Distrito policial en mayúsculas, sin espacios exteriores.
 
       - name: report_number
         data_type: varchar
@@ -298,15 +306,15 @@ models:
 
       - name: sector
         data_type: varchar
-        description: Sector policial.
+        description: Sector policial en mayúsculas, sin espacios exteriores.
 
       - name: subject_age_range
         data_type: varchar
-        description: Rango de edad del sujeto según el origen.
+        description: Rango de edad del sujeto en mayúsculas; NULL si está vacío o contiene el marcador -.
 
       - name: subject_gender
         data_type: varchar
-        description: Género del sujeto según el origen.
+        description: Género del sujeto en mayúsculas; NULL si está vacío o contiene el marcador -.
 
       - name: subject_id
         data_type: varchar
@@ -314,7 +322,7 @@ models:
 
       - name: subject_race
         data_type: varchar
-        description: Clasificación racial del sujeto según el origen.
+        description: Clasificación racial del sujeto en mayúsculas; NULL si está vacía o contiene el marcador -.
 
       - name: terry_stop
         data_type: boolean
@@ -375,6 +383,8 @@ models:
 
     description: >
       Zonas postales de King County y alrededores con atributos y geometría tipados.
+      Textos descriptivos y CP en mayúsculas, sin espacios exteriores ni cadenas vacías.
+      La versión cartográfica y los metadatos conservan su escritura de origen.
       Conserva una fila por entidad del origen, sin unir piezas ni seleccionar una versión.
 
     data_tests:

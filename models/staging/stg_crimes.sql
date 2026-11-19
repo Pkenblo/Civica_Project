@@ -1,5 +1,6 @@
 -- stg_crimes.sql
 -- Normaliza nombres, tipos y marcadores de los datos de delitos.
+-- Textos descriptivos y códigos en mayúsculas; identificadores y trazabilidad sin cambiar de caso.
 
 with source as (
 
@@ -15,27 +16,27 @@ renamed as (
         , to_timestamp_ntz(trim(REPORT_DATE_TIME), 'MM/DD/YYYY HH12:MI:SS AM')                          as report_date_time
         , nullif(trim(OFFENSE_ID), '')                                                                  as offense_id
         , to_timestamp_ntz(trim(OFFENSE_DATE), 'MM/DD/YYYY HH12:MI:SS AM')                              as offense_date
-        , {{ nullif_any("trim(NIBRS_GROUP_A_B)", "", "-") }}                                            as nibrs_group_a_b
-        , {{ nullif_any("trim(NIBRS_CRIME_AGAINST_CATEGORY)", "", "-") }}                               as nibrs_crime_against_category
-        , {{ nullif_any("trim(OFFENSE_SUB_CATEGORY)", "", "-") }}                                       as offense_sub_category
-        , {{ nullif_any("trim(SHOOTING_TYPE_GROUP)", "", "-") }}                                        as shooting_type_group
+        , {{ nullif_any("upper(trim(NIBRS_GROUP_A_B))", "", "-") }}                                     as nibrs_group_a_b
+        , {{ nullif_any("upper(trim(NIBRS_CRIME_AGAINST_CATEGORY))", "", "-") }}                        as nibrs_crime_against_category
+        , {{ nullif_any("upper(trim(OFFENSE_SUB_CATEGORY))", "", "-") }}                                as offense_sub_category
+        , {{ nullif_any("upper(trim(SHOOTING_TYPE_GROUP))", "", "-") }}                                 as shooting_type_group
 
         , case
             when upper(trim(BLOCK_ADDRESS)) in ('', '-', 'REDACTED')
                 then null
-            else trim(BLOCK_ADDRESS)
+            else upper(trim(BLOCK_ADDRESS))
           end                                                                                           as block_address
 
         , nullif(try_to_decimal(trim(LATITUDE), 18, 12), -1)                                            as latitude
         , nullif(try_to_decimal(trim(LONGITUDE), 18, 12), -1)                                           as longitude
-        , {{ nullif_any("trim(BEAT)", "", "-") }}                                                       as beat
-        , {{ nullif_any("trim(PRECINCT)", "", "-") }}                                                   as precinct
-        , {{ nullif_any("trim(SECTOR)", "", "-") }}                                                     as sector
-        , {{ nullif_any("trim(NEIGHBORHOOD)", "", "-") }}                                               as neighborhood
+        , {{ nullif_any("upper(trim(BEAT))", "", "-") }}                                                as beat
+        , {{ nullif_any("upper(trim(PRECINCT))", "", "-") }}                                            as precinct
+        , {{ nullif_any("upper(trim(SECTOR))", "", "-") }}                                              as sector
+        , {{ nullif_any("upper(trim(NEIGHBORHOOD))", "", "-") }}                                        as neighborhood
         , {{ nullif_any("upper(trim(REPORTING_AREA))", "", "-", "REDACTED") }}                          as reporting_area
-        , {{ nullif_any("trim(OFFENSE_CATEGORY)", "", "-") }}                                           as offense_category
-        , {{ nullif_any("trim(NIBRS_OFFENSE_CODE_DESCRIPTION)", "", "-") }}                             as nibrs_offense_code_description
-        , {{ nullif_any("trim(NIBRS_OFFENSE_CODE)", "", "-") }}                                         as nibrs_offense_code
+        , {{ nullif_any("upper(trim(OFFENSE_CATEGORY))", "", "-") }}                                    as offense_category
+        , {{ nullif_any("upper(trim(NIBRS_OFFENSE_CODE_DESCRIPTION))", "", "-") }}                      as nibrs_offense_code_description
+        , {{ nullif_any("upper(trim(NIBRS_OFFENSE_CODE))", "", "-") }}                                  as nibrs_offense_code
         , {{ nullif_any("upper(trim(CENSUS_BLOCK_2020))", "", "-", "REDACTED") }}                       as census_block_2020
 
         , coalesce(
