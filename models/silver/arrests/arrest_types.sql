@@ -7,9 +7,15 @@ with deduplicated as (
     from {{ ref('stg_arrests') }}
     where arrest_type is not null
 
+),
+
+candidates as (
+
+    select
+          {{ dbt_utils.generate_surrogate_key(['description']) }} as arrest_type_id
+        , description
+    from deduplicated
+
 )
 
-select
-      {{ dbt_utils.generate_surrogate_key(['description']) }} as arrest_type_id
-    , description
-from deduplicated
+{{ changed_catalog_rows('candidates') }}

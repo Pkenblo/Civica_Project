@@ -9,9 +9,7 @@ with scored as (
 versions as (
 
     select distinct arrest_number, ingested_at,
-        sha2(to_json(array_construct(
-            _row_fingerprint, convert_timezone('UTC', ingested_at)::timestamp_ntz
-        )), 256) as version_fingerprint
+        {{ arrest_version_fingerprint() }} as version_fingerprint
     from scored
 
 ),

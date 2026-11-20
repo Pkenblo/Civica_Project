@@ -6,12 +6,13 @@ models:
       Una fila consolidada por arrest_number. Las infracciones legítimas permanecen en
       arrest_offenses. MERGE procesa IDs con versiones normalizadas nuevas o diferentes,
       identificadas por la ingesta real de RAW y una firma del histórico, nunca por la fecha
-      del arresto ni el orden de batch_id. Los campos se completan individualmente; los
-      conflictos priorizan completitud informativa, ingesta reciente y fingerprint descendente.
-      La completitud excluye la PK, metadatos, flags derivados e infracciones.
-      RAW conserva todos los candidatos. No se mezclan personas ni se reconstruyen datos REDACTED.
+      del arresto ni el orden de batch_id. Por campo gana el valor no nulo de la ingesta más
+      reciente; el fingerprint descendente desempata fechas iguales. Los atributos de agente
+      y sujeto solo se toman de versiones con su último identificador no nulo. REDACTED no
+      aporta ubicación ni borra valores válidos de otras versiones.
     columns:
       - name: arrest_number
+        description: Identificador de origen y clave única del MERGE; no se le aplica un hash.
         data_tests: [not_null, unique]
       - name: last_ingested_at
         data_tests: [not_null]
@@ -24,6 +25,7 @@ models:
               arguments:
                 expression: "> 0"
       - name: max_completeness_score
+        description: Máximo de campos informados en una versión original; no decide qué valores ganan.
         data_tests:
           - not_null
           - dbt_utils.expression_is_true:
@@ -48,6 +50,12 @@ models:
         data_tests:
           - relationships:
               arguments: {to: "ref('subject')", field: subject_key}
+      - name: subgect_age_at_detention
+        data_type: varchar
+        description: Rango de edad consolidado del sujeto en esta detención.
+      - name: agents_age_at_detention
+        data_type: number(38,0)
+        description: Edad consolidada del agente en esta detención.
       - name: police_area_id
         data_tests:
           - relationships:
@@ -60,11 +68,30 @@ models:
         data_tests:
           - relationships:
               arguments: {to: "ref('arrest_types')", field: arrest_type_id}
+      - name: cad_profile_id
+        description: Referencia al perfil CAD consolidado. Es nula cuando los tres campos CAD están ausentes.
+        data_tests:
+          - relationships:
+              arguments: {to: "ref('cad_profiles')", field: cad_profile_id}
+
+  - name: cad_profiles
+    description: >
+      Una fila por combinación consolidada de cierre, tipo inicial y prioridad CAD que aparece
+      en arrest. Incluye perfiles parciales, pero no representa llamadas individuales.
+    columns:
+      - name: cad_profile_id
+        data_tests: [not_null, unique]
+      - name: cad_clearance
+        description: Resultado o cierre registrado en el sistema de despacho.
+      - name: cad_initial_call_type
+        description: Tipo de inicio de la intervención según el sistema de despacho.
+      - name: cad_priority
+        description: Código de prioridad registrado en el sistema de despacho.
 
   - name: arrest_offenses
     description: >
-      Una asociación observada por detención, tipo de infracción y descripción NIBRS.
-      No se filtra al último lote ni se eliminan cargos legítimos al consolidar arrest.
+      Puente entre arrest y nibrs. Conserva una asociación por detención, tipo de
+      infracción y descripción NIBRS observados, aunque no se pueda asignar un código.
     columns:
       - name: arrest_offense_id
         data_tests: [not_null, unique]
@@ -73,6 +100,15 @@ models:
           - not_null
           - relationships:
               arguments: {to: "ref('arrest')", field: arrest_number}
+      - name: offense_type
+        description: Tipo de infracción tal como se publica en staging.
+      - name: nibrs_description
+        description: Descripción NIBRS de la fuente de arrestos, conservada aunque no se empareje.
+      - name: nibrs_key
+        description: Referencia al único código con la misma descripción, o nula si no hay coincidencia única.
+        data_tests:
+          - relationships:
+              arguments: {to: "ref('nibrs')", field: nibrs_key}
 
   - name: arrest_conflicts
     description: Valores contradictorios observados y valor elegido por la regla documentada.
@@ -85,3 +121,39 @@ models:
         data_tests: [not_null]
       - name: field_name
         data_tests: [not_null]
+
+unit_tests:
+  - name: arrest_offenses_enlaza_solo_descripciones_nibrs_univocas
+    description: >
+      Conserva varios tipos y códigos por detención. Las descripciones ausentes,
+      no exactas o ambiguas quedan sin enlace; repetir un código no duplica el detalle.
+    model: arrest_offenses
+    given:
+      - input: ref('stg_arrests')
+        rows:
+          - {arrest_number: 'A1', offense_type: CHARGE A, nibrs_description: AGGRAVATED ASSAULT}
+          - {arrest_number: 'A1', offense_type: CHARGE A, nibrs_description: AGGRAVATED ASSAULT}
+          - {arrest_number: 'A1', offense_type: CHARGE B, nibrs_description: AGGRAVATED ASSAULT}
+          - {arrest_number: 'A1', offense_type: CHARGE A, nibrs_description: POCKET-PICKING}
+          - {arrest_number: 'A2', offense_type: CHARGE C, nibrs_description: ASSAULT}
+          - {arrest_number: 'A2', offense_type: CHARGE C, nibrs_description: AMBIGUOUS}
+          - {arrest_number: 'A2', offense_type: CHARGE C, nibrs_description: null}
+          - {arrest_number: 'A3', offense_type: null, nibrs_description: POCKET-PICKING}
+          - {arrest_number: 'A3', offense_type: null, nibrs_description: null}
+          - {arrest_number: null, offense_type: CHARGE A, nibrs_description: AGGRAVATED ASSAULT}
+      - input: ref('nibrs')
+        rows:
+          - {nibrs_key: K13A, offense_description: AGGRAVATED ASSAULT}
+          - {nibrs_key: K13A, offense_description: AGGRAVATED ASSAULT}
+          - {nibrs_key: K23A, offense_description: POCKET-PICKING}
+          - {nibrs_key: K1, offense_description: AMBIGUOUS}
+          - {nibrs_key: K2, offense_description: AMBIGUOUS}
+    expect:
+      rows:
+        - {arrest_number: 'A1', offense_type: CHARGE A, nibrs_description: AGGRAVATED ASSAULT, nibrs_key: K13A}
+        - {arrest_number: 'A1', offense_type: CHARGE B, nibrs_description: AGGRAVATED ASSAULT, nibrs_key: K13A}
+        - {arrest_number: 'A1', offense_type: CHARGE A, nibrs_description: POCKET-PICKING, nibrs_key: K23A}
+        - {arrest_number: 'A2', offense_type: CHARGE C, nibrs_description: ASSAULT, nibrs_key: null}
+        - {arrest_number: 'A2', offense_type: CHARGE C, nibrs_description: AMBIGUOUS, nibrs_key: null}
+        - {arrest_number: 'A2', offense_type: CHARGE C, nibrs_description: null, nibrs_key: null}
+        - {arrest_number: 'A3', offense_type: null, nibrs_description: POCKET-PICKING, nibrs_key: K23A}

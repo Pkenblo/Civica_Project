@@ -1,4 +1,4 @@
--- Delitos con referencias a informes, NIBRS, ubicación publicada y área policial.
+-- Delitos con referencias a informes, NIBRS, categorías, ubicación publicada y área policial.
 -- La fecha del informe se consulta en Reports; no se duplica aquí ni se recupera report_number_source.
 -- BORRADOR: conserva variantes base distintas de un offense_id y elimina solo duplicados completos.
 -- No selecciona una última versión por ingested_at. El grano definitivo queda pendiente.
@@ -49,8 +49,8 @@ select distinct
     , reports.report_id
     , crimes.offense_date
     , nibrs.nibrs_key
-    , crimes.offense_category
-    , crimes.offense_sub_category
+    , categories.offense_category_id
+    , subcategories.offense_subcategory_id
     , crimes.address_id
     , police.police_area_id
 from keyed as crimes
@@ -58,6 +58,11 @@ left join {{ ref('reports') }} as reports
     on crimes.report_number = reports.report_number
 left join {{ ref('nibrs') }} as nibrs
     on crimes.nibrs_offense_code = nibrs.offense_code
+left join {{ ref('offense_categories') }} as categories
+    on crimes.offense_category = categories.offense_category
+left join {{ ref('offense_subcategories') }} as subcategories
+    on crimes.offense_sub_category = subcategories.offense_sub_category
+    and equal_null(categories.offense_category_id, subcategories.offense_category_id)
 left join {{ ref('police_add') }} as police
     on equal_null(crimes.precinct, police.precinct)
     and equal_null(crimes.sector, police.sector)

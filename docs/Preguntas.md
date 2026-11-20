@@ -2,3 +2,6 @@ Las edades de los delincuentes y policias van cambiando por lo que tengo 2 opcio
 
 Cuando tengo los sugetos sin identificar puedo hacer una relacion 1/0 donde no es obligatorio tener sugeto en un crimen y en vez de Id guardamos Null si es vacio o Private si es redacted o algo asi.
 
+El stagin es solo una vista por lo que aunque haya incrementalidad este si tiene que consultar toda la tabla.
+
+Tengo que hacer incrementalidad en todas las tablas? de silver? y si es asi no tarda mucho?

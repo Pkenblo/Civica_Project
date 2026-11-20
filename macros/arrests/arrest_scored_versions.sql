@@ -5,7 +5,7 @@
 with arrest_normalized as (
 
     select staging.* replace (
-        {% for column in ['block_address', 'latitude', 'longitude', 'neighborhood', 'reporting_area', 'census_block_2020'] %}
+        {% for column in arrest_location_columns() %}
         case when is_location_redacted
             {% if column in ['latitude', 'longitude'] %}or has_invalid_coordinates{% endif %}
             then null else {{ column }} end as {{ column }}{{ ',' if not loop.last }}
@@ -32,4 +32,11 @@ select
       )), 256) as _row_fingerprint
 from arrest_normalized
 
+{% endmacro %}
+
+-- Identidad de una versión de RAW: contenido normalizado e instante de ingesta.
+{% macro arrest_version_fingerprint() %}
+    sha2(to_json(array_construct(
+        _row_fingerprint, convert_timezone('UTC', ingested_at)::timestamp_ntz
+    )), 256)
 {% endmacro %}

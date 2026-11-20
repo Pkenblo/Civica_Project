@@ -8,7 +8,6 @@ Never runs --full-refresh, and never writes to the project's RAW/STG/SILVER sche
 
 from __future__ import annotations
 
-import ast
 import datetime as dt
 import json
 import os
@@ -16,7 +15,6 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
-import sys
 import tempfile
 import tomllib
 import uuid
@@ -55,7 +53,7 @@ def main():
         p.unlink()
     (project / 'models').mkdir()
     paths = {p.stem: p for p in (repo / 'models').rglob('*.sql')}
-    selected = ['arrest', 'agents', 'subject', 'arrest_types', 'arrest_offenses', 'offense_types',
+    selected = ['arrest', 'agents', 'subject', 'arrest_types', 'arrest_offenses', 'nibrs', 'cad_profiles',
                 'arrest_conflicts', 'police_add', 'full_address', 'reports', 'stg_arrests']
     for name in selected:
         shutil.copy2(paths[name], project / 'models' / (name + '.sql'))
@@ -79,7 +77,10 @@ select null::varchar offense_id, null::varchar report_number, null::timestamp_nt
  null::varchar precinct, null::varchar sector, null::varchar beat, null::varchar block_address,
  null::number(18,5) latitude, null::number(18,5) longitude, null::varchar neighborhood,
  null::varchar reporting_area, null::varchar census_block_2020,
- false is_location_redacted, false has_missing_coordinates, false has_invalid_coordinates where false
+  false is_location_redacted, false has_missing_coordinates, false has_invalid_coordinates,
+  catalog.column1::varchar as nibrs_offense_code, catalog.column2::varchar as nibrs_offense_code_description,
+  null::varchar nibrs_group_a_b, null::varchar nibrs_crime_against_category
+ from values ('13A', 'AGGRAVATED ASSAULT'), ('23A', 'POCKET-PICKING') as catalog
 """)
     (project / 'models/postal_codes.sql').write_text("""{{ config(materialized='view') }}
 select null::varchar cp, null::geography geography where false
@@ -98,17 +99,27 @@ select null::varchar cp, null::geography geography where false
 
     defaults = (repo / 'tests/unit/arrest_consolidation_preserves_values.sql').read_text().split('),\n\nfixture as (', 1)[0] + ')'
     date1, date2 = '2026-11-18 10:00:00 +00:00', '2026-11-19 10:00:00 +00:00'
+    date_before = '2026-11-18 08:00:00 +00:00'
+    date_between = '2026-11-18 15:00:00 +00:00'
+    date_after = '2026-11-19 15:00:00 +00:00'
+    public_location = dict(block_address='KEEP PUBLIC ADDRESS', latitude=47.12345, longitude=-122.12345)
     initial = [
         dict(id='ADDITIONAL', latitude=47.12345, officer_title='JOHN'),
         dict(id='NULLS', block_address='KEEP ADDRESS', latitude=47.12345, officer_title='JOHN', force_involved=True, cad_priority=0),
         dict(id='OLD', arrest_occurred_date_time='2011-01-01 00:00:00'),
         dict(id='COMPLETE', officer_title='ORIGINAL', block_address='A STREET', latitude=47.12345, longitude=-122.12345),
         dict(id='TIME_TIE', officer_title='OLD TITLE'),
-        dict(id='OFFENSES', offense_type='CHARGE A'),
-        dict(id='OFFENSES', offense_type='CHARGE B'),
+        dict(id='OFFENSES', offense_type='CHARGE A', nibrs_description=' aggravated assault '),
+        dict(id='OFFENSES', offense_type='CHARGE B', nibrs_description='POCKET-PICKING'),
+        dict(id='REDACTED_INITIAL', **public_location),
+        dict(id='REDACTED_NEWER', **public_location),
+        dict(id='REDACTED_LATE', **public_location),
+        dict(id='REDACTED_ONLY', block_address='REDACTED'),
+        dict(id='IDENTITY', officer_id='A1', officer_title='OLD OFFICER', officer_age=40, officer_squad='NORTH',
+             subject_id='P1', subject_age_range='18-24', subject_gender='MALE', subject_race='OLD RACE'),
     ]
     later = [
-        dict(id='NEW_ID', officer_title='NEW OFFICER'),
+        dict(id='NEW_ID', officer_title='NEW OFFICER', cad_clearance='NEW INFORMATION'),
         dict(id='ADDITIONAL', block_address='MAIN STREET', longitude=-122.12345),
         dict(id='NULLS'),
         dict(id='OLD', arrest_occurred_date_time='2011-01-01 00:00:00', cad_clearance='NEW INFORMATION'),
@@ -120,6 +131,9 @@ select null::varchar cp, null::geography geography where false
         dict(id='DECIMAL', raw_latitude='47.123459999', longitude=-122.12345),
         dict(id='HASH_TIE', officer_title='ALPHA'),
         dict(id='HASH_TIE', officer_title='BETA'),
+        dict(id='REDACTED_NEWER', block_address='REDACTED'),
+        dict(id='REDACTED_LATE'),
+        dict(id='IDENTITY', officer_id='A2', officer_title='NEW OFFICER', subject_id='P2', subject_age_range='35-44'),
     ]
 
     def literal(v):
@@ -138,9 +152,10 @@ select null::varchar cp, null::geography geography where false
                         arrest_occurred_date_time='2011-01-01 00:00:00',
                         arrest_reported_date_time='2011-01-01 01:00:00', report_number='2026-000001',
                         arrest_type='PHYSICAL ARREST', officer_id='O_' + r['id'])
-            data.update({k: v for k, v in r.items() if k not in ['id', 'offense_type', 'raw_latitude']})
+            data.update({k: v for k, v in r.items() if k not in ['id', 'offense_type', 'nibrs_description', 'raw_latitude']})
             versions.append('select d.* replace (' + ', '.join(literal(v) + ' as ' + k for k, v in data.items()) + '), '
-                            + literal(r.get('offense_type')) + '::varchar as offense_type, null::varchar as nibrs_description, '
+                            + literal(r.get('offense_type')) + '::varchar as offense_type, '
+                            + literal(r.get('nibrs_description')) + '::varchar as nibrs_description, '
                             + literal(r.get('raw_latitude')) + '::varchar as raw_latitude from defaults d')
         expressions = []
         for col in raw_columns:
@@ -171,52 +186,124 @@ select null::varchar cp, null::geography geography where false
                 q.execute(f'select * from {table} order by arrest_number')
                 return q.fetchall()
 
+            def location(id_):
+                q.execute(f'''select a.address_id, d.block_address, d.latitude::float, d.longitude::float, d.cp_status
+                    from {table} a join {database}.{schema}.FULL_ADDRESS d on a.address_id = d.address_id
+                    where a.arrest_number=%s''', (id_,))
+                return q.fetchone()
+
+            def identity():
+                q.execute(f'''select g.officer_id, g.officer_title, a.agents_age_at_detention, g.squad_description,
+                        s.sk_person, a.subgect_age_at_detention, s.subject_gender, s.subject_race
+                    from {table} a
+                    left join {database}.{schema}.AGENTS g on a.agent_key = g.agent_key
+                    left join {database}.{schema}.SUBJECT s on a.subject_key = s.subject_key
+                    where a.arrest_number = 'IDENTITY' ''')
+                return q.fetchone()
+
+            def cad_profile(id_):
+                q.execute(f'''select a.cad_profile_id, p.cad_clearance, p.cad_initial_call_type, p.cad_priority
+                    from {table} a left join {database}.{schema}.CAD_PROFILES p
+                        on a.cad_profile_id = p.cad_profile_id
+                    where a.arrest_number = %s''', (id_,))
+                return q.fetchone()
+
             try:
                 q.execute(f'create schema {database}.{schema}')
                 created = True
                 q.execute(f'create table {raw} as ' + raw_rows(initial, date1, '1001'))
+                q.execute(f'insert into {raw} ' + raw_rows(
+                    [dict(id='REDACTED_INITIAL', block_address='REDACTED')], date_between, 'initial_redacted'))
+                q.execute(f'insert into {raw} ' + raw_rows([
+                    dict(id='IDENTITY', officer_id='A2', officer_title='EARLIER TITLE', officer_squad='SOUTH',
+                         subject_id='P2', subject_age_range='25-34', subject_gender='FEMALE'),
+                ], date_before, 'older_identity'))
                 run('parse', '--no-partial-parse')
                 run('compile')
                 run('run')
-                q.execute(f"update {table} set cad_clearance='KEEP DESTINATION' where arrest_number='NULLS'")
+                expected_location = ('KEEP PUBLIC ADDRESS', 47.12345, -122.12345, 'no_match')
+                initial_location = location('REDACTED_INITIAL')
+                assert initial_location[1:] == expected_location, initial_location
+                assert location('REDACTED_ONLY')[1:] == (None, None, None, 'redacted')
+                assert identity() == ('A1', 'OLD OFFICER', 40, 'NORTH', 'P1', '18-24', 'MALE', 'OLD RACE')
+                original_location = location('REDACTED_NEWER')
+                q.execute(f'''update {table}
+                    set consolidation_choices = object_insert(
+                        consolidation_choices, 'cad_clearance', to_variant('KEEP DESTINATION'), true
+                    ) where arrest_number = 'NULLS' ''')
                 q.execute(f'insert into {raw} ' + raw_rows(later, date2, '2'))
                 run('compile')
                 run('run')
+                expected_identity = ('A2', 'NEW OFFICER', None, 'SOUTH', 'P2', '35-44', 'FEMALE', None)
+                assert identity() == expected_identity
+                assert location('REDACTED_NEWER') == original_location == initial_location
                 assert choices('NEW_ID')['officer_title'] == 'NEW OFFICER'
                 a = choices('ADDITIONAL')
                 assert a['officer_title'] == 'JOHN' and a['block_address'] == 'MAIN STREET' and a['latitude'] == 47.12345, a
                 a = choices('NULLS')
                 assert a['officer_title'] == 'JOHN' and a['block_address'] == 'KEEP ADDRESS' and a['latitude'] == 47.12345, a
                 assert a['cad_clearance'] == 'KEEP DESTINATION', a
-                q.execute(f"select cad_clearance,force_involved,cad_priority from {table} where arrest_number='NULLS'")
-                assert q.fetchone() == ('KEEP DESTINATION', True, 0)
+                assert cad_profile('NULLS')[1:] == ('KEEP DESTINATION', None, 0)
+                q.execute(f"select force_involved from {table} where arrest_number='NULLS'")
+                assert q.fetchone() == (True,)
                 a = choices('MULTI')
                 assert a['officer_title'] == 'COMBINED OFFICER' and a['block_address'] == 'COMBINED ADDRESS', a
                 q.execute(f"select source_version_count,consolidation_conflicts:latitude from {table} where arrest_number='DECIMAL'")
                 assert q.fetchone() == (1, None)
                 assert choices('DECIMAL')['latitude'] == 47.12346
                 q.execute(f"select last_ingested_at from {table} where arrest_number='OLD'")
-                assert q.fetchone()[0].astimezone(dt.timezone.utc).date() == dt.date(2026, 11, 19)
+                assert q.fetchone() == (dt.datetime.fromisoformat(date2),)
+                repeated_profile = cad_profile('OLD')
+                assert repeated_profile[1:] == ('NEW INFORMATION', None, None)
+                assert cad_profile('NEW_ID') == repeated_profile
+                assert cad_profile('TIME_TIE') == (None, None, None, None)
+                original_cad_profile = cad_profile('COMPLETE')
                 a = choices('COMPLETE')
-                assert a['officer_title'] == 'ORIGINAL' and a['cad_clearance'] == 'COMPLEMENT', a
+                assert (a['block_address'], a['cad_clearance'], a['officer_title']) == (
+                    'A STREET', 'COMPLEMENT', 'CONTRADICTORY'), a
                 assert choices('TIME_TIE')['officer_title'] == 'NEW TITLE'
                 q.execute(f"select array_size(observed_values),selected_value::varchar from {database}.{schema}.ARREST_CONFLICTS where arrest_number='COMPLETE' and field_name='officer_title'")
-                assert q.fetchone() == (2, 'ORIGINAL')
-                columns = ast.literal_eval(re.search(r'return\((\[.*?\])\)', (repo / 'macros/arrests/arrest_business_columns.sql').read_text(), re.S)[1])
-                parts = [f"coalesce(to_variant({col}),parse_json('null'))" for col in columns + ['is_location_redacted', 'has_invalid_coordinates']]
+                assert q.fetchone() == (2, 'CONTRADICTORY')
+                # El fixture declara las columnas en el orden esperado del desempate.
+                columns = re.findall(r'\bas (\w+)', defaults)[2:]
+                parts = [f"coalesce(to_variant({col}),parse_json('null'))" for col in columns]
                 q.execute('select officer_title from ' + database + '.' + schema + '.STG_ARRESTS where arrest_number=\'HASH_TIE\' order by sha2(to_json(array_construct(' + ', '.join(parts) + ')),256) desc limit 1')
                 expected_title = q.fetchone()[0]
                 assert choices('HASH_TIE')['officer_title'] == expected_title
                 q.execute(f'select count(*),count(distinct arrest_number) from {table}')
-                assert q.fetchone() == (10, 10)
-                q.execute(f"select count(*) from {database}.{schema}.ARREST_OFFENSES where arrest_number='OFFENSES'")
-                assert q.fetchone()[0] == 2
+                assert q.fetchone() == (15, 15)
+                q.execute(f'''select detail.offense_type, catalog.offense_code
+                    from {database}.{schema}.ARREST_OFFENSES as detail
+                    left join {database}.{schema}.NIBRS as catalog on detail.nibrs_key = catalog.nibrs_key
+                    where detail.arrest_number = 'OFFENSES'
+                    order by detail.offense_type''')
+                assert q.fetchall() == [('CHARGE A', '13A'), ('CHARGE B', '23A')]
+                q.execute(f'insert into {raw} ' + raw_rows([
+                    dict(id='REDACTED_LATE', block_address='REDACTED'),
+                    dict(id='COMPLETE', officer_title='LATE OLD TITLE', cad_initial_call_type='LATE COMPLEMENT'),
+                ], date_between, 'late_version'))
+                q.execute(f'insert into {raw} ' + raw_rows([
+                    dict(id='IDENTITY', officer_id=None, officer_title='UNATTRIBUTED TITLE', officer_age=99,
+                         subject_id=None, subject_age_range='UNATTRIBUTED AGE', subject_race='UNATTRIBUTED RACE'),
+                ], date_after, 'missing_identity'))
+                run('run')
+                assert identity() == expected_identity
+                a = choices('COMPLETE')
+                assert (a['officer_title'], a['cad_initial_call_type']) == ('CONTRADICTORY', 'LATE COMPLEMENT'), a
+                updated_cad_profile = cad_profile('COMPLETE')
+                assert updated_cad_profile[0] != original_cad_profile[0]
+                assert updated_cad_profile[1:] == ('COMPLEMENT', 'LATE COMPLEMENT', None)
+                assert location('REDACTED_LATE') == initial_location
+                q.execute(f"select source_version_count, last_ingested_at from {table} where arrest_number='REDACTED_LATE'")
+                version_count, last_ingested_at = q.fetchone()
+                assert version_count == 3
+                assert last_ingested_at == dt.datetime.fromisoformat(date2)
                 before = snapshot()
                 results = run('run', '--select', 'arrest')
                 assert snapshot() == before
                 arrest_result = next(r for r in results['results'] if r['unique_id'].endswith('.arrest'))
                 assert arrest_result['adapter_response'].get('rows_affected') == 0, arrest_result['adapter_response']
-                print('PASS integration: cases 1-9, completeness/timestamps/hash, old arrests, charges and idempotence.', flush=True)
+                print('PASS integration: recency, identity, late versions, REDACTED, charges and idempotence.', flush=True)
                 run('test')
                 print('PASS native dbt parse, compile, run and test. Project:', project, flush=True)
             finally:

@@ -13,7 +13,8 @@ No se recrea el modelo intermedio eliminado por el usuario.
 
 ## Grano y fuente de actualización
 
-- `arrest`: una fila por `arrest_number` (`unique_key`).
+- `arrest`: una fila por `arrest_number`, clave del `MERGE` sin hash. `report_id` es una
+  referencia al informe, no identifica la detención.
 - `arrest_offenses`: una asociación por detención, tipo y descripción NIBRS. Se conservan
   todas las asociaciones observadas, no solo las del último fichero.
 - En DEV RAW hay 147.187 filas y 110.143 números de detención. `20-005825` tiene once
@@ -27,44 +28,44 @@ No se recrea el modelo intermedio eliminado por el usuario.
 
 ## Detección incremental
 
-Se inventarían las versiones distintas de los atributos normalizados con su fecha real de
+El modelo registra las versiones distintas de los atributos normalizados con su fecha real de
 ingesta en UTC. El destino guarda `last_ingested_at`, `source_version_count` y `source_signature`.
 La firma ordenada es independiente del orden de lectura y de las filas repetidas por infracciones.
+Identifica el histórico de origen, no la versión de la lógica de consolidación.
 
 `is_incremental()` compara este inventario por detención con `{{ this }}`. Solo para IDs nuevos o
 cambiados se recupera el histórico completo de staging y se ejecuta la consolidación.
 No se usa un máximo global ni la fecha del hecho. También se detecta una versión nueva con el mismo
 timestamp, o una ingesta antigua añadida tardíamente, si cambian sus atributos normalizados.
-Sin novedades, el origen de MERGE queda vacío. La lectura de metadatos/inventario sigue siendo
-necesaria; esto no significa que dbt no ejecute consultas.
+Sin novedades, el origen de MERGE queda vacío aunque el modelo siga leyendo el inventario.
 
 RAW debe mantenerse append-only: las versiones anteriores son la evidencia que permite recalcular
 el ganador. No se borran versiones para ahorrar lecturas. La información de destinos existentes se
-protege además completando atributos desde `consolidation_choices` del destino antes de recalcular
-sus claves, y con `COALESCE` explícito por columna nullable en la proyección que recibe MERGE.
+protege además completando campos sin valor en RAW desde el destino. Los atributos de persona
+solo pueden recuperarse del destino si no ha cambiado su identidad; sus claves se recalculan
+sin conservar una clave anterior si el resultado es `NULL`.
 
 ## Consolidación y conflictos
 
 Cada atributo conserva el primer valor **no nulo** ordenado por:
 
-1. Mayor completitud de la versión: número de los 31 campos informativos no nulos.
-2. Fecha real de ingesta más reciente.
-3. SHA-256 descendente de los atributos normalizados (desempate estable).
+1. Fecha real de ingesta más reciente.
+2. SHA-256 descendente de los atributos normalizados, solo si coincide la fecha de ingesta.
 
-No suman la PK, el lote, el fichero, las fechas de control, hashes, flags derivados ni los campos
-de infracción. `false` y `0` sí son datos informativos. La completitud se calcula sobre versiones
-originales, no sobre una fila consolidada artificialmente más completa.
-Los nulos se saltan individualmente: un registro menos completo todavía puede aportar un atributo
-que no estuviera informado en el registro ganador. No se selecciona una única fila completa.
+Los nulos se saltan por columna; `false` y `0` son valores válidos. Una fila más reciente gana en
+las columnas que trae informadas, aunque tenga menos campos rellenos. `max_completeness_score`
+se conserva como métrica de los 31 campos de negocio de las filas originales; no decide qué gana.
 
 `consolidation_conflicts` expone los valores candidatos distintos; `consolidation_choices` expone
 la combinación seleccionada antes de generar las claves. La vista `arrest_conflicts` muestra un
 registro por detención y campo contradictorio, sus candidatos y el valor seleccionado.
 
-Se mantienen dos protecciones semánticas preexistentes: no se atribuyen datos de un agente/sujeto
-a otro identificador, y una marca de ocultación impide recuperar ubicaciones anteriores. Los
-atributos censurados no se exponen en el detalle de conflictos. No son pérdidas accidentales por
-NULL: la evidencia original permanece en RAW y los catálogos conservan observaciones legítimas.
+Se seleccionan el último `officer_id` y `subject_id` no nulos. Los atributos de cada persona se
+consolidan solo entre versiones con ese identificador; si falta evidencia para la identidad
+elegida, quedan nulos. Una fila con identificador nulo no sustituye al anterior ni le presta
+sus atributos. Para la ubicación, una versión `REDACTED` no aporta valores ni borra los de otras
+versiones. Si la última versión está marcada y no hay ubicación disponible, se conserva el
+estado `redacted`.
 
 ## Decimales y entornos
 
@@ -78,14 +79,24 @@ existentes. PRE/PRO deben proporcionar sus variables y permisos propios; no se e
 
 ## Despliegue y seguridad
 
-En DEV no existe una tabla `DEV_SILVER.SILVER.ARREST` al revisar esta implementación.
-No se ejecuta `--full-refresh` sobre las tablas del proyecto. Si otra instalación ya tiene el
-esquema experimental anterior, `on_schema_change='fail'` bloqueará su cambio: conservar primero
-una copia y realizar una migración aditiva revisada, o construir una tabla paralela y validar
-antes de cambiar el destino. No se elimina información automáticamente para adaptar el esquema.
+Si `arrest` ya se publicó con la prioridad por completitud, hace falta una reconstrucción única
+desde RAW. Primero, validar en una base Silver aislada y vacía, sin `--full-refresh`. Comprobar
+que RAW conserva el histórico y respaldar las tablas que se vayan a reemplazar: los datos que
+solo existan en Silver no se pueden reconstruir desde RAW. Si aún no existe `arrest`, basta
+la carga inicial normal.
 
-El cruce espacial real de `full_address` conserva su bloqueo pendiente de confirmar el CRS.
-Las pruebas con escrituras se realizan en un esquema de pruebas aislado, nunca en Silver real.
+Con las dependencias de staging y los demás catálogos actualizados, el comando para un DEV
+autorizado es:
+
+```bash
+DBT_BRONZE=DEV_BRONZE DBT_SILVER=DEV_SILVER \
+  dbt build --target dev --full-refresh --select agents subject police_add full_address arrest
+```
+
+El comando reconstruye Silver, no RAW. Usar el nombre real del target DEV y coordinar el cambio
+con las cargas habituales. `full_address` seguirá bloqueado mientras no se confirme el CRS
+policial. No activar esa confirmación para saltarse el bloqueo. Después de la reconstrucción,
+volver al flujo normal sin `--full-refresh`.
 
 ## Pruebas reproducibles
 
@@ -101,15 +112,17 @@ DBT_BIN=/ruta/al/dbt python tests/integration/arrest_merge_check.py
 
 Incluye altas, atributos complementarios, nulos, varias versiones por lote, decimales equivalentes,
 actualización de un arresto de 2011, repetición sin novedades (cero filas afectadas en MERGE),
-conflictos por completitud/fecha/hash y conservación de dos infracciones legítimas. También prueba
-que un valor del destino no presente en el origen no se borra al recibir NULL, incluidos `false` y `0`.
+desempate por hash y conservación de dos infracciones legítimas. Comprueba que la versión reciente
+gana aunque sea menos completa, que los cambios de agente y sujeto no arrastran atributos de otra
+identidad, y que una ingesta tardía puede rellenar un hueco sin pisar un dato posterior. También
+cubre `false`, `0` y la conservación de una ubicación válida ante `REDACTED`.
 
 Los tests de esquema están en `models/silver/arrests/_arrest_models.yml`; las invariantes SQL
 están en `tests/singular/` y la regresión de la macro con fixtures en `tests/unit/`.
 Los datasets ajenos a Arrest se sustituyen en el sandbox por vistas sintéticas vacías. No debe
 interpretarse esta regresión como validación del CRS policial real ni de las cargas PRE/PRO.
 
-## Resultado de la validación
+## Validación de la implementación inicial del MERGE
 
 Con dbt Core 1.10.23 y dbt-snowflake 1.10.8:
 

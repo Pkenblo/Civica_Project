@@ -13,12 +13,18 @@ with classifications as (
     from {{ ref('stg_crimes') }}
     where nibrs_offense_code is not null
 
+),
+
+candidates as (
+
+    select
+          {{ dbt_utils.generate_surrogate_key(['offense_code']) }} as nibrs_key
+        , offense_code
+        , offense_description
+        , group_ab
+        , crime_against_category
+    from classifications
+
 )
 
-select
-      {{ dbt_utils.generate_surrogate_key(['offense_code']) }} as nibrs_key
-    , offense_code
-    , offense_description
-    , group_ab
-    , crime_against_category
-from classifications
+{{ changed_catalog_rows('candidates') }}

@@ -2,8 +2,8 @@
 -- Incremental estándar MERGE, sin estrategias personalizadas ni cursor por batch_id.
 -- Compara versiones normalizadas y su ingesta real, no la fecha del arresto.
 -- Solo consolida el histórico de los IDs nuevos/cambiados. RAW debe conservar ese histórico.
--- Los conflictos priorizan completitud, ingesta y fingerprint; los nulos nunca ganan a valores.
--- La protección de identidades y REDACTED prevalece sobre completar atributos sensibles.
+-- Por atributo gana el valor no nulo más reciente; el fingerprint solo desempata fechas iguales.
+-- No mezcla identidades. REDACTED equivale a un dato ausente y no borra una ubicación válida.
 -- depends_on: {{ ref('full_address') }}
 
 {{ config(
@@ -27,9 +27,7 @@ distinct_versions as (
     select distinct
           arrest_number
         , ingested_at
-        , sha2(to_json(array_construct(
-              _row_fingerprint, convert_timezone('UTC', ingested_at)::timestamp_ntz
-          )), 256) as version_fingerprint
+        , {{ arrest_version_fingerprint() }} as version_fingerprint
     from incoming_versions
 
 ),
@@ -95,7 +93,7 @@ preserved_attributes as (
             {% set kind = 'boolean' %}
         {% endif %}
         {% set old = "nullif(get(previous.consolidation_choices, '" ~ column ~ "'), parse_json('null'))::" ~ kind %}
-        {% if column in ['arrest_occurred_date_time', 'arrest_reported_date_time', 'cad_clearance', 'cad_initial_call_type', 'cad_priority', 'crisis_involved', 'complaint_involved', 'force_involved', 'terry_stop', 'demonstration'] %}
+        {% if column in ['arrest_occurred_date_time', 'arrest_reported_date_time', 'crisis_involved', 'complaint_involved', 'force_involved', 'terry_stop', 'demonstration'] %}
             {% set old = 'coalesce(' ~ old ~ ', previous.' ~ column ~ ')' %}
         {% endif %}
         case
@@ -108,10 +106,6 @@ preserved_attributes as (
             when consolidated.subject_id is not null
                 and not equal_null(consolidated.subject_id,
                     nullif(previous.consolidation_choices:subject_id, parse_json('null'))::varchar)
-                then consolidated.{{ column }}
-            {% elif column in ['block_address', 'latitude', 'longitude', 'neighborhood', 'reporting_area', 'census_block_2020'] %}
-            when consolidated.is_location_redacted
-                or consolidated.last_redacted_at >= previous.last_ingested_at
                 then consolidated.{{ column }}
             {% endif %}
             when consolidated.{{ column }} is not null then consolidated.{{ column }}
@@ -129,15 +123,17 @@ preserved_attributes as (
 
 ready as (
 
-    select preserved_attributes.* replace (
-        object_construct_keep_null(
+    select
+        preserved_attributes.* replace (
+            {{ arrest_location_is_redacted('is_location_redacted') }} as is_location_redacted,
+            (latitude is null or longitude is null) as has_missing_coordinates,
+            (has_invalid_coordinates and (latitude is null or longitude is null)) as has_invalid_coordinates
+        )
+        , object_construct_keep_null(
             {% for column in arrest_business_columns() %}
             '{{ column }}', {{ column }}{{ ',' if not loop.last }}
             {% endfor %}
-        ) as consolidation_choices,
-        (latitude is null or longitude is null) as has_missing_coordinates,
-        (has_invalid_coordinates and (latitude is null or longitude is null)) as has_invalid_coordinates
-    )
+          ) as consolidation_choices
     from preserved_attributes
 
 ),
@@ -207,22 +203,29 @@ select distinct
     , case when arrests.officer_id is not null then coalesce(
           agents.agent_key,
           {{ dbt_utils.generate_surrogate_key([
-              'arrests.officer_id', 'arrests.officer_age', 'arrests.officer_gender',
+              'arrests.officer_id', 'arrests.officer_gender',
               'arrests.officer_race', 'arrests.officer_squad', 'arrests.officer_title'
           ]) }}
       ) end as agent_key
     , case when arrests.subject_id is not null then coalesce(
           people.subject_key,
           {{ dbt_utils.generate_surrogate_key([
-              'arrests.subject_id', 'arrests.subject_age_range',
-              'arrests.subject_gender', 'arrests.subject_race'
+              'arrests.subject_id', 'arrests.subject_gender', 'arrests.subject_race'
           ]) }}
       ) end as subject_key
+    , arrests.subject_age_range as subgect_age_at_detention
+    , arrests.officer_age as agents_age_at_detention
     , arrests.address_id
     , police.police_area_id
-    , arrests.cad_clearance
-    , arrests.cad_initial_call_type
-    , arrests.cad_priority
+    , case
+        when coalesce(arrests.cad_clearance, arrests.cad_initial_call_type) is not null
+            or arrests.cad_priority is not null
+        then sha2(to_json(array_construct(
+            coalesce(to_variant(arrests.cad_clearance), parse_json('null')),
+            coalesce(to_variant(arrests.cad_initial_call_type), parse_json('null')),
+            coalesce(to_variant(arrests.cad_priority), parse_json('null'))
+        )), 256)
+      end as cad_profile_id
     , arrests.crisis_involved
     , arrests.complaint_involved
     , arrests.force_involved
@@ -236,14 +239,12 @@ left join {{ ref('arrest_types') }} as types
     on arrests.arrest_type = types.description
 left join {{ ref('agents') }} as agents
     on arrests.officer_id = agents.officer_id
-    and equal_null(arrests.officer_age, agents.officer_age)
     and equal_null(arrests.officer_gender, agents.officer_gender)
     and equal_null(arrests.officer_race, agents.officer_race)
     and equal_null(arrests.officer_squad, agents.squad_description)
     and equal_null(arrests.officer_title, agents.officer_title)
 left join {{ ref('subject') }} as people
     on arrests.subject_id = people.sk_person
-    and equal_null(arrests.subject_age_range, people.subject_age_range)
     and equal_null(arrests.subject_gender, people.subject_gender)
     and equal_null(arrests.subject_race, people.subject_race)
 left join {{ ref('police_add') }} as police
@@ -253,8 +254,8 @@ left join {{ ref('police_add') }} as police
 
 )
 
--- Protección explícita del destino: no confiar únicamente en unique_key.
--- Primero se consolidan atributos; después se preserva cada columna nullable ya publicada.
+-- Las claves de persona deben reflejar los atributos ya consolidados, incluso si son NULL.
+-- Para el resto se mantiene el respaldo de valores publicados que no llegaron desde RAW.
 select
       candidate.arrest_number
     , candidate.last_ingested_at
@@ -265,12 +266,14 @@ select
     , candidate.consolidation_choices
     {% for column in [
         'arrest_occurred_date_time', 'arrest_reported_date_time', 'report_id', 'arrest_type_id',
-        'agent_key', 'subject_key', 'address_id', 'police_area_id', 'cad_clearance',
-        'cad_initial_call_type', 'cad_priority', 'crisis_involved', 'complaint_involved',
+        'agent_key', 'subject_key', 'address_id', 'police_area_id', 'crisis_involved', 'complaint_involved',
         'force_involved', 'terry_stop', 'demonstration'
     ] %}
-    , {% if is_incremental() %}coalesce(candidate.{{ column }}, previous.{{ column }}){% else %}candidate.{{ column }}{% endif %} as {{ column }}
+    , {% if is_incremental() and column not in ['agent_key', 'subject_key'] %}coalesce(candidate.{{ column }}, previous.{{ column }}){% else %}candidate.{{ column }}{% endif %} as {{ column }}
     {% endfor %}
+    , candidate.subgect_age_at_detention
+    , candidate.agents_age_at_detention
+    , candidate.cad_profile_id
 from candidate
 {% if is_incremental() %}
 left join {{ this }} as previous on candidate.arrest_number = previous.arrest_number

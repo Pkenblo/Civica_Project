@@ -26,14 +26,35 @@ with licenses as (
           end as cp
     from {{ ref('stg_pet_licenses') }}
     where license_number is not null
+
+),
+
+candidates as (
+
+    select
+          {{ dbt_utils.generate_surrogate_key(['license_number', 'animal_name']) }} as license_id
+        , license_number
+        , license_issue_date
+        , animal_name
+        , species
+        , primary_breed
+        , secondary_breed
+        , cp
+    from licenses
+
 )
-select distinct
-      {{ dbt_utils.generate_surrogate_key(['license_number', 'animal_name']) }} as license_id
-    , license_number
-    , license_issue_date
-    , animal_name
-    , species
-    , primary_breed
-    , secondary_breed
-    , cp
-from licenses
+
+select * from candidates
+{% if is_incremental() %}
+-- Reemplaza todas las variantes de un número si alguna fila es nueva o distinta.
+where license_number in (
+    select license_number
+    from (
+        select * from candidates
+        except
+        select license_id, license_number, license_issue_date, animal_name,
+               species, primary_breed, secondary_breed, cp
+        from {{ this }}
+    ) as differences
+)
+{% endif %}

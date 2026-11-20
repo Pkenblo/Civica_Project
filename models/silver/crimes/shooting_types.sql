@@ -7,9 +7,15 @@ with deduplicated as (
     from {{ ref('stg_crimes') }}
     where shooting_type_group is not null
 
+),
+
+candidates as (
+
+    select
+          {{ dbt_utils.generate_surrogate_key(['description']) }} as shooting_type_id
+        , description
+    from deduplicated
+
 )
 
-select
-      {{ dbt_utils.generate_surrogate_key(['description']) }} as shooting_type_id
-    , description
-from deduplicated
+{{ changed_catalog_rows('candidates') }}

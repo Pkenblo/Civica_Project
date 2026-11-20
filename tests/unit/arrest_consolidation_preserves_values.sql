@@ -1,5 +1,5 @@
 -- Regresión con salida simulada de staging: nulos complementarios, false/0,
--- prioridad por completitud y después ingesta, separación de personas y barrera de REDACTED.
+-- prioridad por ingesta sobre completitud, separación de personas y REDACTED como ausencia.
 -- Devuelve filas solo si la consolidación pierde datos o difiere del resultado esperado.
 
 with defaults as (
@@ -58,7 +58,7 @@ fixture as (
     union all
     select d.* replace (
         'A2' as arrest_number, '2026-11-01 00:00:00 +00:00'::timestamp_ltz as ingested_at,
-        'O2' as officer_id, 'OLD TITLE' as officer_title
+        'O2' as officer_id, 'OLD TITLE' as officer_title, 'KEEP THIS ADDRESS' as block_address
     ) from defaults d
     union all
     select d.* replace (
@@ -68,12 +68,18 @@ fixture as (
     union all
     select d.* replace (
         'A3' as arrest_number, '2026-11-01 00:00:00 +00:00'::timestamp_ltz as ingested_at,
-        'P1' as subject_id, 'ADULT' as subject_age_range
+        'P1' as subject_id, 'ADULT' as subject_age_range, 'O1' as officer_id,
+        'FIRST OFFICER' as officer_title
     ) from defaults d
     union all
     select d.* replace (
         'A3' as arrest_number, '2026-11-02 00:00:00 +00:00'::timestamp_ltz as ingested_at,
-        'P2' as subject_id
+        'P2' as subject_id, 'O2' as officer_id
+    ) from defaults d
+    union all
+    select d.* replace (
+        'A3' as arrest_number, '2026-11-03 00:00:00 +00:00'::timestamp_ltz as ingested_at,
+        'UNATTRIBUTED TITLE' as officer_title, 'UNATTRIBUTED AGE' as subject_age_range
     ) from defaults d
     union all
     select d.* replace (
@@ -88,7 +94,23 @@ fixture as (
     union all
     select d.* replace (
         'A4' as arrest_number, '2026-11-03 00:00:00 +00:00'::timestamp_ltz as ingested_at,
-        'NEW PUBLIC ADDRESS' as block_address
+        'NEW PUBLIC ADDRESS' as block_address, 'NEW NEIGHBORHOOD' as neighborhood
+    ) from defaults d
+    union all
+    select d.* replace (
+        'A5' as arrest_number, '2026-11-01 00:00:00 +00:00'::timestamp_ltz as ingested_at,
+        'KEEP ADDRESS' as block_address, 47.61235::number(18, 5) as latitude,
+        -122.34568::number(18, 5) as longitude
+    ) from defaults d
+    union all
+    select d.* replace (
+        'A5' as arrest_number, '2026-11-02 00:00:00 +00:00'::timestamp_ltz as ingested_at,
+        true as is_location_redacted, 'IGNORE THIS ADDRESS' as block_address
+    ) from defaults d
+    union all
+    select d.* replace (
+        'A6' as arrest_number, '2026-11-01 00:00:00 +00:00'::timestamp_ltz as ingested_at,
+        true as is_location_redacted
     ) from defaults d
 
 ),
@@ -102,7 +124,7 @@ consolidated as (
 actual as (
 
     select arrest_number, officer_id, officer_title, subject_id, subject_age_range,
-        block_address, latitude, longitude, force_involved, cad_priority
+        block_address, latitude, longitude, force_involved, cad_priority, is_location_redacted
     from consolidated
 
 ),
@@ -113,12 +135,15 @@ expected as (
         column3::varchar as officer_title, column4::varchar as subject_id,
         column5::varchar as subject_age_range, column6::varchar as block_address,
         column7::number(18, 5) as latitude, column8::number(18, 5) as longitude,
-        column9::boolean as force_involved, column10::number as cad_priority
+        column9::boolean as force_involved, column10::number as cad_priority,
+        column11::boolean as is_location_redacted
     from values
-        ('A1', 'O1', 'OFFICER', null, null, '100 MAIN ST', 47.61235, -122.34568, false, 0),
-        ('A2', 'O2', 'NEW TITLE', null, null, null, null, null, null, null),
-        ('A3', null, null, 'P1', 'ADULT', null, null, null, null, null),
-        ('A4', null, null, null, null, 'NEW PUBLIC ADDRESS', null, null, null, null)
+        ('A1', 'O1', 'OFFICER', null, null, '100 MAIN ST', 47.61235, -122.34568, false, 0, false),
+        ('A2', 'O2', 'NEW TITLE', null, null, 'KEEP THIS ADDRESS', null, null, null, null, false),
+        ('A3', 'O2', null, 'P2', null, null, null, null, null, null, false),
+        ('A4', null, null, null, null, 'NEW PUBLIC ADDRESS', 47.61235, null, null, null, false),
+        ('A5', null, null, null, null, 'KEEP ADDRESS', 47.61235, -122.34568, null, null, false),
+        ('A6', null, null, null, null, null, null, null, null, null, true)
 
 ),
 

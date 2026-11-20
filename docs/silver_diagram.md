@@ -1,13 +1,11 @@
 # Referencia del modelo Silver
 
-Versión final acordada del diseño postal: una sola cartografía activa y únicamente `cp` y `cp_status` en `Full_address`. El resto del modelo conserva la estructura del diagrama original, anteriormente disponible como `Silver_Diagram.pdf`.
-
-Este archivo describe el diseño acordado, no una implementación ya desplegada en dbt o Snowflake. Incluye al final un bloque DBML completo para copiarlo en dbdiagram.io y generar el [diagrama visual vigente](Silver_Diagram_actualizado.svg). El [README](README.md) documenta las decisiones, sus motivos y el estado de implementación.
-
-El diccionario, su bloque DBML y el SVG representan el mismo modelo. No se restauran los PDF ni el DBML independiente eliminados del repositorio. Los documentos auxiliares de revisiones anteriores no sustituyen esta referencia.
+El diccionario, el bloque DBML y el [diagrama SVG](silver_diagram.svg) describen los modelos dbt del repositorio. No certifican que estén desplegados ni que todas las pruebas hayan pasado en Snowflake. Para la consolidación incremental de detenciones, véase [Detenciones en Silver](arrests.md).
 
 ## Cambios de esta revisión
 
+- `Crimes` guarda dos referencias: `offense_category_id` y `offense_subcategory_id`. Cada subcategoría informada conserva su categoría de origen cuando está disponible. `NIBRS` es una clasificación distinta y no se enlaza con esos catálogos.
+- `Arrest` consolida una fila por detención, guarda las edades del sujeto y del agente y referencia `Cad_profiles`. `Arrest_conflicts` expone las discrepancias entre versiones.
 - `Full_address` conserva el CP opcional y añade `cp_status`, que explica el resultado de la asignación sin mezclar motivos con códigos postales.
 - Se elimina del diseño `Address_postal_assignment`: no se necesita una tabla adicional para guardar únicamente el estado que interesa consultar.
 - `Postal_codes` sustituye a `Address_cp` y almacena una única geometría activa por CP. Las distintas piezas del mismo código se unen en un Polygon o MultiPolygon.
@@ -18,35 +16,38 @@ El diccionario, su bloque DBML y el SVG representan el mismo modelo. No se resta
 
 ## Guía de lectura
 
-- Se conservan los nombres del diagrama original, incluida su capitalización. Los cambios postales se identifican en los apartados correspondientes. No se añaden esquemas físicos ni longitudes de `varchar`.
-- `PK`: clave primaria, identificada por el icono de llave. En `Crime_shooting_types` es compuesta.
+- El diccionario y el DBML conservan la capitalización histórica de los nombres; el SVG muestra los nombres de los modelos dbt en minúsculas.
+- `PK`: clave lógica. En `Crime_shooting_types` y `Arrest_conflicts` es compuesta. `Crimes.offense_id` identifica el delito, pero no es una PK declarada: el modelo todavía conserva variantes.
 - `FK → Tabla.campo`: clave foránea hacia el atributo indicado.
-- `UQ`: unicidad interpretada del icono de huella del diagrama. No implica una segunda PK.
-- `NN`: marca explícita de no nulidad del PDF o restricción nueva del diseño postal. `—` significa que no se exige aquí; no se ha verificado la nulabilidad en una base de datos. Las PK implican no nulidad en el modelo relacional, aunque no lleven la marca `NN`.
+- `UQ` (`UK` en el SVG): unicidad prevista o comprobada por un test declarado. No implica una segunda PK.
+- `NN`: no nulidad explícita en esta referencia. `—` indica que no se declara aquí. Las PK del diseño implican no nulidad, aunque no lleven la marca `NN`.
 - `1:N`: un registro de la tabla padre puede relacionarse con varios de la hija. No significa que todo padre deba tener al menos un hijo.
-- Las descripciones funcionales se interpretan a partir de los nombres; no son definiciones de negocio proporcionadas por el PDF.
 
 ## Inventario
 
-El modelo contiene **15 tablas, 82 columnas y 16 relaciones directas de tipo 1:N**. Frente al diagrama original, `Address_cp` se sustituye por `Postal_codes` y `Full_address` incorpora `cp_status`. Se conserva la precisión de coordenadas de staging.
+El diagrama contiene **19 modelos, 100 columnas y 21 relaciones lógicas**. Los conteos incluyen la vista `Arrest_conflicts`.
 
 | Tabla | Columnas | Clave primaria | Función interpretada |
 | --- | ---: | --- | --- |
-| `Reports` | 2 | `report_id` | Referencia común de informes policiales. |
-| `Crimes` | 10 | `offense_id` | Delitos asociados a un informe, una clasificación y una ubicación. |
-| `Arrest` | 18 | `arrest_number` | Arrestos y sus datos operativos. |
+| `Reports` | 3 | `report_id` | Referencia común de informes policiales. |
+| `Crimes` | 8 | `offense_id` (grano pendiente) | Delitos, sus clasificaciones y su ubicación. |
+| `Offense_categories` | 2 | `offense_category_id` | Catálogo de categorías de delitos. |
+| `Offense_subcategories` | 3 | `offense_subcategory_id` | Catálogo de subcategorías por categoría de origen. |
+| `Arrest` | 23 | `arrest_number` | Detenciones consolidadas y sus datos operativos. |
+| `Cad_profiles` | 4 | `cad_profile_id` | Combinaciones observadas de datos de despacho CAD. |
+| `Arrest_conflicts` | 6 | (`arrest_number`, `field_name`) | Vista de valores contradictorios entre versiones. |
 | `Crime_shooting_types` | 2 | (`offense_id`, `shooting_type_id`) | Puente entre delitos y tipos de tiroteo. |
 | `Shooting_types` | 2 | `shooting_type_id` | Catálogo de tipos de tiroteo. |
 | `NIBRS` | 5 | `nibrs_key` | Clasificación NIBRS de delitos. |
 | `Arrest_offenses` | 4 | `arrest_offense_id` | Infracciones asociadas a un arresto. |
 | `Offense_types` | 2 | `offense_type_id` | Catálogo de tipos de infracción de arresto. |
 | `Arrest_types` | 2 | `arrest_type_id` | Catálogo de tipos de arresto. |
-| `Agents` | 7 | `agent_key` | Datos de agentes. |
-| `Subject` | 5 | `subject_key` | Datos de sujetos vinculados a arrestos. |
+| `Agents` | 6 | `agent_key` | Datos de agentes. |
+| `Subject` | 4 | `subject_key` | Datos de sujetos vinculados a arrestos. |
 | `Full_address` | 9 | `address_id` | Ubicación publicada, CP asignado y estado de la asignación. |
 | `Police_Add` | 4 | `police_area_id` | Área policial y sus divisiones. |
 | `Postal_codes` | 3 | `cp` | Catálogo postal común y geometría activa opcional de cada CP. |
-| `Licencia` | 7 | `license_number` | Licencias de animales y su código postal. |
+| `Licencia` | 8 | `license_number` | Licencias de animales y su código postal. |
 
 ## Tablas y atributos
 
@@ -58,54 +59,101 @@ Grano interpretado: un registro por `report_id`. El número de informe tiene una
 | --- | --- | --- | --- | --- |
 | `report_id` | `varchar` | PK | — | Identificador del informe. |
 | `report_number` | `varchar` | UQ | Sí | Número del informe. |
+| `report_date_time` | `timestamp_ntz` | — | — | Fecha y hora del informe, tomada de delitos si está disponible. |
 
 Referenciada por `Crimes.report_id` y `Arrest.report_id`.
 
 ### Crimes
 
-Grano interpretado: un registro por delito (`offense_id`), no por informe. Un informe puede tener varios delitos.
+`offense_id` identifica el delito, no el informe. El modelo elimina duplicados completos, pero puede conservar varias filas de un mismo `offense_id` si tienen atributos distintos. La fecha del informe se consulta en `Reports`.
 
 | Atributo | Tipo | Claves / restricciones | NN | Significado interpretado |
 | --- | --- | --- | --- | --- |
-| `offense_id` | `varchar` | PK | — | Identificador del delito. |
+| `offense_id` | `varchar` | ID; grano pendiente | Sí | Identificador del delito. |
 | `report_id` | `varchar` | FK → `Reports.report_id` | — | Informe asociado. |
-| `report_number_source` | `varchar` | — | — | Número de informe conservado del origen. |
-| `report_date_time` | `timestamp_ntz` | — | — | Fecha y hora del informe. |
 | `offense_date` | `timestamp_ntz` | — | — | Fecha y hora del delito; el tipo incluye hora aunque el nombre termine en `_date`. |
 | `nibrs_key` | `varchar` | FK → `NIBRS.nibrs_key` | — | Clasificación NIBRS asociada. |
-| `offense_category` | `varchar` | — | — | Categoría del delito. |
-| `offense_sub_category` | `varchar` | — | — | Subcategoría del delito. |
+| `offense_category_id` | `varchar` | FK → `Offense_categories.offense_category_id` | — | Categoría del delito; se conserva aunque falte la subcategoría. |
+| `offense_subcategory_id` | `varchar` | FK → `Offense_subcategories.offense_subcategory_id` | — | Subcategoría del delito dentro de la categoría informada. |
 | `address_id` | `varchar` | FK → `Full_address.address_id` | — | Dirección asociada al delito. |
 | `police_area_id` | `varchar` | FK → `Police_Add.police_area_id` | — | Área policial asociada al delito. |
 
-Referenciada por `Crime_shooting_types.offense_id`.
+`Crime_shooting_types.offense_id` referencia este identificador de forma provisional, hasta que `Crimes` garantice una sola fila por `offense_id`.
+
+### Offense_categories
+
+Una fila por categoría informada de delito. No equivale a `NIBRS.crime_against_category`.
+
+| Atributo | Tipo | Claves / restricciones | NN | Significado |
+| --- | --- | --- | --- | --- |
+| `offense_category_id` | `varchar` | PK | Sí | Clave generada a partir del nombre normalizado. |
+| `offense_category` | `varchar` | UQ | Sí | Etiqueta de categoría, como `PROPERTY CRIME`. |
+
+### Offense_subcategories
+
+Una fila por combinación de categoría y etiqueta. Si falta la categoría, la subcategoría se conserva con la referencia nula. En el CSV de ejemplo se observaron tres categorías y 31 subcategorías, cada una con una sola categoría. El modelo no da por hecho que esa correspondencia se mantenga en futuras cargas.
+
+| Atributo | Tipo | Claves / restricciones | NN | Significado |
+| --- | --- | --- | --- | --- |
+| `offense_subcategory_id` | `varchar` | PK | Sí | Clave de la combinación de categoría y etiqueta. |
+| `offense_category_id` | `varchar` | FK → `Offense_categories.offense_category_id` | — | Categoría a la que pertenece la subcategoría observada. |
+| `offense_sub_category` | `varchar` | UQ junto con `offense_category_id` | Sí | Etiqueta de subcategoría, como `BURGLARY`. |
 
 ### Arrest
 
-Grano interpretado: un registro por `arrest_number`. Cada fila contiene una referencia a agente y otra a sujeto; no se dibuja un puente para varios agentes o sujetos en un mismo arresto.
+Una fila por `arrest_number`, clave del `MERGE`. Para cada campo gana el valor no nulo de la ingesta más reciente. Las referencias a agente y sujeto representan las identidades consolidadas de esa detención.
 
 | Atributo | Tipo | Claves / restricciones | NN | Significado interpretado |
 | --- | --- | --- | --- | --- |
 | `arrest_number` | `varchar` | PK | — | Número identificador del arresto. |
+| `last_ingested_at` | `timestamp_ltz` | — | Sí | Fecha de la última ingesta de la detención. |
+| `source_version_count` | `number` | — | Sí | Número de versiones normalizadas distintas. |
+| `source_signature` | `varchar` | — | Sí | Firma del histórico de versiones de RAW. |
+| `max_completeness_score` | `number` | — | Sí | Mayor número de campos informados en una versión; no decide qué valores ganan. |
+| `consolidation_conflicts` | `object` | — | Sí | Valores candidatos incompatibles por campo. |
+| `consolidation_choices` | `object` | — | Sí | Valores seleccionados antes de generar las referencias. |
 | `arrest_occurred_date_time` | `timestamp_ntz` | — | — | Fecha y hora en que ocurrió el arresto. |
 | `arrest_reported_date_time` | `timestamp_ntz` | — | — | Fecha y hora de comunicación o registro del arresto. |
 | `report_id` | `varchar` | FK → `Reports.report_id` | — | Informe asociado. |
-| `report_number_source` | `varchar` | — | — | Número de informe conservado del origen. |
 | `arrest_type_id` | `varchar` | FK → `Arrest_types.arrest_type_id` | — | Tipo de arresto. |
 | `agent_key` | `varchar` | FK → `Agents.agent_key` | — | Agente asociado. |
 | `subject_key` | `varchar` | FK → `Subject.subject_key` | — | Sujeto asociado. |
-| `address_id` | `varchar` | FK → `Full_address.address_id` | — | Dirección asociada al arresto. |
+| `address_id` | `varchar` | FK → `Full_address.address_id` | Sí | Dirección asociada al arresto. |
 | `police_area_id` | `varchar` | FK → `Police_Add.police_area_id` | — | Área policial asociada al arresto. |
-| `cad_clearance` | `varchar` | — | — | Valor de cierre o resolución CAD; catálogo no especificado. |
-| `cad_initial_call_type` | `varchar` | — | — | Tipo inicial de llamada CAD. |
-| `cad_priority` | `integer` | — | — | Prioridad CAD; escala no especificada. |
 | `crisis_involved` | `boolean` | — | — | Indicador de crisis. |
 | `complaint_involved` | `boolean` | — | — | Indicador de queja o denuncia; definición exacta no especificada. |
 | `force_involved` | `boolean` | — | — | Indicador de uso de fuerza. |
 | `terry_stop` | `boolean` | — | — | Indicador de una intervención de tipo Terry stop. |
 | `demonstration` | `boolean` | — | — | Indicador de manifestación. |
+| `subgect_age_at_detention` | `varchar` | — | — | Rango de edad del sujeto en la detención; se mantiene el nombre de columna del modelo. |
+| `agents_age_at_detention` | `number(38,0)` | — | — | Edad del agente en la detención. |
+| `cad_profile_id` | `varchar` | FK → `Cad_profiles.cad_profile_id` | — | Perfil CAD; nulo si faltan sus tres atributos. |
 
-Referenciada por `Arrest_offenses.arrest_number`.
+Referenciada por `Arrest_offenses.arrest_number` y por la vista `Arrest_conflicts`.
+
+### Cad_profiles
+
+Una fila por combinación de datos de despacho (*Computer-Aided Dispatch*) consolidada en `Arrest`. Puede contener campos nulos. Compartir perfil no implica compartir llamada: la fuente no aporta un identificador de llamada CAD.
+
+| Atributo | Tipo | Claves / restricciones | NN | Significado |
+| --- | --- | --- | --- | --- |
+| `cad_profile_id` | `varchar` | PK | Sí | Clave de la combinación de cierre, tipo inicial y prioridad. |
+| `cad_clearance` | `varchar` | — | — | Resultado o cierre de la intervención. |
+| `cad_initial_call_type` | `varchar` | — | — | Tipo inicial registrado por el sistema de despacho. |
+| `cad_priority` | `number(38,0)` | — | — | Código de prioridad; la escala no está documentada aquí. |
+
+### Arrest_conflicts
+
+Vista con una fila por detención y campo en conflicto.
+
+| Atributo | Tipo | Claves / restricciones | NN | Significado |
+| --- | --- | --- | --- | --- |
+| `arrest_number` | `varchar` | PK (parte 1); FK → `Arrest.arrest_number` | Sí | Detención consolidada. |
+| `field_name` | `varchar` | PK (parte 2) | Sí | Campo con valores contradictorios. |
+| `observed_values` | `variant` | — | — | Valores candidatos. |
+| `selected_value` | `variant` | — | — | Valor publicado. |
+| `max_completeness_score` | `number` | — | — | Métrica de completitud de las versiones. |
+| `last_ingested_at` | `timestamp_ltz` | — | — | Última ingesta de la detención. |
 
 ### Crime_shooting_types
 
@@ -132,12 +180,12 @@ Referenciada por `Crime_shooting_types.shooting_type_id`.
 | Atributo | Tipo | Claves / restricciones | NN | Significado interpretado |
 | --- | --- | --- | --- | --- |
 | `nibrs_key` | `varchar` | PK | — | Clave de la clasificación NIBRS. |
-| `offense_code` | `varchar` | — | — | Código del delito. |
+| `offense_code` | `varchar` | UQ | Sí | Código del delito. |
 | `offense_description` | `varchar` | — | — | Descripción del delito. |
 | `group_ab` | `varchar` | — | — | Grupo A/B de la clasificación. |
 | `crime_against_category` | `varchar` | — | — | Categoría según el objeto del delito. |
 
-Referenciada por `Crimes.nibrs_key`. No se dibuja una relación desde `Arrest_offenses` hacia esta tabla.
+Referenciada por `Crimes.nibrs_key`. En la muestra, los 64 códigos informados se corresponden cada uno con una categoría y subcategoría, pero hay 1.643 filas con categoría y sin código NIBRS. Por eso la categoría no se obtiene a través de `NIBRS`. Tampoco hay una FK desde `Arrest_offenses` a `NIBRS`.
 
 ### Arrest_offenses
 
@@ -172,13 +220,12 @@ Referenciada por `Arrest.arrest_type_id`.
 
 ### Agents
 
-Grano según la clave: un registro por `agent_key`. El diagrama no indica cómo se genera esa clave ni si representa versiones históricas de un agente.
+Una fila por combinación observada de identificador, género, raza, unidad y cargo. No representa vigencias históricas; la edad se guarda en `Arrest`.
 
 | Atributo | Tipo | Claves / restricciones | NN | Significado interpretado |
 | --- | --- | --- | --- | --- |
 | `agent_key` | `varchar` | PK | — | Clave del agente en el modelo. |
 | `officer_id` | `varchar` | — | Sí | Identificador del agente; no lleva marca de unicidad. |
-| `officer_age` | `integer` | — | — | Edad del agente. |
 | `officer_gender` | `varchar` | — | — | Género del agente. |
 | `officer_race` | `varchar` | — | — | Raza del agente según la clasificación del origen. |
 | `squad_description` | `varchar` | — | — | Descripción de la unidad o escuadrón. |
@@ -188,13 +235,12 @@ Referenciada por `Arrest.agent_key`.
 
 ### Subject
 
-Grano según la clave: un registro por `subject_key`. No se especifica la relación de identidad entre `subject_key` y `sk_person` ni su método de generación.
+Una fila por combinación observada de identificador, género y raza. El rango de edad se guarda en `Arrest`.
 
 | Atributo | Tipo | Claves / restricciones | NN | Significado interpretado |
 | --- | --- | --- | --- | --- |
 | `subject_key` | `varchar` | PK | — | Clave del sujeto en el modelo. |
 | `sk_person` | `varchar` | — | Sí | Identificador de persona; no lleva marca de unicidad ni FK dibujada. |
-| `subject_age_range` | `varchar` | — | — | Rango de edad del sujeto. |
 | `subject_gender` | `varchar` | — | — | Género del sujeto. |
 | `subject_race` | `varchar` | — | — | Raza del sujeto según la clasificación del origen. |
 
@@ -208,8 +254,8 @@ Grano previsto: una ubicación publicada normalizada, conservando su contexto. G
 | --- | --- | --- | --- | --- |
 | `address_id` | `varchar` | PK | — | Identificador de la dirección. |
 | `block_address` | `varchar` | — | — | Dirección expresada a nivel de bloque o manzana. |
-| `latitude` | `decimal(18,12)` | — | — | Latitud con la precisión de staging. Uso previsto: EPSG:4326, sujeto a confirmar los metadatos del origen policial. |
-| `longitude` | `decimal(18,12)` | — | — | Longitud con la precisión de staging. Se utiliza como primer argumento al construir el punto espacial. |
+| `latitude` | `number(18,5)` | — | — | Latitud normalizada en staging. Uso previsto: EPSG:4326, sujeto a confirmar los metadatos del origen policial. |
+| `longitude` | `number(18,5)` | — | — | Longitud normalizada en staging. Es el primer argumento al construir el punto espacial. |
 | `neighborhood` | `varchar` | — | — | Barrio. |
 | `reporting_area` | `varchar` | — | — | Área de reporte. |
 | `census_block_2020` | `varchar` | — | — | Bloque censal de 2020. |
@@ -271,6 +317,7 @@ Grano interpretado: un registro por `license_number`, no necesariamente por anim
 
 | Atributo | Tipo | Claves / restricciones | NN | Significado interpretado |
 | --- | --- | --- | --- | --- |
+| `license_id` | `varchar` | UQ | Sí | Hash del número de licencia y el nombre del animal. |
 | `license_number` | `varchar` | PK | — | Número de licencia. |
 | `license_issue_date` | `date` | — | — | Fecha de expedición de la licencia. |
 | `animal_name` | `varchar` | — | — | Nombre del animal. |
@@ -283,7 +330,7 @@ El CP de licencias procede de `stg_pet_licenses.zip_code`, no de un cruce espaci
 
 ## Relaciones completas
 
-Las primeras 14 relaciones se conservan del diagrama original. Las dos últimas sustituyen las referencias a `Address_cp`. Una FK opcional permite que la fila hija no tenga padre asociado. Estas condiciones no acreditan integridad referencial en los datos.
+Una FK opcional permite que la fila hija no tenga padre asociado. Estas relaciones son lógicas: el diagrama no acredita integridad referencial ni implica que Snowflake imponga las restricciones.
 
 | # | Padre | Hija | Tipo | Condición de unión |
 | --- | --- | --- | --- | --- |
@@ -303,6 +350,11 @@ Las primeras 14 relaciones se conservan del diagrama original. Las dos últimas 
 | 14 | `Police_Add` | `Arrest` | 1:N | `Police_Add.police_area_id = Arrest.police_area_id` |
 | 15 | `Postal_codes` | `Full_address` | 1:N | `Postal_codes.cp = Full_address.cp` |
 | 16 | `Postal_codes` | `Licencia` | 1:N | `Postal_codes.cp = Licencia.cp` |
+| 17 | `Offense_categories` | `Crimes` | 1:N | `Offense_categories.offense_category_id = Crimes.offense_category_id` |
+| 18 | `Offense_subcategories` | `Crimes` | 1:N | `Offense_subcategories.offense_subcategory_id = Crimes.offense_subcategory_id` |
+| 19 | `Offense_categories` | `Offense_subcategories` | 1:N | `Offense_categories.offense_category_id = Offense_subcategories.offense_category_id` |
+| 20 | `Cad_profiles` | `Arrest` | 1:N | `Cad_profiles.cad_profile_id = Arrest.cad_profile_id` |
+| 21 | `Arrest` | `Arrest_conflicts` | 1:N | `Arrest.arrest_number = Arrest_conflicts.arrest_number` |
 
 ### Mapa de navegación
 
@@ -311,12 +363,17 @@ Reports (1) ──< Crimes (N)
 Reports (1) ──< Arrest (N)
 
 NIBRS (1) ──< Crimes (N)
+Offense_categories (1) ──< Offense_subcategories (N)
+Offense_categories (1) ──< Crimes (N)
+Offense_subcategories (1) ──< Crimes (N)
 Crimes (1) ──< Crime_shooting_types (N) >── (1) Shooting_types
 
 Arrest (1) ──< Arrest_offenses (N) >── (1) Offense_types
 Arrest_types (1) ──< Arrest (N)
 Agents (1) ──< Arrest (N)
 Subject (1) ──< Arrest (N)
+Cad_profiles (1) ──< Arrest (N)
+Arrest (1) ──< Arrest_conflicts (N)
 
 Full_address (1) ──< Crimes (N)
 Full_address (1) ──< Arrest (N)
@@ -348,36 +405,20 @@ Este proceso no proporciona el CP postal exacto de una dirección enmascarada ni
 - Unir un delito con `Crime_shooting_types` puede repetirlo una vez por tipo asociado. Unir un arresto con `Arrest_offenses` puede repetirlo una vez por infracción. Para contar delitos o arrestos, respetar sus claves o agregar las tablas hijas antes de unir.
 - `Licencia` se conecta con los hechos policiales a través del código postal (`Licencia → Postal_codes ← Full_address ← Crimes/Arrest`). Es una asociación geográfica, no una relación entre un animal y un delito, arresto o persona. Una unión al detalle puede multiplicar filas; conviene agregar cada dominio por `cp` antes de compararlos.
 - `Crimes.address_id` y `Arrest.address_id` describen ubicaciones de registros distintos; compartir informe no implica compartir dirección. Lo mismo se aplica a `police_area_id`.
-- Utilizar las FK dibujadas para las uniones. `report_number_source` conserva un valor de origen, pero no tiene relación dibujada con `Reports.report_number`.
+- Para consultar la categoría de un delito, usar `Crimes.offense_category_id`. No exigir que haya subcategoría ni código NIBRS: ambas referencias pueden ser nulas.
 - No sustituir `Agents.agent_key` por `officer_id`, ni `Subject.subject_key` por `sk_person`, sin validar antes la correspondencia y su unicidad.
 - Para el enriquecimiento postal se conservan todas las ubicaciones, aunque no haya coincidencia: usar una estrategia equivalente a `LEFT JOIN` y producir un único resultado por ubicación. Las demás consultas requieren elegir el tipo de unión según su objetivo.
 - Repetir el valor de un CP como FK en distintas direcciones o licencias es normal; lo que no se repite en cada una de ellas es el polígono. El estado postal se consulta directamente en `Full_address`, sin una unión adicional ni una tabla de auditoría que no se necesita en este alcance.
 
 ### Tipos y restricciones
 
-- `timestamp_ntz` representa fecha y hora sin zona horaria; el PDF no indica la zona de origen ni una política de conversión.
+- `timestamp_ntz` representa fecha y hora sin zona horaria. La última ingesta de `Arrest` se conserva como `timestamp_ltz`.
 - Los códigos postales son `varchar`, no enteros. No convertirlos automáticamente a números ni perder posibles ceros iniciales.
-- El PDF original define `latitude` y `longitude` como `decimal(12,8)`. En la revisión se cambian a `decimal(18,12)` para no reducir la precisión de staging antes del cruce espacial. La precisión numérica no convierte una ubicación aproximada en una dirección exacta.
+- Las coordenadas se publican a cinco decimales desde staging. La precisión numérica no convierte una ubicación aproximada en una dirección exacta.
 - Los cinco indicadores de `Arrest` son `boolean`: `crisis_involved`, `complaint_involved`, `force_involved`, `terry_stop` y `demonstration`. No se define si un nulo equivale a desconocido; no asumir que equivale a `false`.
-- Se mantienen las cuatro unicidades simples no primarias del PDF: `Reports.report_number`, `Shooting_types.description`, `Offense_types.offense_type` y `Arrest_types.description`.
-- Se mantienen las nueve marcas explícitas `NN` del diagrama original y se añade la de `Full_address.cp_status`. Las PK conservan su no nulidad implícita.
 - La PK de `Crime_shooting_types` debe validarse como combinación de columnas. `Arrest_offenses`, en cambio, usa una PK de una sola columna (`arrest_offense_id`).
 - `Full_address.cp` es no nulo si y solo si `Full_address.cp_status = 'matched'`. En ese caso debe existir el CP en `Postal_codes` con geometría no nula y el punto debe corresponder a una única zona interior del mapa activo. Los demás estados conservan el CP nulo.
 - La relación entre CP y estado, la integridad referencial, la validez de las geometrías y la uniformidad de la versión activa requieren pruebas de datos. No quedan garantizadas solo por dibujar las relaciones o declarar claves en tablas estándar de Snowflake.
-
-### Información que el PDF no proporciona
-
-No se deben deducir de esta referencia:
-
-- Base de datos, esquema físico, nombres de modelos dbt, materializaciones ni correspondencia exacta con las fuentes de origen.
-- SQL de transformación, filtros, deduplicaciones, normalización de textos o tratamiento de valores desconocidos.
-- Algoritmos para generar identificadores o claves, incluidas las que terminan en `_key` o `_id`.
-- Valores por defecto, dominios de valores, reglas `CHECK`, índices físicos, políticas de borrado o actualización en cascada.
-- Historización de agentes, sujetos o direcciones, ni vigencias temporales.
-- Definiciones de negocio detalladas de CAD, los indicadores operativos o los criterios de clasificación.
-- Integridad, unicidad y nulabilidad realmente aplicadas o comprobadas en los datos.
-
-Para futuras tareas, usar este archivo y su bloque DBML como referencia del diseño postal final acordado. Consultar el README para conocer los motivos y los modelos, sus pruebas o los datos para confirmar la implementación. No modificar otros Markdown sin una petición expresa.
 
 ## Código DBML para dbdiagram.io
 
@@ -386,46 +427,87 @@ Copiar todo el contenido del siguiente bloque en el editor de [dbdiagram.io](htt
 ```dbml
 Project Civica_Silver {
   database_type: 'Snowflake'
-  Note: 'Diseño postal final: una cartografía activa, cp y cp_status en Full_address, sin tabla de evaluación. Implementación Silver pendiente. Las reglas de calidad requieren pruebas de datos.'
+  Note: 'Modelos dbt de Silver. Las relaciones son lógicas; el diagrama no acredita su despliegue en Snowflake.'
 }
 
 Table Reports {
   report_id varchar [pk]
   report_number varchar [not null, unique]
+  report_date_time timestamp_ntz
 }
 
 Table Crimes {
-  offense_id varchar [pk]
+  offense_id varchar [not null, note: 'Identificador de origen. Aún admite variantes de un mismo ID.']
   report_id varchar
-  report_number_source varchar
-  report_date_time timestamp_ntz
   offense_date timestamp_ntz
   nibrs_key varchar
-  offense_category varchar
-  offense_sub_category varchar
+  offense_category_id varchar
+  offense_subcategory_id varchar
   address_id varchar
   police_area_id varchar
+}
+
+Table Offense_categories {
+  offense_category_id varchar [pk, not null]
+  offense_category varchar [not null, unique]
+}
+
+Table Offense_subcategories {
+  offense_subcategory_id varchar [pk, not null]
+  offense_category_id varchar
+  offense_sub_category varchar [not null]
+
+  indexes {
+    (offense_category_id, offense_sub_category) [unique]
+  }
 }
 
 Table Arrest {
   arrest_number varchar [pk]
+  last_ingested_at timestamp_ltz [not null]
+  source_version_count number [not null]
+  source_signature varchar [not null]
+  max_completeness_score number [not null]
+  consolidation_conflicts object [not null]
+  consolidation_choices object [not null]
   arrest_occurred_date_time timestamp_ntz
   arrest_reported_date_time timestamp_ntz
   report_id varchar
-  report_number_source varchar
   arrest_type_id varchar
   agent_key varchar
   subject_key varchar
-  address_id varchar
+  address_id varchar [not null]
   police_area_id varchar
-  cad_clearance varchar
-  cad_initial_call_type varchar
-  cad_priority integer
   crisis_involved boolean
   complaint_involved boolean
   force_involved boolean
   terry_stop boolean
   demonstration boolean
+  subgect_age_at_detention varchar
+  agents_age_at_detention number(38,0)
+  cad_profile_id varchar
+}
+
+Table Cad_profiles {
+  cad_profile_id varchar [pk, not null]
+  cad_clearance varchar
+  cad_initial_call_type varchar
+  cad_priority number(38,0)
+}
+
+Table Arrest_conflicts {
+  arrest_number varchar [not null]
+  field_name varchar [not null]
+  observed_values variant
+  selected_value variant
+  max_completeness_score number
+  last_ingested_at timestamp_ltz
+
+  indexes {
+    (arrest_number, field_name) [pk]
+  }
+
+  Note: 'Vista de auditoría: una fila por detención y campo en conflicto.'
 }
 
 Table Crime_shooting_types {
@@ -444,7 +526,7 @@ Table Shooting_types {
 
 Table NIBRS {
   nibrs_key varchar [pk]
-  offense_code varchar
+  offense_code varchar [not null, unique]
   offense_description varchar
   group_ab varchar
   crime_against_category varchar
@@ -470,7 +552,6 @@ Table Arrest_types {
 Table Agents {
   agent_key varchar [pk]
   officer_id varchar [not null]
-  officer_age integer
   officer_gender varchar
   officer_race varchar
   squad_description varchar
@@ -480,7 +561,6 @@ Table Agents {
 Table Subject {
   subject_key varchar [pk]
   sk_person varchar [not null]
-  subject_age_range varchar
   subject_gender varchar
   subject_race varchar
 }
@@ -488,8 +568,8 @@ Table Subject {
 Table Full_address {
   address_id varchar [pk]
   block_address varchar
-  latitude decimal(18,12)
-  longitude decimal(18,12)
+  latitude number(18,5)
+  longitude number(18,5)
   neighborhood varchar
   reporting_area varchar
   census_block_2020 varchar
@@ -515,6 +595,7 @@ Table Postal_codes {
 }
 
 Table Licencia {
+  license_id varchar [not null, unique]
   license_number varchar [pk]
   license_issue_date date
   animal_name varchar
@@ -540,4 +621,9 @@ Ref: Arrest.address_id > Full_address.address_id
 Ref: Arrest.police_area_id > Police_Add.police_area_id
 Ref: Full_address.cp > Postal_codes.cp
 Ref: Licencia.cp > Postal_codes.cp
+Ref: Crimes.offense_category_id > Offense_categories.offense_category_id
+Ref: Crimes.offense_subcategory_id > Offense_subcategories.offense_subcategory_id
+Ref: Offense_subcategories.offense_category_id > Offense_categories.offense_category_id
+Ref: Arrest.cad_profile_id > Cad_profiles.cad_profile_id
+Ref: Arrest_conflicts.arrest_number > Arrest.arrest_number
 ```

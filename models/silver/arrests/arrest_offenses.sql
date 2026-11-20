@@ -1,8 +1,5 @@
--- Detalle de infracciones: una combinación de arresto, tipo y descripción NIBRS observada.
--- Se extrae antes de deduplicar Arrest y se conserva nibrs_description en el detalle.
--- No impone unicidad solo a (arrest_number, offense_type_id): puede cambiar la descripción.
--- Elimina duplicados completos y no crea una infracción cuando ambos textos están ausentes.
--- Conserva asociaciones observadas; no reconstruye bajas ni vigencias del origen.
+-- Puente entre arrest y nibrs: conserva cada combinación observada de arresto, tipo y descripción.
+-- La descripción identifica un código solo si hay una coincidencia exacta y no ambigua.
 
 {{ config(materialized='table', database=env_var('DBT_SILVER'), schema='SILVER') }}
 
@@ -13,6 +10,16 @@ with offenses as (
     where arrest_number is not null
       and (offense_type is not null or nibrs_description is not null)
 
+),
+
+nibrs_by_description as (
+
+    select offense_description, min(nibrs_key) as nibrs_key
+    from {{ ref('nibrs') }}
+    where offense_description is not null and nibrs_key is not null
+    group by offense_description
+    having count(distinct nibrs_key) = 1
+
 )
 
 select
@@ -22,8 +29,9 @@ select
           'offenses.nibrs_description'
       ]) }} as arrest_offense_id
     , offenses.arrest_number
-    , types.offense_type_id
+    , offenses.offense_type
     , offenses.nibrs_description
+    , classifications.nibrs_key
 from offenses
-left join {{ ref('offense_types') }} as types
-    on offenses.offense_type = types.offense_type
+left join nibrs_by_description as classifications
+    on offenses.nibrs_description = classifications.offense_description

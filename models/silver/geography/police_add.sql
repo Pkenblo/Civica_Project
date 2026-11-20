@@ -31,11 +31,28 @@ deduplicated as (
     -- Conserva áreas parciales, sin inventar una entidad para la ausencia total.
     where precinct is not null or sector is not null or beat is not null
 
+),
+
+candidates as (
+
+    select
+          {{ dbt_utils.generate_surrogate_key(['precinct', 'sector', 'beat']) }} as police_area_id
+        , precinct
+        , sector
+        , beat
+    from deduplicated
+
 )
 
-select
-      {{ dbt_utils.generate_surrogate_key(['precinct', 'sector', 'beat']) }} as police_area_id
-    , precinct
-    , sector
-    , beat
-from deduplicated
+select * from candidates
+{% if is_incremental() %}
+where police_area_id in (
+    select police_area_id
+    from (
+        select * from candidates
+        except
+        select police_area_id, precinct, sector, beat
+        from {{ this }}
+    ) as differences
+)
+{% endif %}

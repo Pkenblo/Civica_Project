@@ -1,6 +1,6 @@
--- Consolida por columna: completitud de la versión, ingesta UTC y fingerprint determinista.
--- No cuenta metadatos ni infracciones en la completitud. Expone los valores contradictorios.
--- Mantiene separadas las identidades y no reconstruye ubicaciones ocultadas.
+-- Consolida por columna: último valor no nulo por ingesta, con desempate por fingerprint.
+-- La completitud se conserva como métrica; no interviene en la selección.
+-- Mantiene separadas las identidades. Una fila REDACTED no aporta ubicación ni borra valores previos.
 
 {% macro consolidate_arrests(relation) %}
 
@@ -11,8 +11,7 @@
 ] %}
 {% set officer_columns = ['officer_age', 'officer_gender', 'officer_race', 'officer_squad', 'officer_title'] %}
 {% set subject_columns = ['subject_age_range', 'subject_gender', 'subject_race'] %}
-{% set location_columns = ['block_address', 'latitude', 'longitude', 'neighborhood', 'reporting_area', 'census_block_2020'] %}
-{% set priority = '_completeness_score desc, ingested_at desc, _row_fingerprint desc' %}
+{% set priority = 'ingested_at desc, _row_fingerprint desc' %}
 
 with scored as (
 
@@ -32,8 +31,6 @@ identities as (
               partition by arrest_number order by {{ priority }}
               rows between unbounded preceding and unbounded following
           ) as selected_subject_id
-        , max(case when is_location_redacted then ingested_at end)
-              over (partition by arrest_number) as last_redacted_at
     from scored
 
 ),
@@ -43,14 +40,11 @@ combined as (
     select distinct
           arrest_number
         , max(ingested_at) over (partition by arrest_number) as last_ingested_at
-        , max(last_redacted_at) over (partition by arrest_number) as last_redacted_at
         , max(_completeness_score) over (partition by arrest_number) as max_completeness_score
         , object_construct(
             {% for column in arrest_business_columns() %}
             {% set comparable = column %}
-            {% if column in location_columns %}
-                {% set comparable = 'case when last_redacted_at is null or ingested_at > last_redacted_at then ' ~ column ~ ' end' %}
-            {% elif column in officer_columns %}
+            {% if column in officer_columns %}
                 {% set comparable = 'case when officer_id = selected_officer_id then ' ~ column ~ ' end' %}
             {% elif column in subject_columns %}
                 {% set comparable = 'case when subject_id = selected_subject_id then ' ~ column ~ ' end' %}
@@ -60,7 +54,7 @@ combined as (
             {{ ',' if not loop.last }}
             {% endfor %}
           ) as consolidation_conflicts
-        {% for column in scalar_columns %}
+        {% for column in scalar_columns + arrest_location_columns() %}
         , first_value({{ column }}) ignore nulls over (
               partition by arrest_number order by {{ priority }}
               rows between unbounded preceding and unbounded following
@@ -80,25 +74,12 @@ combined as (
               rows between unbounded preceding and unbounded following
           ) as {{ column }}
         {% endfor %}
-        {% for column in location_columns %}
-        , first_value(case
-              when not is_location_redacted
-                  and (last_redacted_at is null or ingested_at > last_redacted_at)
-                  {% if column in ['latitude', 'longitude'] %}
-                  and not has_invalid_coordinates
-                  {% endif %}
-                  then {{ column }}
-          end) ignore nulls over (
+        , first_value(is_location_redacted) over (
               partition by arrest_number order by {{ priority }}
               rows between unbounded preceding and unbounded following
-          ) as {{ column }}
-        {% endfor %}
-        , first_value(is_location_redacted) over (
-              partition by arrest_number order by ingested_at desc, _row_fingerprint desc
-              rows between unbounded preceding and unbounded following
-          ) as is_location_redacted
+          ) as latest_is_location_redacted
         , first_value(has_invalid_coordinates) over (
-              partition by arrest_number order by ingested_at desc, _row_fingerprint desc
+              partition by arrest_number order by {{ priority }}
               rows between unbounded preceding and unbounded following
           ) as latest_has_invalid_coordinates
     from identities
@@ -106,12 +87,8 @@ combined as (
 )
 
 select
-      combined.* exclude (latest_has_invalid_coordinates)
-    , object_construct_keep_null(
-        {% for column in arrest_business_columns() %}
-        '{{ column }}', {{ column }}{{ ',' if not loop.last }}
-        {% endfor %}
-      ) as consolidation_choices
+      combined.* exclude (latest_has_invalid_coordinates, latest_is_location_redacted)
+    , {{ arrest_location_is_redacted('latest_is_location_redacted') }} as is_location_redacted
     , (latitude is null or longitude is null) as has_missing_coordinates
     , (coalesce(latest_has_invalid_coordinates, false)
         and (latitude is null or longitude is null)) as has_invalid_coordinates
