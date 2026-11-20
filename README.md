@@ -13,7 +13,7 @@ La [guía de Gold](docs/gold.md) documenta los hechos, los análisis CP × año 
 | Bronze | `DBT_BRONZE.RAW` | Declara `CRIMES`, `ARRESTS`, `PET_LICENSES` y `ZIPCODE_AREAS`. La carga es externa a dbt. |
 | Staging | `DBT_BRONZE.STG` | Cuatro vistas que renombran columnas, convierten tipos y normalizan valores sin resolver duplicados ni eliminar asociaciones. |
 | Silver | `DBT_SILVER.SILVER` | Modelos incrementales y tablas que se reconstruyen en cada ejecución. |
-| Gold | `DBT_GOLD.GOLD` | Dimensiones y hechos incrementales, puentes y dos marts de delitos y licencias por CP y año. |
+| Gold | `DBT_GOLD.GOLD` | Hechos y licencias incrementales; el resto de dimensiones, puentes y dos marts por CP y año se reconstruyen. |
 
 Staging pasa a mayúsculas los textos descriptivos y los códigos, recorta espacios y convierte vacíos y marcadores conocidos en `NULL`. `arrest_type` también unifica espacios internos. Los identificadores y los metadatos de procedencia conservan su escritura. Limpiar aquí, y no en cada modelo Silver, mantiene una sola regla para todos los consumidores. Se conserva `_INGESTED_AT` como `ingested_at`, además del lote y el fichero. Latitud y longitud se publican como `NUMBER(18,5)`; staging evalúa los marcadores y rangos antes de redondear. No se redondean fechas, identificadores ni geometrías postales.
 

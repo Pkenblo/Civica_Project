@@ -34,9 +34,10 @@ models:
       +schema: GOLD
       +materialized: table
       dimensions:
-        +materialized: incremental
-        +incremental_strategy: delete+insert
-        +on_schema_change: fail
+        dim_licenses:
+          +materialized: incremental
+          +incremental_strategy: delete+insert
+          +on_schema_change: fail
       facts:
         +materialized: incremental
         +incremental_strategy: delete+insert

@@ -1,5 +1,3 @@
-{{ config(unique_key='date_key') }}
-
 with observed_dates as (
     select offense_date::date as full_date from {{ ref('crimes') }}
     union all
@@ -17,7 +15,7 @@ with observed_dates as (
     select dateadd(day, offsets.value::integer, b.first_date) as full_date
     from bounds b,
         lateral flatten(input => array_generate_range(0, datediff(day, b.first_date, b.last_date) + 1)) offsets
-), current_rows as (
+)
 select
     to_char(full_date, 'YYYYMMDD')::number(8, 0) as date_key,
     full_date,
@@ -33,5 +31,3 @@ select
     dayofweekiso(full_date) in (6, 7) as is_weekend,
     to_char(full_date, 'YYYY-MM') as year_month
 from calendar
-)
-{{ gold_changed_rows() }}
