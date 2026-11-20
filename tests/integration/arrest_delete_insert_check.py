@@ -33,7 +33,8 @@ def main():
     with tempfile.TemporaryDirectory(prefix='silver-regression-') as work:
         project = Path(work)
         for folder in ('models', 'macros', 'tests/singular'):
-            shutil.copytree(repo / folder, project / folder)
+            # Este fixture solo construye Bronze/staging/Silver, no Gold ni su seed.
+            shutil.copytree(repo / folder, project / folder, ignore=shutil.ignore_patterns('gold'))
         for file in ('dbt_project.yml', 'packages.yml', 'package-lock.yml'):
             shutil.copy2(repo / file, project)
         # Solo la copia del proyecto: aislar RAW, STG y SILVER del despliegue real.

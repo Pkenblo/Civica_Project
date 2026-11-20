@@ -1,0 +1,12 @@
+version: 2
+
+seeds:
+  - name: nibrs_severity_map
+    description: Reglas analíticas revisadas por código NIBRS, no equivalencias jurídicas.
+    columns:
+      - {name: offense_code, data_tests: [unique, not_null]}
+      - name: severity
+        data_tests:
+          - not_null
+          - accepted_values: {arguments: {values: [grave, leve]}}
+      - {name: rationale, data_tests: [not_null]}

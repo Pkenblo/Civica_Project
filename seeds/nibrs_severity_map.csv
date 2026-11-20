@@ -1,0 +1,12 @@
+offense_code,severity,rationale
+09A,grave,Homicidio doloso o no negligente
+100,grave,Privación coercitiva de la libertad
+11A,grave,Violación
+11B,grave,Acto sexual sin consentimiento según la definición NIBRS del código
+11C,grave,Agresión sexual con objeto
+120,grave,Robo mediante fuerza o amenaza contra una persona
+13A,grave,Agresión con daño grave o potencial de causarlo
+64A,grave,Explotación sexual mediante trata de personas
+64B,grave,Servidumbre involuntaria mediante trata de personas
+90B,leve,Infracción de toque de queda permanencia o vagancia sin daño directo implícito en el código
+90E,leve,Embriaguez sin daño directo implícito en el código; no incluye conducir bajo sus efectos

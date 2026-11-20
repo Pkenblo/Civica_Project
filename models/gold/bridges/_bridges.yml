@@ -1,0 +1,29 @@
+version: 2
+
+models:
+  - name: bridge_crime_shooting_types
+    description: Una asociación observada por pareja de delito y etiqueta de tiroteo.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [crime_id, shooting_type_id]}
+      - dbt_utils.equality: {arguments: {compare_model: "ref('crime_shooting_types')"}}
+    columns:
+      - name: crime_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: "ref('fact_crimes')", field: crime_id}}
+      - name: shooting_type_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: "ref('dim_shooting_type')", field: shooting_type_id}}
+
+  - name: bridge_arrest_offenses
+    description: Infracciones observadas en las detenciones; el texto NIBRS no identifica un código.
+    data_tests:
+      - dbt_utils.equality: {arguments: {compare_model: "ref('arrest_offenses')"}}
+    columns:
+      - {name: arrest_offense_id, data_tests: [unique, not_null]}
+      - name: arrest_number
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: "ref('fact_arrests')", field: arrest_number}}

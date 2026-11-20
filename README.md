@@ -4,6 +4,8 @@ Cívica prepara datos abiertos de Seattle con dbt y Snowflake: delitos, detencio
 
 La [guía de Silver](docs/silver.md) describe los 17 modelos, sus claves, la carga incremental y el procedimiento de validación en DEV. El [diccionario y DBML](docs/silver_diagram.md) y el [diagrama](docs/silver_diagram.svg) corresponden al diseño anterior.
 
+La [guía de Gold](docs/gold.md) documenta los hechos, los análisis CP × año y las instrucciones de ejecución. El [diagrama Gold en DBML](gold_diagram.dbml) se puede importar en dbdiagram.io.
+
 ## Capas y alcance
 
 | Capa | Dónde | Qué hace |
@@ -11,7 +13,7 @@ La [guía de Silver](docs/silver.md) describe los 17 modelos, sus claves, la car
 | Bronze | `DBT_BRONZE.RAW` | Declara `CRIMES`, `ARRESTS`, `PET_LICENSES` y `ZIPCODE_AREAS`. La carga es externa a dbt. |
 | Staging | `DBT_BRONZE.STG` | Cuatro vistas que renombran columnas, convierten tipos y normalizan valores sin resolver duplicados ni eliminar asociaciones. |
 | Silver | `DBT_SILVER.SILVER` | Modelos incrementales y tablas que se reconstruyen en cada ejecución. |
-| Gold | Sin implementar | Todavía no hay modelos Gold ni snapshots en uso. |
+| Gold | `DBT_GOLD.GOLD` | Dimensiones y hechos incrementales, puentes y dos marts de delitos y licencias por CP y año. |
 
 Staging pasa a mayúsculas los textos descriptivos y los códigos, recorta espacios y convierte vacíos y marcadores conocidos en `NULL`. `arrest_type` también unifica espacios internos. Los identificadores y los metadatos de procedencia conservan su escritura. Limpiar aquí, y no en cada modelo Silver, mantiene una sola regla para todos los consumidores. Se conserva `_INGESTED_AT` como `ingested_at`, además del lote y el fichero. Latitud y longitud se publican como `NUMBER(18,5)`; staging evalúa los marcadores y rangos antes de redondear. No se redondean fechas, identificadores ni geometrías postales.
 
