@@ -31,6 +31,8 @@ models:
         description: Identificador de la licencia.
         data_tests:
           - not_null
+          - dbt_utils.expression_is_true:
+              arguments: {expression: "not like '%|%' and license_number <> '-'"}
 
       - name: animal_name
         data_type: varchar
@@ -59,6 +61,7 @@ models:
       - name: ingested_at
         data_type: timestamp_ltz
         description: Fecha y hora de carga del registro en RAW.
+        data_tests: [not_null]
 
       - name: source_file
         data_type: varchar
@@ -101,6 +104,8 @@ models:
         description: Identificador del delito concreto, que puede aparecer en varias filas.
         data_tests:
           - not_null
+          - dbt_utils.expression_is_true:
+              arguments: {expression: "<> '-'"}
 
       - name: offense_date
         data_type: timestamp_ntz
@@ -181,6 +186,7 @@ models:
       - name: ingested_at
         data_type: timestamp_ltz
         description: Fecha y hora de carga del registro en RAW.
+        data_tests: [not_null]
 
       - name: source_file
         data_type: varchar
@@ -211,6 +217,8 @@ models:
         description: Identificador del registro de detención, que puede aparecer en varias filas.
         data_tests:
           - not_null
+          - dbt_utils.expression_is_true:
+              arguments: {expression: "<> '-'"}
 
       - name: arrest_occurred_date_time
         data_type: timestamp_ntz

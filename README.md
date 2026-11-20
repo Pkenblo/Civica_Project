@@ -2,7 +2,7 @@
 
 Cívica prepara datos abiertos de Seattle con dbt y Snowflake: delitos, detenciones, licencias de mascotas y cartografía postal. El código postal (CP) permite comparar estos conjuntos por zona. **La relación es geográfica:** compartir CP no vincula una mascota, una persona o una licencia con un hecho policial.
 
-Esta memoria recoge las decisiones del proyecto y por qué se tomaron. El [diccionario y DBML](docs/silver_diagram.md) y el [diagrama Silver](docs/silver_diagram.svg) muestran las columnas y relaciones del diseño anterior. [Detenciones en Silver](docs/arrests.md) describe el incremental actual. Para retomar el desarrollo, consultar [contexto.md](contexto.md).
+La [guía de Silver](docs/silver.md) describe los 17 modelos, sus claves, la carga incremental y el procedimiento de validación en DEV. El [diccionario y DBML](docs/silver_diagram.md) y el [diagrama](docs/silver_diagram.svg) corresponden al diseño anterior.
 
 ## Capas y alcance
 
@@ -17,25 +17,19 @@ Staging pasa a mayúsculas los textos descriptivos y los códigos, recorta espac
 
 ## Delitos: conservar el detalle sin inflar los recuentos
 
-En el CSV inicial se observaron 1.575.312 filas y 1.575.310 `offense_id` distintos. Las repeticiones observadas correspondían a tipos de tiroteo distintos. `crime_shooting_types` extrae las asociaciones antes de deduplicar `crimes`, para que un delito pueda tener varios tipos sin repetir el hecho por ese motivo. `crimes` elimina duplicados completos, pero **no garantiza aún una fila por `offense_id`**: si dos versiones tienen atributos de negocio distintos, no elige una de forma arbitraria.
+En el CSV inicial se observaron 1.575.312 filas y 1.575.310 parejas distintas de informe y delito. `crimes` publica la última versión de cada pareja. `crime_shooting_types` extrae las asociaciones desde staging, para que un delito pueda tener varios tipos sin repetir el hecho ni perder etiquetas.
 
 `offense_categories` tiene una fila por categoría y `offense_subcategories` una por combinación de categoría y etiqueta. Conservar la categoría en la clave de subcategoría evita mezclar etiquetas iguales si aparecen bajo categorías distintas. El CSV de ejemplo tenía tres categorías y 31 subcategorías, cada una con un solo padre. `crimes` guarda las dos referencias: así conserva una categoría informada aunque falte la subcategoría. Tampoco se inventa una categoría padre cuando llega solo la subcategoría.
 
-**NIBRS se mantiene separado.** Describe un código y su clasificación (por ejemplo, `PERSON`, `PROPERTY` o `SOCIETY`), no las agrupaciones `VIOLENT CRIME`, `PROPERTY CRIME` y `ALL OTHER` del dataset. Los 64 códigos informados de la muestra se asociaban cada uno a una categoría y subcategoría, pero había 1.643 filas con categoría y sin código NIBRS. Pasar obligatoriamente por `nibrs` perdería esa información. El catálogo conserva variantes contradictorias de un código para que las pruebas de unicidad las señalen.
+**NIBRS se mantiene separado.** Describe un código y su clasificación, no las agrupaciones del dataset. Hay delitos con categoría y sin código NIBRS. El catálogo publica una fila por código con sus últimos atributos recibidos.
 
 ## Detenciones: una fila por arresto, varias infracciones si existen
 
 `arrest` publica la última fila por `arrest_number` y reemplaza la anterior con `delete+insert`, incluidos los nulos. No usa `report_id` como clave: un informe puede tener varias detenciones. `agents` y `subject` siguen la misma regla por identificador de persona, con claves estables que no dependen de sus atributos. Las edades del agente y del sujeto siguen en la detención.
 
-`arrest_offenses` conserva cada asociación observada de detención, tipo de infracción y descripción NIBRS. En el CSV inicial había 145.625 filas para 110.143 detenciones; las filas repetidas no eran necesariamente duplicados. `cad_profiles` reúne cierre, tipo inicial y prioridad publicados por `arrest`; no identifica llamadas individuales.
+`arrest_offenses` conserva cada asociación observada de detención, tipo de infracción y descripción NIBRS. En el CSV inicial había 145.625 filas para 110.143 detenciones. `cad_profiles` reúne las combinaciones de cierre, tipo inicial y prioridad de staging; no identifica llamadas individuales.
 
-## Catálogos incrementales
-
-Los modelos Silver de detenciones, sus catálogos compartidos y varios catálogos de delitos usan `delete+insert`.
-
-Se eligió `delete+insert` en lugar de `append` para poder reemplazar las filas de una clave cuando cambian sus atributos sin que cambie la clave. Un `append` dejaría la fila antigua junto a la nueva aunque la antigua ya no estuviera en el origen. La [macro común](macros/utils/changed_catalog_rows.sql) devuelve todos los candidatos en la primera carga y, en modo incremental, compara filas completas contra el destino para encontrar las claves con alguna fila nueva o distinta. dbt reemplaza **todas las filas de esas claves**, no solo la variante nueva. Así, si en origen siguen constando dos descripciones contradictorias para un código NIBRS, el modelo conserva las dos y la prueba de unicidad señala el conflicto.
-
-Si no hay filas nuevas ni distintas en origen, no se reescribe nada. La comparación no detecta bajas por sí sola: ni una clave que desaparece por completo ni una variante eliminada si el resto de sus filas no cambia. El ahorro está en las escrituras; la consulta sigue leyendo el origen para buscar diferencias.
+Solo `arrest`, `crimes` y `licenses` son incrementales. Los catálogos y puentes son tablas que se reconstruyen en cada ejecución.
 
 ## Informes, áreas policiales y código postal
 
@@ -45,15 +39,14 @@ La cartografía de [King County](https://www5.kingcounty.gov/sdc/?Layer=zipcode_
 
 `full_address` calcula el CP solo si exactamente una zona cubre el punto y este cae en su interior (`ST_COVERS` y `ST_CONTAINS`, con longitud antes de latitud). Guarda `cp_status`: `matched`, `redacted`, `missing_coordinates`, `invalid_coordinates`, `no_match`, `ambiguous` o `boundary`. Si no hay coincidencia interior única, `cp` queda nulo. No se aproxima al CP más cercano ni se necesita una tabla de asignaciones. La clave de dirección no depende del CP, de su estado ni de la versión del mapa.
 
-`licencia` excluye las filas sin número de licencia y toma el CP de origen si consta de cinco dígitos; no lo completa ni elimina una licencia por falta de CP. `license_id` es el hash de `license_number` y `animal_name`, no de la fecha, la especie, las razas ni el CP. Se eliminan duplicados exactos de negocio y se comprueba el grano por número de licencia. Si aparecen variantes, se conservan para revisión: un hash distinto no equivale a un snapshot ni a un historial de vigencias.
+`licenses` toma el CP de origen si consta de cinco dígitos. Conserva la última versión por número de licencia, aunque un cambio de nombre del animal modifique `license_id`.
 
 ## Ingesta y pruebas
 
 Los scripts externos de ingesta de delitos y arrestos no están incluidos en este checkout. Según la documentación previa, detectan cambios en Seattle Open Data, comparan filas y multiplicidades con un histórico SQLite y suben lotes a Snowflake sin propagar bajas ni automatizar licencias o cartografía. No se ha verificado que la programación de `systemd` ni la task de carga estén activas. [El contexto](contexto.md#ingesta-y-datos-locales) conserva las precauciones para retomar ese trabajo. `Datos_ejemplo/` está ignorada por Git y no es una fuente dbt.
 
 - **Revisiones anteriores.** El 19 de noviembre de 2026 se comprobó mediante consultas de solo lectura que staging conservaba los recuentos de RAW. En licencias, 38.413 filas daban 38.410 números distintos: las tres repeticiones eran duplicados exactos de negocio, lo que respaldaba el uso de `DISTINCT` para aquella carga. El [registro de la primera versión de `MERGE`](docs/arrest_incremental.md#validación-de-la-implementación-inicial-del-merge) recoge también una regresión nativa en un entorno aislado. Ninguna de esas comprobaciones valida la versión actual.
-- **Versión actual.** No consta un `dbt build` integral satisfactorio en Snowflake. La [regresión de detenciones](tests/integration/arrest_delete_insert_check.py) cubre el reemplazo de filas y las claves estables de agentes y sujetos con datos sintéticos.
-- **Pendiente conocido.** `arrest` admite versiones sin `officer_id`, pero el test `not_null` de `stg_arrests.officer_id` aún las señala. Es una discrepancia por resolver antes de considerar cerrado el flujo. No se reintroducen los tests masivos `normalized_text`; la limpieza sigue cubierta con pruebas específicas.
+- **Versión actual.** Falta el `dbt build` integral en Snowflake. La [regresión de integración](tests/integration/arrest_delete_insert_check.py) usa datos sintéticos y un esquema DEV aislado.
 
 ## Ejecución en desarrollo
 
@@ -64,6 +57,6 @@ dbt deps
 dbt parse
 ```
 
-Validar primero en un destino aislado. Una vez confirmado el CRS policial y resuelta la discrepancia de `officer_id`, ejecutar el flujo completo con `dbt build --select path:models/staging path:models/silver`. El build debe incluir los dependientes que se quieran actualizar, como `cad_profiles` después de `arrest`; ejecutar solo `arrest` no los reconstruye.
+Validar primero en un destino aislado. El comando de construcción y los requisitos de cartografía están en la [guía de Silver](docs/silver.md#ejecución-en-dev).
 
 Si Silver ya tiene un esquema anterior, revisar antes qué tablas y referencias deben reconstruirse juntas. `on_schema_change='fail'` no migra columnas y las claves de `agents` y `subject` ahora dependen solo del identificador. Comprobar el histórico de RAW, respaldar los destinos y acordar la migración antes de ejecutar `--full-refresh`. Los datos que solo existan en Silver no se recuperan desde RAW. El [contexto operativo](contexto.md#por-dónde-retomar) detalla qué queda por comprobar antes del primer despliegue.

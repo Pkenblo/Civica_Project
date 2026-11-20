@@ -1,4 +1,6 @@
-# Detenciones en Silver
+# Detenciones en Silver (versión anterior)
+
+La implementación vigente se documenta en [Silver de Seattle](silver.md). El texto siguiente se conserva como antecedente de la migración.
 
 `arrest` usa `delete+insert` por `arrest_number`. Si llega una versión más reciente del mismo ID, dbt borra la fila anterior e inserta la nueva entera. Si un campo llega nulo, queda nulo: no se rellena con datos de otras versiones. Una ubicación marcada `REDACTED` tampoco hereda la ubicación anterior.
 

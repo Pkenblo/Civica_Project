@@ -10,4 +10,4 @@ select expected.arrest_number
 from expected
 left join {{ ref('arrest') }} as actual using (arrest_number)
 where actual.arrest_number is null
-   or actual.last_ingested_at is distinct from expected.last_ingested_at
+   or actual.ingested_at is distinct from expected.last_ingested_at

@@ -1,5 +1,7 @@
 # Civica Project — contexto para retomar
 
+**Nota de versión:** las decisiones de Silver y el procedimiento de ejecución de este contexto corresponden al diseño anterior. Para el código actual, consultar [Silver de Seattle](docs/silver.md).
+
 Proyecto dbt sobre Snowflake para delitos, detenciones, licencias de mascotas y cartografía postal de Seattle. La comparación por CP es **geográfica**, no una relación entre mascotas, personas y hechos policiales. El [README](README.md) es la memoria de decisiones; este archivo resume el estado, las reglas que no deben perderse y el orden para validar o continuar.
 
 ## Qué hay y qué se ha comprobado

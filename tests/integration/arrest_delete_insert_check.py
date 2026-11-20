@@ -1,9 +1,10 @@
-"""Run the arrest delete+insert regression in its own Snowflake schema (never DEV Silver).
+"""Regresión nativa de Silver con datos sintéticos y un esquema DEV de un solo uso.
 
-DBT_BIN=/path/to/dbt python tests/integration/arrest_delete_insert_check.py
-Uses SNOWFLAKE_CONNECTION_NAME (default civica) with JWT configured outside the repo.
+DBT_BIN=/ruta/a/dbt python tests/integration/arrest_delete_insert_check.py
+Usa la conexión JWT externa SNOWFLAKE_CONNECTION_NAME (por defecto civica).
 """
 
+import json
 import os
 from pathlib import Path
 import re
@@ -21,139 +22,109 @@ def main():
     os.umask(0o077)
     repo = Path(__file__).resolve().parents[2]
     database = os.environ.get('DBT_TEST_DATABASE', 'DEV_BRONZE')
-    if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', database):
-        raise ValueError('Invalid DBT_TEST_DATABASE')
-    schema = 'ARREST_DELETE_INSERT_' + uuid.uuid4().hex[:12].upper()
+    if not re.fullmatch(r'DEV_[A-Z0-9_]+', database):
+        raise ValueError('DBT_TEST_DATABASE debe ser una base DEV')
+    schema = 'SILVER_REGRESSION_' + uuid.uuid4().hex.upper()
     namespace = f'{database}.{schema}'
-    connection_name = os.environ.get('SNOWFLAKE_CONNECTION_NAME', 'civica')
+    name = os.environ.get('SNOWFLAKE_CONNECTION_NAME', 'civica')
     role = os.environ.get('DBT_TEST_ROLE', 'DEV_INGEST_ROLE')
-    settings = tomllib.loads((Path.home() / '.snowflake/connections.toml').read_text())[connection_name]
-    raw = f'{namespace}.RAW_ARRESTS_FIXTURE'
-    source = yaml.safe_load((repo / 'models/bronze/brz_arrests.yml').read_text())
-    source['sources'][0]['schema'] = schema
-    source['sources'][0]['tables'][0]['identifier'] = 'RAW_ARRESTS_FIXTURE'
-    columns = source['sources'][0]['tables'][0]['columns']
+    settings = tomllib.loads((Path.home() / '.snowflake/connections.toml').read_text())[name]
 
-    with tempfile.TemporaryDirectory(prefix='civica-arrest-delete-insert-') as work:
+    with tempfile.TemporaryDirectory(prefix='silver-regression-') as work:
         project = Path(work)
-        (project / 'models').mkdir()
-        (project / 'macros').mkdir()
-        (project / 'tests').mkdir()
-        for name in ('arrest', 'stg_arrests', 'agents', 'subject', 'arrest_offenses',
-                     'arrest_types', 'cad_profiles', 'police_add', 'full_address', 'reports'):
-            path, = (repo / 'models').rglob(f'{name}.sql')
-            shutil.copy2(path, project / 'models')
-        for path in (repo / 'tests/singular').glob('arrest_*.sql'):
-            shutil.copy2(path, project / 'tests')
-        shutil.copy2(repo / 'models/silver/arrests/_arrest_models.yml', project / 'models')
-        configs = yaml.safe_load((repo / 'models/silver/_silver_models.yml').read_text())
-        configs = [model for model in configs['models']
-                   if model['name'] in ('arrest_types', 'police_add', 'reports')]
-        (project / 'models/catalogs.yml').write_text(yaml.safe_dump({'version': 2, 'models': configs}))
-        # Other domains are synthetic. The CRS override below applies only to these fixtures.
-        (project / 'models/stg_crimes.sql').write_text(f'select * from {namespace}.CRIMES_FIXTURE')
-        (project / 'models/nibrs.sql').write_text(f'select * from {namespace}.NIBRS_FIXTURE')
-        (project / 'models/postal_codes.sql').write_text(
-            'select null::varchar as cp, to_geography(null::varchar) as geography where false')
-        for name in ('nullif_any', 'changed_catalog_rows'):
-            path, = (repo / 'macros').rglob(f'{name}.sql')
-            shutil.copy2(path, project / 'macros')
-        shutil.copy2(repo / 'packages.yml', project)
-        (project / 'models/source.yml').write_text(yaml.safe_dump(source))
-        (project / 'macros/sandbox_schema.sql').write_text(
+        for folder in ('models', 'macros', 'tests/singular'):
+            shutil.copytree(repo / folder, project / folder)
+        for file in ('dbt_project.yml', 'packages.yml', 'package-lock.yml'):
+            shutil.copy2(repo / file, project)
+        # Solo la copia del proyecto: aislar RAW, STG y SILVER del despliegue real.
+        (project / 'macros/utils/generate_schema_name.sql').write_text(
             '{% macro generate_schema_name(custom_schema_name, node) %}{{ target.schema }}{% endmacro %}')
-        (project / 'dbt_project.yml').write_text('name: arrest_regression\nversion: "1.0.0"\nconfig-version: 2\nprofile: sandbox\n')
+        ddl = []
+        for path in (project / 'models/bronze').glob('*.yml'):
+            doc = yaml.safe_load(path.read_text())
+            source, = doc['sources']
+            table, = source['tables']
+            source['schema'] = schema
+            table['identifier'] = 'FIXTURE_' + table['identifier']
+            columns = ', '.join(f"{c['name']} {c['data_type']}" for c in table['columns'])
+            ddl.append(f"create table {namespace}.{table['identifier']} ({columns})")
+            path.write_text(yaml.safe_dump(doc))
         profile = {k: settings[k] for k in ('account', 'user', 'warehouse')}
-        profile.update(type='snowflake', role=role, authenticator='snowflake_jwt',
-                       private_key_path=settings['private_key_file'], database=database, schema=schema, threads=1)
-        (project / 'profiles.yml').write_text(yaml.safe_dump({'sandbox': {'target': 'test', 'outputs': {'test': profile}}}))
-        env = dict(os.environ, DBT_BRONZE=database, DBT_SILVER=database,
-                   DBT_PROFILES_DIR=work, DBT_SEND_ANONYMOUS_USAGE_STATS='false')
+        profile.update(type='snowflake', role=role, authenticator='snowflake_jwt', threads=2,
+                       private_key_path=settings['private_key_file'], database=database, schema=schema)
+        (project / 'profiles.yml').write_text(yaml.safe_dump({'default': {'target': 'dev', 'outputs': {'dev': profile}}}))
+        env = dict(os.environ, DBT_BRONZE=database, DBT_SILVER=database, DBT_PROFILES_DIR=work,
+                   DBT_SEND_ANONYMOUS_USAGE_STATS='false')
+        variables = json.dumps(dict(police_coordinates_epsg4326_confirmed=True,
+                                    zipcode_boundary_version='fixture', zipcode_expected_feature_count=1))
 
         def run(*args):
             subprocess.run([os.environ.get('DBT_BIN', 'dbt'), *args], cwd=project, env=env, check=True)
 
+        def build():
+            run('build', '--vars', variables)
+
         run('deps')
-        early, latest = '2026-11-18 10:00:00 +00:00', '2026-11-19 10:00:00 +00:00'
-        build_args = ('--vars', '{police_coordinates_epsg4326_confirmed: true}')
-        with snowflake.connector.connect(connection_name=connection_name, role=role, login_timeout=20) as conn:
-            with conn.cursor() as q:
-                def insert(number, ingested_at, **attributes):
-                    names = ', '.join(('ARREST_NUMBER', '_INGESTED_AT', *attributes))
-                    tail = ', %s' * len(attributes)
-                    q.execute(f'insert into {raw} ({names}) select %s, to_timestamp_ltz(%s){tail}',
-                              (number, ingested_at, *attributes.values()))
+        with snowflake.connector.connect(connection_name=name, role=role, login_timeout=20) as conn, conn.cursor() as q:
+            def rows(sql):
+                return q.execute(sql).fetchall()
 
-                def rows(sql):
-                    return q.execute(sql).fetchall()
+            def add(table, day, **fields):
+                fields['_INGESTED_AT'] = f'2026-01-{day:02d} 10:00:00 +00:00'
+                q.execute(f"insert into FIXTURE_{table} ({', '.join(fields)}) values "
+                          f"({', '.join(['%s'] * len(fields))})", tuple(fields.values()))
 
-                def arrest_row():
-                    row, = rows(f'''select a.last_ingested_at, a.block_address, a.latitude,
-                        a.cad_priority, a.force_involved, a.sector, address.cp_status,
-                        a.agent_key, a.subject_key, a.agents_age_at_detention, a.subgect_age_at_detention
-                        from {namespace}.ARREST a
-                        left join {namespace}.FULL_ADDRESS address on a.address_id = address.address_id
-                        where a.arrest_number = 'A1' ''')
-                    return row
-
-                q.execute(f'create schema {namespace}')
-                try:
-                    definition = ', '.join(f"{col['name']} {col['data_type']}" for col in columns)
-                    q.execute(f'create table {raw} ({definition})')
-                    q.execute(f'''create table {namespace}.CRIMES_FIXTURE (
-                        report_number varchar, report_date_time timestamp_ntz, precinct varchar, sector varchar,
-                        beat varchar, offense_id varchar, block_address varchar, latitude number(18,5),
-                        longitude number(18,5), neighborhood varchar, reporting_area varchar,
-                        census_block_2020 varchar, is_location_redacted boolean, has_missing_coordinates boolean,
-                        has_invalid_coordinates boolean)''')
-                    q.execute(f'create table {namespace}.NIBRS_FIXTURE (offense_description varchar, nibrs_key varchar)')
-                    insert('A1', early, BLOCK_ADDRESS='PUBLIC ADDRESS', LATITUDE='47.123456', LONGITUDE='-122.12345',
-                           REPORT_NUMBER='20260000000001', ARREST_TYPE='CITATION', PRECINCT='NORTH', SECTOR='J',
-                           OFFICER_ID='O1', INV_OFFICER_TITLE='OLD TITLE', AS_ON_SQUAD_DESC='WEST', OFFICER_AGE='40',
-                           SK_PERSON='S1', SUBJECT_GENDER='FEMALE', SUBJECT_RACE='OLD RACE', SUBJECT_AGE_RANGE='18-24',
-                           OFFENSE_TYPE='CHARGE A', NIBRS_DESCRIPTION='DESCRIPTION A')
-                    run('run', *build_args)
-                    original = arrest_row()
-                    assert original[1] == 'PUBLIC ADDRESS' and original[6] == 'no_match', original
-
-                    # Mismo ID: sustituye la fila completa y mantiene las referencias de persona.
-                    insert('A1', latest, BLOCK_ADDRESS='REDACTED', LATITUDE='0', CAD_PRIORITY='0', FORCE_INVOLVED='false',
-                           OFFICER_ID='O1', INV_OFFICER_TITLE='NEW TITLE', SK_PERSON='S1', SUBJECT_GENDER='MALE',
-                           OFFENSE_TYPE='CHARGE B', _SOURCE_FILE='01.csv')
-                    insert('A2', early, _SOURCE_FILE='01.csv')
-                    # Cambios bajo claves ya existentes en catálogos compartidos.
-                    q.execute(f'''insert into {namespace}.CRIMES_FIXTURE (report_number, report_date_time)
-                                  values ('2026-000001', '2026-01-19 12:00:00')''')
-                    q.execute(f"insert into {namespace}.NIBRS_FIXTURE values ('DESCRIPTION A', 'K1')")
-                    run('run', *build_args)
-                    current = arrest_row()
-                    assert current[0] > original[0]
-                    assert current[1:7] == (None, None, 0, False, None, 'redacted'), current
-                    assert current[7:9] == original[7:9] and current[9:] == (None, None), current
-                    assert rows(f'select officer_id, officer_title, squad_description from {namespace}.AGENTS') == [
-                        ('O1', 'NEW TITLE', None)]
-                    assert rows(f'select sk_person, subject_gender, subject_race from {namespace}.SUBJECT') == [
-                        ('S1', 'MALE', None)]
-                    assert rows(f'select report_number, report_date_time is not null from {namespace}.REPORTS') == [
-                        ('2026-000001', True)]
-                    assert rows(f'select offense_type, nibrs_key from {namespace}.ARREST_OFFENSES order by 1') == [
-                        ('CHARGE A', 'K1'), ('CHARGE B', None)]
-
-                    # Una ingesta más antigua no pisa la última; un fichero distinto puede desempatar.
-                    insert('A1', early, SECTOR='OLD SECTOR', OFFICER_ID='O1', SK_PERSON='S1')
-                    insert('A2', early, CAD_INITIAL_CALL_TYPE='CALL TYPE', _SOURCE_FILE='02.csv')
-                    run('run', *build_args)
-                    assert arrest_row() == current
-                    query = (f'select arrest_number, cad_initial_call_type, agent_key is null, subject_key is null '
-                             f'from {namespace}.ARREST order by arrest_number')
-                    actual = rows(query)
-                    assert actual == [('A1', None, False, False), ('A2', 'CALL TYPE', True, True)], actual
-                    run('run', *build_args)
-                    assert rows(query) == actual and arrest_row() == current
-                    run('test', '--select', 'test_type:data')
-                    print('PASS: row replacement, stable person keys, catalog updates and repeatability.')
-                finally:
-                    q.execute(f'drop schema {namespace} cascade')
+            q.execute(f'create schema {namespace}')
+            try:
+                q.execute(f'use schema {namespace}')
+                for statement in ddl:
+                    q.execute(statement)
+                feature = {'type': 'Feature', 'properties': {'OBJECTID': 1, 'ZIPCODE': '00501'},
+                           'geometry': {'type': 'Polygon', 'coordinates': [[[0, 0], [2, 0], [2, 2], [0, 2], [0, 0]]]}}
+                q.execute("insert into FIXTURE_ZIPCODE_AREAS (feature, boundary_version) select parse_json(%s), 'fixture'",
+                          (json.dumps(feature),))
+                dt = '01/01/2026 10:00:00 AM'
+                arrest = dict(ARREST_NUMBER='A1', REPORT_NUMBER='20260000000001', ARREST_TYPE='OLD',
+                              ARREST_OCCURRED_DATE_TIME=dt, ARREST_REPORTED_DATE_TIME=dt, OFFICER_ID='O1',
+                              SK_PERSON='P1', LATITUDE='1', LONGITUDE='1', OFFICER_AGE='40')
+                crime = dict(REPORT_NUMBER='2026-000001', OFFENSE_ID='C1', REPORT_DATE_TIME=dt,
+                             OFFENSE_DATE=dt, OFFENSE_CATEGORY='CAT', OFFENSE_SUB_CATEGORY='SUB')
+                pet = dict(LICENSE_NUMBER='L1', LICENSE_ISSUE_DATE='January 01 2026', SPECIES='DOG', PRIMARY_BREED='B')
+                for charge in ('CHARGE A', 'CHARGE B'):
+                    add('ARRESTS', 2, **arrest, OFFENSE_TYPE=charge)
+                for label in ('TYPE A', 'TYPE B'):
+                    add('CRIMES', 2, **crime, SHOOTING_TYPE_GROUP=label)
+                add('PET_LICENSES', 2, **pet, ANIMAL_S_NAME='DOG A', ZIP_CODE='00501')
+                build()
+                assert rows('select d.cp from arrest a join full_address d using (address_id)') == [('00501',)]
+                assert rows('select distinct report_id from arrest minus select report_id from crimes') == []
+                assert rows('select animal_name from licenses') == [('DOG A',)]
+                assert rows('select count(*) from crime_shooting_types') == [(2,)]
+                # NULL explícito y valor nuevo. Nuevas claves por debajo del máximo global.
+                add('ARRESTS', 3, **(arrest | dict(ARREST_TYPE='NEW', OFFICER_ID=None, OFFICER_AGE=None,
+                                                   BLOCK_ADDRESS='REDACTED')), OFFENSE_TYPE='CHARGE C')
+                add('CRIMES', 3, **(crime | dict(OFFENSE_SUB_CATEGORY=None)), SHOOTING_TYPE_GROUP='TYPE C')
+                add('PET_LICENSES', 3, **pet, ANIMAL_S_NAME=None)
+                build()
+                add('ARRESTS', 1, **(arrest | dict(ARREST_NUMBER='A2')))
+                add('CRIMES', 1, **(crime | dict(OFFENSE_ID='C2')))
+                add('PET_LICENSES', 1, **(pet | dict(LICENSE_NUMBER='L2')))
+                add('PET_LICENSES', 1, **pet, ANIMAL_S_NAME='OBSOLETE')
+                # Empate reproducible en el mismo instante.
+                add('PET_LICENSES', 1, **(pet | dict(LICENSE_NUMBER='L2')), ANIMAL_S_NAME='TIE', _SOURCE_FILE='z.csv')
+                for _ in range(2):
+                    build()
+                    assert rows('select arrest_number from arrest order by 1') == [('A1',), ('A2',)]
+                    assert rows("select agent_key, officer_age, d.cp_status, t.description from arrest a "
+                                "join full_address d using (address_id) join arrest_types t using (arrest_type_id) "
+                                "where arrest_number='A1'") == [(None, None, 'redacted', 'NEW')]
+                    assert rows('select count(*) from arrest_offenses') == [(3,)]
+                    assert rows('select offense_id, offense_subcategory_id is null from crimes order by 1') == [('C1', True), ('C2', False)]
+                    assert rows('select count(*) from crime_shooting_types') == [(3,)]
+                    assert rows('select license_number, animal_name, cp from licenses order by 1') == [('L1', None, None), ('L2', 'TIE', None)]
+                print('PASS: tres incrementales, cargas tardías, NULL, empates, catálogos, puentes y repetición.')
+            finally:
+                q.execute(f'drop schema {namespace} cascade')
 
 
 if __name__ == '__main__':
