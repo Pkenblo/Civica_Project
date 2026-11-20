@@ -278,9 +278,7 @@ models:
 
       - name: officer_id
         data_type: varchar
-        description: Identificador del agente.
-        data_tests:
-          - not_null
+        description: Identificador del agente; puede faltar en una versión de RAW.
 
       - name: officer_race
         data_type: varchar

@@ -1,42 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1982" height="1395" viewBox="0 0 1982 1395" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="1982" height="1560" viewBox="0 0 1982 1560" role="img" aria-labelledby="title description">
 <title id="title">Cívica · Diagrama de la capa Silver</title>
-<desc id="description">Diagrama de 19 modelos dbt, 100 columnas y 21 relaciones lógicas. Las flechas apuntan a las claves referenciadas. NIBRS y la jerarquía de categorías de delitos se muestran por separado.</desc>
+<desc id="description">Diagrama de 17 modelos dbt, 105 columnas y 20 relaciones lógicas. Las flechas apuntan a las claves referenciadas. Las infracciones de detenciones se enlazan a NIBRS solo si la descripción coincide con la de un único código.</desc>
 <style>text{font-family:"DejaVu Sans",sans-serif;fill:#192e4a}.mono{font-family:"DejaVu Sans Mono",monospace}.muted{fill:#4d627d}.white{fill:#fff}.light{fill:#d3e2f6}.label{font-weight:700;letter-spacing:1.25px}.bold{font-weight:700}</style>
 <defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#d8e1ed"/></pattern>
 <marker id="logical" markerWidth="8" markerHeight="8" refX="7.5" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L8 4 L0 8 Z" fill="#657d9b"/></marker>
 <marker id="tested" markerWidth="8" markerHeight="8" refX="7.5" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L8 4 L0 8 Z" fill="#078168"/></marker>
 <marker id="pending" markerWidth="8" markerHeight="8" refX="7.5" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L8 4 L0 8 Z" fill="#a95218"/></marker>
 </defs>
-<rect x="0" y="0" width="1982" height="1395" fill="#f3f6fb" rx="0"/>
-<rect x="0" y="145" width="1982" height="1250" fill="url(#grid)" rx="0"/>
+<rect x="0" y="0" width="1982" height="1560" fill="#f3f6fb" rx="0"/>
+<rect x="0" y="145" width="1982" height="1415" fill="url(#grid)" rx="0"/>
 <rect x="0" y="0" width="1982" height="145" fill="#122441" rx="0"/>
 <rect x="0" y="141" width="1982" height="4" fill="#50c3a6" rx="0"/>
 <text x="54" y="37" font-size="13" class="label light" text-anchor="start">CÍVICA PROJECT  /  SEATTLE</text>
 <text x="52" y="82" font-size="40" class="bold white" text-anchor="start">Diagrama de la capa Silver</text>
-<text x="54" y="115" font-size="17" class="light" text-anchor="start">Modelos dbt locales sobre Snowflake  ·  19 modelos  /  100 columnas  /  21 relaciones lógicas</text>
+<text x="54" y="115" font-size="17" class="light" text-anchor="start">Modelos dbt locales sobre Snowflake  ·  17 modelos  /  105 columnas  /  20 relaciones lógicas</text>
 <text x="1928" y="43" font-size="12" class="label light" text-anchor="end">ESTADO DEL REPOSITORIO</text>
 <text x="1928" y="69" font-size="16" class="white" text-anchor="end">Despliegue en Snowflake no verificado</text>
 <g><title>crimes.report_id → reports.report_id</title><path d="M830 291 C783 291 783 766 714 766" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M830 291 C783 291 783 766 714 766" fill="none" stroke="#657d9b" stroke-width="1.8" marker-end="url(#logical)"/></g>
-<g><title>arrest.report_id → reports.report_id</title><path d="M830 894 C769 894 769 766 714 766" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M830 894 C769 894 769 766 714 766" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
+<g><title>arrest.report_id → reports.report_id</title><path d="M830 784 C769 784 769 766 714 766" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M830 784 C769 784 769 766 714 766" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
 <g><title>crimes.nibrs_key → nibrs.nibrs_key</title><path d="M830 335 C770 335 770 249 714 249" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M830 335 C770 335 770 249 714 249" fill="none" stroke="#657d9b" stroke-width="1.8" marker-end="url(#logical)"/></g>
 <g><title>crimes.address_id → full_address.address_id</title><path d="M830 401 C763 401 763 460 714 460" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M830 401 C763 401 763 460 714 460" fill="none" stroke="#657d9b" stroke-width="1.8" marker-end="url(#logical)"/></g>
 <g><title>crimes.police_area_id → police_add.police_area_id</title><path d="M830 423 C802 423 802 946 714 946" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M830 423 C802 423 802 946 714 946" fill="none" stroke="#657d9b" stroke-width="1.8" marker-end="url(#logical)"/></g>
 <g><title>crime_shooting_types.offense_id → crimes.offense_id</title><path d="M1285 269 C1233 269 1233 269 1181 269" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M1285 269 C1233 269 1233 269 1181 269" fill="none" stroke="#a95218" stroke-width="1.8" stroke-dasharray="7 4" marker-end="url(#pending)"/></g>
 <g><title>crime_shooting_types.shooting_type_id → shooting_types.shooting_type_id</title><path d="M1585 291 C1621 291 1621 269 1657 269" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M1585 291 C1621 291 1621 269 1657 269" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
 <g><title>arrest_offenses.arrest_number → arrest.arrest_number</title><path d="M1285 891 C1233 891 1233 696 1181 696" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M1285 891 C1233 891 1233 696 1181 696" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
-<g><title>arrest_offenses.offense_type_id → offense_types.offense_type_id</title><path d="M1585 913 C1621 913 1621 869 1657 869" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M1585 913 C1621 913 1621 869 1657 869" fill="none" stroke="#657d9b" stroke-width="1.8" marker-end="url(#logical)"/></g>
-<g><title>arrest.arrest_type_id → arrest_types.arrest_type_id</title><path d="M1180 916 C1249 916 1249 1060 1284 1060" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M1180 916 C1249 916 1249 1060 1284 1060" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
-<g><title>arrest.agent_key → agents.agent_key</title><path d="M1180 938 C1205 938 1205 621 1284 621" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M1180 938 C1205 938 1205 621 1284 621" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
-<g><title>arrest.subject_key → subject.subject_key</title><path d="M1180 960 C1264 960 1264 1213 1284 1213" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M1180 960 C1264 960 1264 1213 1284 1213" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
-<g><title>arrest.address_id → full_address.address_id</title><path d="M830 982 C747 982 747 460 714 460" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M830 982 C747 982 747 460 714 460" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
-<g><title>arrest.police_area_id → police_add.police_area_id</title><path d="M830 1004 C785 1004 785 946 714 946" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M830 1004 C785 1004 785 946 714 946" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
+<g><title>arrest_offenses.nibrs_key → nibrs.nibrs_key</title><path d="M1585 957 L1607 957 Q1616 957 1616 948 L1616 519 Q1616 510 1607 510 L739 510 Q730 510 730 501 L730 258 Q730 249 721 249 L714 249" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M1585 957 L1607 957 Q1616 957 1616 948 L1616 519 Q1616 510 1607 510 L739 510 Q730 510 730 501 L730 258 Q730 249 721 249 L714 249" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
+<g><title>arrest.arrest_type_id → arrest_types.arrest_type_id</title><path d="M1180 806 C1239 806 1239 1060 1284 1060" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M1180 806 C1239 806 1239 1060 1284 1060" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
+<g><title>arrest.agent_key → agents.agent_key</title><path d="M1180 828 C1213 828 1213 621 1284 621" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M1180 828 C1213 828 1213 621 1284 621" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
+<g><title>arrest.subject_key → subject.subject_key</title><path d="M1180 850 L1259 850 Q1268 850 1268 859 L1268 1204 Q1268 1213 1277 1213 L1284 1213" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M1180 850 L1259 850 Q1268 850 1268 859 L1268 1204 Q1268 1213 1277 1213 L1284 1213" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
+<g><title>arrest.address_id → full_address.address_id</title><path d="M830 916 C747 916 747 460 714 460" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M830 916 C747 916 747 460 714 460" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
+<g><title>arrest.police_area_id → police_add.police_area_id</title><path d="M830 938 C785 938 785 946 714 946" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M830 938 C785 938 785 946 714 946" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
 <g><title>full_address.cp → postal_codes.cp</title><path d="M405 614 C371 614 371 453 337 453" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M405 614 C371 614 371 453 337 453" fill="none" stroke="#657d9b" stroke-width="1.8" marker-end="url(#logical)"/></g>
 <g><title>licencia.cp → postal_codes.cp</title><path d="M54 792 L31 792 Q22 792 22 783 L22 462 Q22 453 31 453 L53 453" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M54 792 L31 792 Q22 792 22 783 L22 462 Q22 453 31 453 L53 453" fill="none" stroke="#657d9b" stroke-width="1.8" marker-end="url(#logical)"/></g>
 <g><title>crimes.offense_category_id → offense_categories.offense_category_id</title><path d="M1180 357 L1203 357 Q1212 357 1212 348 L1212 338 Q1212 329 1221 329 L1621 329 Q1630 329 1630 338 L1630 416 Q1630 425 1639 425 L1657 425" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M1180 357 L1203 357 Q1212 357 1212 348 L1212 338 Q1212 329 1221 329 L1621 329 Q1630 329 1630 338 L1630 416 Q1630 425 1639 425 L1657 425" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
 <g><title>crimes.offense_subcategory_id → offense_subcategories.offense_subcategory_id</title><path d="M1180 379 C1232 379 1232 425 1284 425" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M1180 379 C1232 379 1232 425 1284 425" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
 <g><title>offense_subcategories.offense_category_id → offense_categories.offense_category_id</title><path d="M1585 447 C1621 447 1621 425 1657 425" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M1585 447 C1621 447 1621 425 1657 425" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
-<g><title>arrest.cad_profile_id → cad_profiles.cad_profile_id</title><path d="M1180 1180 L1234 1180 Q1243 1180 1243 1171 L1243 980 Q1243 971 1252 971 L1616 971 Q1625 971 1625 980 L1625 1051 Q1625 1060 1634 1060 L1657 1060" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M1180 1180 L1234 1180 Q1243 1180 1243 1171 L1243 980 Q1243 971 1252 971 L1616 971 Q1625 971 1625 980 L1625 1051 Q1625 1060 1634 1060 L1657 1060" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
-<g><title>arrest_conflicts.arrest_number → arrest.arrest_number</title><path d="M1658 621 L1630 621 Q1621 621 1621 630 L1621 763 Q1621 772 1612 772 L1235 772 Q1226 772 1226 763 L1226 705 Q1226 696 1217 696 L1181 696" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M1658 621 L1630 621 Q1621 621 1621 630 L1621 763 Q1621 772 1612 772 L1235 772 Q1226 772 1226 763 L1226 705 Q1226 696 1217 696 L1181 696" fill="none" stroke="#657d9b" stroke-width="1.8" marker-end="url(#logical)"/></g>
+<g><title>arrest.cad_profile_id → cad_profiles.cad_profile_id</title><path d="M1180 960 L1211 960 Q1220 960 1220 969 L1220 972 Q1220 981 1229 981 L1616 981 Q1625 981 1625 990 L1625 1051 Q1625 1060 1634 1060 L1657 1060" fill="none" stroke="#f3f6fb" stroke-width="5"/><path d="M1180 960 L1211 960 Q1220 960 1220 969 L1220 972 Q1220 981 1229 981 L1616 981 Q1625 981 1625 990 L1625 1051 Q1625 1060 1634 1060 L1657 1060" fill="none" stroke="#078168" stroke-width="1.8" marker-end="url(#tested)"/></g>
 <g id="postal_codes"><title>postal_codes: Una cartografía activa por CP</title>
 <rect x="54" y="386" width="282" height="133" fill="#e1e8f1" rx="11"/>
 <rect x="54" y="382" width="282" height="133" fill="#ffffff" rx="11" stroke="#ced9e8"/>
@@ -234,14 +233,14 @@
 <text x="1155.5" y="426.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#135d4b">FK</text>
 <text x="1133" y="427" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
 </g>
-<g id="arrest"><title>arrest: Una fila por detención · MERGE</title>
-<rect x="830" y="629" width="350" height="573" fill="#e1e8f1" rx="11"/>
-<rect x="830" y="625" width="350" height="573" fill="#ffffff" rx="11" stroke="#ced9e8"/>
+<g id="arrest"><title>arrest: Última fila completa · delete+insert</title>
+<rect x="830" y="629" width="350" height="793" fill="#e1e8f1" rx="11"/>
+<rect x="830" y="625" width="350" height="793" fill="#ffffff" rx="11" stroke="#ced9e8"/>
 <rect x="831" y="626" width="348" height="59" fill="#182d4f" rx="10"/>
 <rect x="831" y="673" width="348" height="12" fill="#182d4f" rx="0"/>
 <rect x="831" y="683" width="348" height="2" fill="#5f91ee" rx="0"/>
 <text x="843" y="650" font-size="17" class="mono bold" text-anchor="start" style="fill:#ffffff">arrest</text>
-<text x="843" y="671" font-size="11" class="light" text-anchor="start">Una fila por detención · MERGE</text>
+<text x="843" y="671" font-size="11" class="light" text-anchor="start">Última fila completa · delete+insert</text>
 <text x="842" y="700" font-size="11.4" class="mono" text-anchor="start">arrest_number</text>
 <rect x="1141" y="688" width="29" height="16" fill="#ddeafa" rx="4"/>
 <text x="1155.5" y="699.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#254b80">PK</text>
@@ -249,72 +248,97 @@
 <rect x="831" y="707" width="348" height="22" fill="#f5f8fc" rx="0"/>
 <text x="842" y="722" font-size="11.4" class="mono" text-anchor="start">last_ingested_at</text>
 <text x="1133" y="722" font-size="9.7" class="mono muted" text-anchor="end">timestamp_ltz</text>
-<text x="842" y="744" font-size="11.4" class="mono" text-anchor="start">source_version_count</text>
-<text x="1133" y="744" font-size="9.7" class="mono muted" text-anchor="end">number</text>
+<text x="842" y="744" font-size="11.4" class="mono" text-anchor="start">arrest_occurred_date_time</text>
+<text x="1133" y="744" font-size="9.7" class="mono muted" text-anchor="end">timestamp_ntz</text>
 <rect x="831" y="751" width="348" height="22" fill="#f5f8fc" rx="0"/>
-<text x="842" y="766" font-size="11.4" class="mono" text-anchor="start">source_signature</text>
-<text x="1133" y="766" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
-<text x="842" y="788" font-size="11.4" class="mono" text-anchor="start">max_completeness_score</text>
-<text x="1133" y="788" font-size="9.7" class="mono muted" text-anchor="end">number</text>
+<text x="842" y="766" font-size="11.4" class="mono" text-anchor="start">arrest_reported_date_time</text>
+<text x="1133" y="766" font-size="9.7" class="mono muted" text-anchor="end">timestamp_ntz</text>
+<text x="842" y="788" font-size="11.4" class="mono" text-anchor="start">report_id</text>
+<rect x="1141" y="776" width="29" height="16" fill="#e0f1eb" rx="4"/>
+<text x="1155.5" y="787.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#135d4b">FK</text>
+<text x="1133" y="788" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
 <rect x="831" y="795" width="348" height="22" fill="#f5f8fc" rx="0"/>
-<text x="842" y="810" font-size="11.4" class="mono" text-anchor="start">consolidation_conflicts</text>
-<text x="1133" y="810" font-size="9.7" class="mono muted" text-anchor="end">object</text>
-<text x="842" y="832" font-size="11.4" class="mono" text-anchor="start">consolidation_choices</text>
-<text x="1133" y="832" font-size="9.7" class="mono muted" text-anchor="end">object</text>
+<text x="842" y="810" font-size="11.4" class="mono" text-anchor="start">arrest_type_id</text>
+<rect x="1141" y="798" width="29" height="16" fill="#e0f1eb" rx="4"/>
+<text x="1155.5" y="809.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#135d4b">FK</text>
+<text x="1133" y="810" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
+<text x="842" y="832" font-size="11.4" class="mono" text-anchor="start">agent_key</text>
+<rect x="1141" y="820" width="29" height="16" fill="#e0f1eb" rx="4"/>
+<text x="1155.5" y="831.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#135d4b">FK</text>
+<text x="1133" y="832" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
 <rect x="831" y="839" width="348" height="22" fill="#f5f8fc" rx="0"/>
-<text x="842" y="854" font-size="11.4" class="mono" text-anchor="start">arrest_occurred_date_time</text>
-<text x="1133" y="854" font-size="9.7" class="mono muted" text-anchor="end">timestamp_ntz</text>
-<text x="842" y="876" font-size="11.4" class="mono" text-anchor="start">arrest_reported_date_time</text>
-<text x="1133" y="876" font-size="9.7" class="mono muted" text-anchor="end">timestamp_ntz</text>
+<text x="842" y="854" font-size="11.4" class="mono" text-anchor="start">subject_key</text>
+<rect x="1141" y="842" width="29" height="16" fill="#e0f1eb" rx="4"/>
+<text x="1155.5" y="853.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#135d4b">FK</text>
+<text x="1133" y="854" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
+<text x="842" y="876" font-size="11.4" class="mono" text-anchor="start">subgect_age_at_detention</text>
+<text x="1133" y="876" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
 <rect x="831" y="883" width="348" height="22" fill="#f5f8fc" rx="0"/>
-<text x="842" y="898" font-size="11.4" class="mono" text-anchor="start">report_id</text>
-<rect x="1141" y="886" width="29" height="16" fill="#e0f1eb" rx="4"/>
-<text x="1155.5" y="897.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#135d4b">FK</text>
-<text x="1133" y="898" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
-<text x="842" y="920" font-size="11.4" class="mono" text-anchor="start">arrest_type_id</text>
+<text x="842" y="898" font-size="11.4" class="mono" text-anchor="start">agents_age_at_detention</text>
+<text x="1133" y="898" font-size="9.7" class="mono muted" text-anchor="end">number(38,0)</text>
+<text x="842" y="920" font-size="11.4" class="mono" text-anchor="start">address_id</text>
 <rect x="1141" y="908" width="29" height="16" fill="#e0f1eb" rx="4"/>
 <text x="1155.5" y="919.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#135d4b">FK</text>
 <text x="1133" y="920" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
 <rect x="831" y="927" width="348" height="22" fill="#f5f8fc" rx="0"/>
-<text x="842" y="942" font-size="11.4" class="mono" text-anchor="start">agent_key</text>
+<text x="842" y="942" font-size="11.4" class="mono" text-anchor="start">police_area_id</text>
 <rect x="1141" y="930" width="29" height="16" fill="#e0f1eb" rx="4"/>
 <text x="1155.5" y="941.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#135d4b">FK</text>
 <text x="1133" y="942" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
-<text x="842" y="964" font-size="11.4" class="mono" text-anchor="start">subject_key</text>
+<text x="842" y="964" font-size="11.4" class="mono" text-anchor="start">cad_profile_id</text>
 <rect x="1141" y="952" width="29" height="16" fill="#e0f1eb" rx="4"/>
 <text x="1155.5" y="963.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#135d4b">FK</text>
 <text x="1133" y="964" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
 <rect x="831" y="971" width="348" height="22" fill="#f5f8fc" rx="0"/>
-<text x="842" y="986" font-size="11.4" class="mono" text-anchor="start">address_id</text>
-<rect x="1141" y="974" width="29" height="16" fill="#e0f1eb" rx="4"/>
-<text x="1155.5" y="985.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#135d4b">FK</text>
-<text x="1133" y="986" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
-<text x="842" y="1008" font-size="11.4" class="mono" text-anchor="start">police_area_id</text>
-<rect x="1141" y="996" width="29" height="16" fill="#e0f1eb" rx="4"/>
-<text x="1155.5" y="1007.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#135d4b">FK</text>
-<text x="1133" y="1008" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
+<text x="842" y="986" font-size="11.4" class="mono" text-anchor="start">crisis_involved</text>
+<text x="1133" y="986" font-size="9.7" class="mono muted" text-anchor="end">boolean</text>
+<text x="842" y="1008" font-size="11.4" class="mono" text-anchor="start">complaint_involved</text>
+<text x="1133" y="1008" font-size="9.7" class="mono muted" text-anchor="end">boolean</text>
 <rect x="831" y="1015" width="348" height="22" fill="#f5f8fc" rx="0"/>
-<text x="842" y="1030" font-size="11.4" class="mono" text-anchor="start">crisis_involved</text>
+<text x="842" y="1030" font-size="11.4" class="mono" text-anchor="start">force_involved</text>
 <text x="1133" y="1030" font-size="9.7" class="mono muted" text-anchor="end">boolean</text>
-<text x="842" y="1052" font-size="11.4" class="mono" text-anchor="start">complaint_involved</text>
+<text x="842" y="1052" font-size="11.4" class="mono" text-anchor="start">terry_stop</text>
 <text x="1133" y="1052" font-size="9.7" class="mono muted" text-anchor="end">boolean</text>
 <rect x="831" y="1059" width="348" height="22" fill="#f5f8fc" rx="0"/>
-<text x="842" y="1074" font-size="11.4" class="mono" text-anchor="start">force_involved</text>
+<text x="842" y="1074" font-size="11.4" class="mono" text-anchor="start">demonstration</text>
 <text x="1133" y="1074" font-size="9.7" class="mono muted" text-anchor="end">boolean</text>
-<text x="842" y="1096" font-size="11.4" class="mono" text-anchor="start">terry_stop</text>
-<text x="1133" y="1096" font-size="9.7" class="mono muted" text-anchor="end">boolean</text>
+<text x="842" y="1096" font-size="11.4" class="mono" text-anchor="start">precinct</text>
+<text x="1133" y="1096" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
 <rect x="831" y="1103" width="348" height="22" fill="#f5f8fc" rx="0"/>
-<text x="842" y="1118" font-size="11.4" class="mono" text-anchor="start">demonstration</text>
-<text x="1133" y="1118" font-size="9.7" class="mono muted" text-anchor="end">boolean</text>
-<text x="842" y="1140" font-size="11.4" class="mono" text-anchor="start">subgect_age_at_detention</text>
+<text x="842" y="1118" font-size="11.4" class="mono" text-anchor="start">sector</text>
+<text x="1133" y="1118" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
+<text x="842" y="1140" font-size="11.4" class="mono" text-anchor="start">beat</text>
 <text x="1133" y="1140" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
 <rect x="831" y="1147" width="348" height="22" fill="#f5f8fc" rx="0"/>
-<text x="842" y="1162" font-size="11.4" class="mono" text-anchor="start">agents_age_at_detention</text>
-<text x="1133" y="1162" font-size="9.7" class="mono muted" text-anchor="end">number(38,0)</text>
-<text x="842" y="1184" font-size="11.4" class="mono" text-anchor="start">cad_profile_id</text>
-<rect x="1141" y="1172" width="29" height="16" fill="#e0f1eb" rx="4"/>
-<text x="1155.5" y="1183.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#135d4b">FK</text>
-<text x="1133" y="1184" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
+<text x="842" y="1162" font-size="11.4" class="mono" text-anchor="start">block_address</text>
+<text x="1133" y="1162" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
+<text x="842" y="1184" font-size="11.4" class="mono" text-anchor="start">latitude</text>
+<text x="1133" y="1184" font-size="9.7" class="mono muted" text-anchor="end">number(18,5)</text>
+<rect x="831" y="1191" width="348" height="22" fill="#f5f8fc" rx="0"/>
+<text x="842" y="1206" font-size="11.4" class="mono" text-anchor="start">longitude</text>
+<text x="1133" y="1206" font-size="9.7" class="mono muted" text-anchor="end">number(18,5)</text>
+<text x="842" y="1228" font-size="11.4" class="mono" text-anchor="start">neighborhood</text>
+<text x="1133" y="1228" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
+<rect x="831" y="1235" width="348" height="22" fill="#f5f8fc" rx="0"/>
+<text x="842" y="1250" font-size="11.4" class="mono" text-anchor="start">reporting_area</text>
+<text x="1133" y="1250" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
+<text x="842" y="1272" font-size="11.4" class="mono" text-anchor="start">census_block_2020</text>
+<text x="1133" y="1272" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
+<rect x="831" y="1279" width="348" height="22" fill="#f5f8fc" rx="0"/>
+<text x="842" y="1294" font-size="11.4" class="mono" text-anchor="start">is_location_redacted</text>
+<text x="1133" y="1294" font-size="9.7" class="mono muted" text-anchor="end">boolean</text>
+<text x="842" y="1316" font-size="11.4" class="mono" text-anchor="start">has_missing_coordinates</text>
+<text x="1133" y="1316" font-size="9.7" class="mono muted" text-anchor="end">boolean</text>
+<rect x="831" y="1323" width="348" height="22" fill="#f5f8fc" rx="0"/>
+<text x="842" y="1338" font-size="11.4" class="mono" text-anchor="start">has_invalid_coordinates</text>
+<text x="1133" y="1338" font-size="9.7" class="mono muted" text-anchor="end">boolean</text>
+<text x="842" y="1360" font-size="11.4" class="mono" text-anchor="start">cad_clearance</text>
+<text x="1133" y="1360" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
+<rect x="831" y="1367" width="348" height="22" fill="#f5f8fc" rx="0"/>
+<text x="842" y="1382" font-size="11.4" class="mono" text-anchor="start">cad_initial_call_type</text>
+<text x="1133" y="1382" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
+<text x="842" y="1404" font-size="11.4" class="mono" text-anchor="start">cad_priority</text>
+<text x="1133" y="1404" font-size="9.7" class="mono muted" text-anchor="end">number(38,0)</text>
 </g>
 <g id="crime_shooting_types"><title>crime_shooting_types: Puente de tipos de tiroteo</title>
 <rect x="1285" y="202" width="300" height="111" fill="#e1e8f1" rx="11"/>
@@ -394,20 +418,22 @@
 <text x="1903.5" y="450.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#43536a">UK</text>
 <text x="1881" y="451" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
 </g>
-<g id="agents"><title>agents: ID y atributos observados</title>
-<rect x="1285" y="554" width="300" height="199" fill="#e1e8f1" rx="11"/>
-<rect x="1285" y="550" width="300" height="199" fill="#ffffff" rx="11" stroke="#ced9e8"/>
+<g id="agents"><title>agents: Última observación por officer_id</title>
+<rect x="1285" y="554" width="300" height="221" fill="#e1e8f1" rx="11"/>
+<rect x="1285" y="550" width="300" height="221" fill="#ffffff" rx="11" stroke="#ced9e8"/>
 <rect x="1286" y="551" width="298" height="59" fill="#e7edf8" rx="10"/>
 <rect x="1286" y="598" width="298" height="12" fill="#e7edf8" rx="0"/>
 <rect x="1286" y="608" width="298" height="2" fill="#627fad" rx="0"/>
 <text x="1298" y="575" font-size="17" class="mono bold" text-anchor="start" style="fill:#304a79">agents</text>
-<text x="1298" y="596" font-size="11" class="muted" text-anchor="start">ID y atributos observados</text>
+<text x="1298" y="596" font-size="11" class="muted" text-anchor="start">Última observación por officer_id</text>
 <text x="1297" y="625" font-size="11.4" class="mono" text-anchor="start">agent_key</text>
 <rect x="1546" y="613" width="29" height="16" fill="#ddeafa" rx="4"/>
 <text x="1560.5" y="624.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#254b80">PK</text>
 <text x="1538" y="625" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
 <rect x="1286" y="632" width="298" height="22" fill="#f5f8fc" rx="0"/>
 <text x="1297" y="647" font-size="11.4" class="mono" text-anchor="start">officer_id</text>
+<rect x="1546" y="635" width="29" height="16" fill="#e8ecf3" rx="4"/>
+<text x="1560.5" y="646.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#43536a">UK</text>
 <text x="1538" y="647" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
 <text x="1297" y="669" font-size="11.4" class="mono" text-anchor="start">officer_gender</text>
 <text x="1538" y="669" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
@@ -419,15 +445,17 @@
 <rect x="1286" y="720" width="298" height="22" fill="#f5f8fc" rx="0"/>
 <text x="1297" y="735" font-size="11.4" class="mono" text-anchor="start">officer_title</text>
 <text x="1538" y="735" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
+<text x="1297" y="757" font-size="11.4" class="mono" text-anchor="start">last_ingested_at</text>
+<text x="1538" y="757" font-size="9.7" class="mono muted" text-anchor="end">timestamp_ltz</text>
 </g>
-<g id="arrest_offenses"><title>arrest_offenses: Arresto, tipo y descripción NIBRS</title>
-<rect x="1285" y="802" width="300" height="155" fill="#e1e8f1" rx="11"/>
-<rect x="1285" y="798" width="300" height="155" fill="#ffffff" rx="11" stroke="#ced9e8"/>
+<g id="arrest_offenses"><title>arrest_offenses: Cargos observados · NIBRS opcional</title>
+<rect x="1285" y="802" width="300" height="177" fill="#e1e8f1" rx="11"/>
+<rect x="1285" y="798" width="300" height="177" fill="#ffffff" rx="11" stroke="#ced9e8"/>
 <rect x="1286" y="799" width="298" height="59" fill="#eeebf8" rx="10"/>
 <rect x="1286" y="846" width="298" height="12" fill="#eeebf8" rx="0"/>
 <rect x="1286" y="856" width="298" height="2" fill="#8d78b6" rx="0"/>
 <text x="1298" y="823" font-size="17" class="mono bold" text-anchor="start" style="fill:#503d79">arrest_offenses</text>
-<text x="1298" y="844" font-size="11" class="muted" text-anchor="start">Arresto, tipo y descripción NIBRS</text>
+<text x="1298" y="844" font-size="11" class="muted" text-anchor="start">Cargos observados · NIBRS opcional</text>
 <text x="1297" y="873" font-size="11.4" class="mono" text-anchor="start">arrest_offense_id</text>
 <rect x="1546" y="861" width="29" height="16" fill="#ddeafa" rx="4"/>
 <text x="1560.5" y="872.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#254b80">PK</text>
@@ -437,31 +465,15 @@
 <rect x="1546" y="883" width="29" height="16" fill="#e0f1eb" rx="4"/>
 <text x="1560.5" y="894.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#135d4b">FK</text>
 <text x="1538" y="895" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
-<text x="1297" y="917" font-size="11.4" class="mono" text-anchor="start">offense_type_id</text>
-<rect x="1546" y="905" width="29" height="16" fill="#e0f1eb" rx="4"/>
-<text x="1560.5" y="916.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#135d4b">FK</text>
+<text x="1297" y="917" font-size="11.4" class="mono" text-anchor="start">offense_type</text>
 <text x="1538" y="917" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
 <rect x="1286" y="924" width="298" height="22" fill="#f5f8fc" rx="0"/>
 <text x="1297" y="939" font-size="11.4" class="mono" text-anchor="start">nibrs_description</text>
 <text x="1538" y="939" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
-</g>
-<g id="offense_types"><title>offense_types: Catálogo de infracciones</title>
-<rect x="1658" y="802" width="270" height="111" fill="#e1e8f1" rx="11"/>
-<rect x="1658" y="798" width="270" height="111" fill="#ffffff" rx="11" stroke="#ced9e8"/>
-<rect x="1659" y="799" width="268" height="59" fill="#eeebf8" rx="10"/>
-<rect x="1659" y="846" width="268" height="12" fill="#eeebf8" rx="0"/>
-<rect x="1659" y="856" width="268" height="2" fill="#8d78b6" rx="0"/>
-<text x="1671" y="823" font-size="17" class="mono bold" text-anchor="start" style="fill:#503d79">offense_types</text>
-<text x="1671" y="844" font-size="11" class="muted" text-anchor="start">Catálogo de infracciones</text>
-<text x="1670" y="873" font-size="11.4" class="mono" text-anchor="start">offense_type_id</text>
-<rect x="1889" y="861" width="29" height="16" fill="#ddeafa" rx="4"/>
-<text x="1903.5" y="872.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#254b80">PK</text>
-<text x="1881" y="873" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
-<rect x="1659" y="880" width="268" height="22" fill="#f5f8fc" rx="0"/>
-<text x="1670" y="895" font-size="11.4" class="mono" text-anchor="start">offense_type</text>
-<rect x="1889" y="883" width="29" height="16" fill="#e8ecf3" rx="4"/>
-<text x="1903.5" y="894.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#43536a">UK</text>
-<text x="1881" y="895" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
+<text x="1297" y="961" font-size="11.4" class="mono" text-anchor="start">nibrs_key</text>
+<rect x="1546" y="949" width="29" height="16" fill="#e0f1eb" rx="4"/>
+<text x="1560.5" y="960.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#135d4b">FK</text>
+<text x="1538" y="961" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
 </g>
 <g id="arrest_types"><title>arrest_types: Catálogo de tipos de arresto</title>
 <rect x="1285" y="993" width="300" height="111" fill="#e1e8f1" rx="11"/>
@@ -481,26 +493,30 @@
 <text x="1560.5" y="1085.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#43536a">UK</text>
 <text x="1538" y="1086" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
 </g>
-<g id="subject"><title>subject: ID y demografía observados</title>
-<rect x="1285" y="1146" width="300" height="155" fill="#e1e8f1" rx="11"/>
-<rect x="1285" y="1142" width="300" height="155" fill="#ffffff" rx="11" stroke="#ced9e8"/>
+<g id="subject"><title>subject: Última observación por sk_person</title>
+<rect x="1285" y="1146" width="300" height="177" fill="#e1e8f1" rx="11"/>
+<rect x="1285" y="1142" width="300" height="177" fill="#ffffff" rx="11" stroke="#ced9e8"/>
 <rect x="1286" y="1143" width="298" height="59" fill="#e7edf8" rx="10"/>
 <rect x="1286" y="1190" width="298" height="12" fill="#e7edf8" rx="0"/>
 <rect x="1286" y="1200" width="298" height="2" fill="#627fad" rx="0"/>
 <text x="1298" y="1167" font-size="17" class="mono bold" text-anchor="start" style="fill:#304a79">subject</text>
-<text x="1298" y="1188" font-size="11" class="muted" text-anchor="start">ID y demografía observados</text>
+<text x="1298" y="1188" font-size="11" class="muted" text-anchor="start">Última observación por sk_person</text>
 <text x="1297" y="1217" font-size="11.4" class="mono" text-anchor="start">subject_key</text>
 <rect x="1546" y="1205" width="29" height="16" fill="#ddeafa" rx="4"/>
 <text x="1560.5" y="1216.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#254b80">PK</text>
 <text x="1538" y="1217" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
 <rect x="1286" y="1224" width="298" height="22" fill="#f5f8fc" rx="0"/>
 <text x="1297" y="1239" font-size="11.4" class="mono" text-anchor="start">sk_person</text>
+<rect x="1546" y="1227" width="29" height="16" fill="#e8ecf3" rx="4"/>
+<text x="1560.5" y="1238.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#43536a">UK</text>
 <text x="1538" y="1239" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
 <text x="1297" y="1261" font-size="11.4" class="mono" text-anchor="start">subject_gender</text>
 <text x="1538" y="1261" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
 <rect x="1286" y="1268" width="298" height="22" fill="#f5f8fc" rx="0"/>
 <text x="1297" y="1283" font-size="11.4" class="mono" text-anchor="start">subject_race</text>
 <text x="1538" y="1283" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
+<text x="1297" y="1305" font-size="11.4" class="mono" text-anchor="start">last_ingested_at</text>
+<text x="1538" y="1305" font-size="9.7" class="mono muted" text-anchor="end">timestamp_ltz</text>
 </g>
 <g id="cad_profiles"><title>cad_profiles: Cierre, tipo inicial y prioridad</title>
 <rect x="1658" y="993" width="270" height="155" fill="#e1e8f1" rx="11"/>
@@ -523,57 +539,26 @@
 <text x="1670" y="1130" font-size="11.4" class="mono" text-anchor="start">cad_priority</text>
 <text x="1881" y="1130" font-size="9.7" class="mono muted" text-anchor="end">number(38,0)</text>
 </g>
-<g id="arrest_conflicts"><title>arrest_conflicts: Vista · un registro por campo en conflicto</title>
-<rect x="1658" y="554" width="270" height="199" fill="#e1e8f1" rx="11"/>
-<rect x="1658" y="550" width="270" height="199" fill="#ffffff" rx="11" stroke="#ced9e8"/>
-<rect x="1659" y="551" width="268" height="59" fill="#e7edf8" rx="10"/>
-<rect x="1659" y="598" width="268" height="12" fill="#e7edf8" rx="0"/>
-<rect x="1659" y="608" width="268" height="2" fill="#627fad" rx="0"/>
-<text x="1671" y="575" font-size="17" class="mono bold" text-anchor="start" style="fill:#304a79">arrest_conflicts</text>
-<text x="1671" y="596" font-size="11" class="muted" text-anchor="start">Vista · un registro por campo en conflicto</text>
-<text x="1670" y="625" font-size="11.4" class="mono" text-anchor="start">arrest_number</text>
-<rect x="1889" y="613" width="29" height="16" fill="#e0f1eb" rx="4"/>
-<text x="1903.5" y="624.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#135d4b">FK</text>
-<rect x="1856" y="613" width="29" height="16" fill="#ddeafa" rx="4"/>
-<text x="1870.5" y="624.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#254b80">PK</text>
-<text x="1848" y="625" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
-<rect x="1659" y="632" width="268" height="22" fill="#f5f8fc" rx="0"/>
-<text x="1670" y="647" font-size="11.4" class="mono" text-anchor="start">field_name</text>
-<rect x="1889" y="635" width="29" height="16" fill="#ddeafa" rx="4"/>
-<text x="1903.5" y="646.5" font-size="9.7" class="bold mono" text-anchor="middle" style="fill:#254b80">PK</text>
-<text x="1881" y="647" font-size="9.7" class="mono muted" text-anchor="end">varchar</text>
-<text x="1670" y="669" font-size="11.4" class="mono" text-anchor="start">observed_values</text>
-<text x="1881" y="669" font-size="9.7" class="mono muted" text-anchor="end">variant</text>
-<rect x="1659" y="676" width="268" height="22" fill="#f5f8fc" rx="0"/>
-<text x="1670" y="691" font-size="11.4" class="mono" text-anchor="start">selected_value</text>
-<text x="1881" y="691" font-size="9.7" class="mono muted" text-anchor="end">variant</text>
-<text x="1670" y="713" font-size="11.4" class="mono" text-anchor="start">max_completeness_score</text>
-<text x="1881" y="713" font-size="9.7" class="mono muted" text-anchor="end">number</text>
-<rect x="1659" y="720" width="268" height="22" fill="#f5f8fc" rx="0"/>
-<text x="1670" y="735" font-size="11.4" class="mono" text-anchor="start">last_ingested_at</text>
-<text x="1881" y="735" font-size="9.7" class="mono muted" text-anchor="end">timestamp_ltz</text>
-</g>
 <circle cx="830" cy="291" r="2.8" fill="#657d9b"/>
-<circle cx="830" cy="894" r="2.8" fill="#078168"/>
+<circle cx="830" cy="784" r="2.8" fill="#078168"/>
 <circle cx="830" cy="335" r="2.8" fill="#657d9b"/>
 <circle cx="830" cy="401" r="2.8" fill="#657d9b"/>
 <circle cx="830" cy="423" r="2.8" fill="#657d9b"/>
 <circle cx="1285" cy="269" r="2.8" fill="#a95218"/>
 <circle cx="1585" cy="291" r="2.8" fill="#078168"/>
 <circle cx="1285" cy="891" r="2.8" fill="#078168"/>
-<circle cx="1585" cy="913" r="2.8" fill="#657d9b"/>
-<circle cx="1180" cy="916" r="2.8" fill="#078168"/>
-<circle cx="1180" cy="938" r="2.8" fill="#078168"/>
-<circle cx="1180" cy="960" r="2.8" fill="#078168"/>
-<circle cx="830" cy="982" r="2.8" fill="#078168"/>
-<circle cx="830" cy="1004" r="2.8" fill="#078168"/>
+<circle cx="1585" cy="957" r="2.8" fill="#078168"/>
+<circle cx="1180" cy="806" r="2.8" fill="#078168"/>
+<circle cx="1180" cy="828" r="2.8" fill="#078168"/>
+<circle cx="1180" cy="850" r="2.8" fill="#078168"/>
+<circle cx="830" cy="916" r="2.8" fill="#078168"/>
+<circle cx="830" cy="938" r="2.8" fill="#078168"/>
 <circle cx="405" cy="614" r="2.8" fill="#657d9b"/>
 <circle cx="54" cy="792" r="2.8" fill="#657d9b"/>
 <circle cx="1180" cy="357" r="2.8" fill="#078168"/>
 <circle cx="1180" cy="379" r="2.8" fill="#078168"/>
 <circle cx="1585" cy="447" r="2.8" fill="#078168"/>
-<circle cx="1180" cy="1180" r="2.8" fill="#078168"/>
-<circle cx="1658" cy="621" r="2.8" fill="#657d9b"/>
+<circle cx="1180" cy="960" r="2.8" fill="#078168"/>
 <rect x="54" y="186" width="282" height="166" fill="#ffffff" rx="10" stroke="#ced9e8"/>
 <text x="69" y="213" font-size="11" class="label" text-anchor="start">CÓMO LEER EL DIAGRAMA</text>
 <path d="M70 239h27" stroke="#657d9b" stroke-width="2" marker-end="url(#logical)"/>
@@ -584,12 +569,13 @@
 <text x="108" y="291" font-size="12" class="muted" text-anchor="start">Referencia provisional</text>
 <text x="69" y="315" font-size="11" class="muted" text-anchor="start">PK: clave lógica  ·  UK: única prevista</text>
 <text x="69" y="333" font-size="11" class="muted" text-anchor="start">FK: referencia  ·  ID?: sin grano cerrado</text>
-<rect x="54" y="1165" width="659" height="139" fill="#ffffff" rx="10" stroke="#ced9e8"/>
+<rect x="54" y="1165" width="659" height="151" fill="#ffffff" rx="10" stroke="#ced9e8"/>
 <text x="70" y="1188" font-size="11" class="label" text-anchor="start">NOTAS DE IMPLEMENTACIÓN</text>
 <text x="70" y="1209" font-size="12" class="muted" text-anchor="start">• NIBRS no sustituye la jerarquía de categorías y subcategorías de delitos.</text>
 <text x="70" y="1230" font-size="12" class="muted" text-anchor="start">• El perfil CAD describe una combinación; no identifica una llamada.</text>
 <text x="70" y="1251" font-size="12" class="muted" text-anchor="start">• full_address exige confirmar el CRS policial; el CP de licencia es de origen.</text>
-<text x="70" y="1272" font-size="12" class="muted" text-anchor="start">• Las claves son lógicas. Los tests declarados no prueban por sí solos un despliegue.</text>
-<text x="54" y="1362" font-size="13" class="muted" text-anchor="start">Fuente: models/silver/  ·  docs/silver_diagram.md</text>
-<text x="1928" y="1362" font-size="12" class="label muted" text-anchor="end">CÍVICA  /  SILVER</text>
+<text x="70" y="1272" font-size="12" class="muted" text-anchor="start">• Los cargos se enlazan a NIBRS solo por descripción exacta y unívoca.</text>
+<text x="70" y="1293" font-size="12" class="muted" text-anchor="start">• Las claves son lógicas. Los tests declarados no prueban por sí solos un despliegue.</text>
+<text x="54" y="1527" font-size="13" class="muted" text-anchor="start">Fuente: models/silver/  ·  docs/silver_diagram.md</text>
+<text x="1928" y="1527" font-size="12" class="label muted" text-anchor="end">CÍVICA  /  SILVER</text>
 </svg>

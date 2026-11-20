@@ -1,4 +1,6 @@
-# Arrest: consolidación incremental con MERGE
+# Histórico: consolidación incremental con MERGE
+
+Este documento describe una implementación retirada. El flujo vigente y su prueba se documentan en [Detenciones en Silver](arrests.md).
 
 ## Alcance y retirada de la implementación anterior
 

@@ -1,0 +1,846 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2310" height="1815" viewBox="0 0 2310 1815" role="img" aria-labelledby="title description">
+<title id="title">Seattle · Diagrama Silver en 3FN</title>
+<desc id="description">Modelo lógico objetivo para Snowflake: 17 tablas · 88 columnas · 19 relaciones, agrupadas en seis dominios. Las flechas apuntan desde las claves foráneas a las claves referenciadas. No representa el esquema que publica dbt actualmente.</desc>
+<style>
+text{font-family:"DejaVu Sans",sans-serif;fill:#192e4a}
+.mono,.type,.tag,.cardname{font-family:"DejaVu Sans Mono",monospace}
+.title{font-size:40px;font-weight:700;fill:#fff}.light{fill:#d3e2f6}
+.label{font-size:12px;font-weight:700;letter-spacing:1.3px}.groupname{font-size:15px;font-weight:700;letter-spacing:1.1px}
+.cardname{font-size:17px;font-weight:700}.mono{font-size:12px}.type{fill:#4a617d;font-size:11px}
+.small{font-size:12px;fill:#485e79}.body{font-size:15px;fill:#314966}.subhead{font-weight:700;font-size:17px}
+.tag{font-size:10px;font-weight:700}.pk{fill:#234a7e}.fk{fill:#145947}.uk{fill:#43536a}.nn{fill:#624422}
+</style>
+<defs>
+  <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#d8e1ed"/></pattern>
+  <marker id="reference-arrow" markerWidth="8" markerHeight="8" refX="7.5" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L8 4 L0 8 Z" fill="#536c8a"/></marker>
+</defs>
+<rect x="0" y="0" width="2310" height="1815" fill="#f3f6fb"/>
+<rect x="0" y="145" width="2310" height="1670" fill="url(#grid)"/>
+<rect x="0" y="0" width="2310" height="145" fill="#122441"/>
+<rect x="0" y="141" width="2310" height="4" fill="#50c3a6"/>
+<text x="52" y="38" class="label light">CÍVICA PROJECT  /  SEATTLE</text>
+<text x="50" y="85" class="title">Diagrama Silver en 3FN</text>
+<text x="52" y="119" class="light" font-size="17">Snowflake  ·  17 tablas · 88 columnas · 19 relaciones</text>
+<text x="2258" y="43" class="label light" text-anchor="end">MODELO LÓGICO OBJETIVO</text>
+<text x="2258" y="73" class="light" font-size="15" text-anchor="end">Algunas claves requieren ajustes en dbt</text>
+<g id="grupo-delitos" aria-label="Delitos">
+<rect x="36" y="170" width="1012" height="800" rx="16" fill="#f8fafd" stroke="#cfdaea"/>
+<rect x="54" y="188" width="4" height="17" rx="2" fill="#637fae"/>
+<text x="68" y="201" class="groupname" style="fill:#355582">DELITOS</text>
+<text x="1025" y="201" class="small" text-anchor="end">6 tablas</text>
+</g>
+<g id="grupo-informes" aria-label="Informes">
+<rect x="1090" y="170" width="400" height="226" rx="16" fill="#f8fafd" stroke="#cfdaea"/>
+<rect x="1108" y="188" width="4" height="17" rx="2" fill="#637fae"/>
+<text x="1122" y="201" class="groupname" style="fill:#253f69">INFORMES</text>
+<text x="1467" y="201" class="small" text-anchor="end">1 tabla</text>
+</g>
+<g id="grupo-detenciones" aria-label="Detenciones">
+<rect x="1535" y="170" width="740" height="800" rx="16" fill="#f8fafd" stroke="#cfdaea"/>
+<rect x="1553" y="188" width="4" height="17" rx="2" fill="#8d78b6"/>
+<text x="1567" y="201" class="groupname" style="fill:#514179">DETENCIONES</text>
+<text x="2252" y="201" class="small" text-anchor="end">4 tablas</text>
+</g>
+<g id="grupo-geografia" aria-label="Geografía">
+<rect x="36" y="1005" width="1454" height="365" rx="16" fill="#f8fafd" stroke="#cfdaea"/>
+<rect x="54" y="1023" width="4" height="17" rx="2" fill="#2c997e"/>
+<text x="68" y="1036" class="groupname" style="fill:#1a5e4b">GEOGRAFÍA</text>
+<text x="1467" y="1036" class="small" text-anchor="end">3 tablas</text>
+</g>
+<g id="grupo-personas" aria-label="Personas">
+<rect x="1535" y="1005" width="740" height="365" rx="16" fill="#f8fafd" stroke="#cfdaea"/>
+<rect x="1553" y="1023" width="4" height="17" rx="2" fill="#5d91a9"/>
+<text x="1567" y="1036" class="groupname" style="fill:#3d5b6c">PERSONAS</text>
+<text x="2252" y="1036" class="small" text-anchor="end">2 tablas</text>
+</g>
+<g id="grupo-licencias" aria-label="Licencias">
+<rect x="36" y="1405" width="404" height="337" rx="16" fill="#f8fafd" stroke="#cfdaea"/>
+<rect x="54" y="1423" width="4" height="17" rx="2" fill="#2c997e"/>
+<text x="68" y="1436" class="groupname" style="fill:#1a5e4b">LICENCIAS</text>
+<text x="417" y="1436" class="small" text-anchor="end">1 tabla</text>
+</g>
+<rect x="1090" y="415" width="400" height="236" rx="14" fill="#ffffff" stroke="#cfdaea"/>
+<text x="1114" y="452" class="label">CÓMO LEER EL DIAGRAMA</text>
+<text x="1114" y="484" class="body">PK: clave primaria</text>
+<text x="1114" y="510" class="body">FK: clave foránea</text>
+<text x="1114" y="536" class="body">UK: valor o combinación única</text>
+<text x="1114" y="562" class="body">NN: NOT NULL explícito</text>
+<path d="M1114 594 H1148" stroke="#536c8a" stroke-width="2" marker-end="url(#reference-arrow)"/>
+<text x="1162" y="599" class="small">La flecha apunta a la clave referenciada.</text>
+<text x="1114" y="623" class="small">Una FK sin NN ni PK admite nulos.</text>
+<rect x="480" y="1405" width="1010" height="337" rx="14" fill="#ffffff" stroke="#cfdaea"/>
+<text x="504" y="1442" class="label">REGLAS DEL ESQUEMA</text>
+<text x="504" y="1474" class="subhead">Identidad y clasificación de delitos</text>
+<text x="504" y="1502" class="body">crime_key identifica el delito lógico y enlaza los tipos de tiroteo; offense_id conserva el ID de origen.</text>
+<text x="504" y="1529" class="body">Si hay subcategoría, la categoría se obtiene de ella. Solo sin subcategoría se guarda offense_category_id en crimes.</text>
+<text x="504" y="1572" class="subhead">Asignación postal</text>
+<text x="504" y="1600" class="body">postal_codes guarda el polígono o multipolígono y la versión activa de la cartografía.</text>
+<text x="504" y="1627" class="body">Estados de full_address.cp_status: matched, missing_coordinates, redacted, invalid_coordinates,</text>
+<text x="504" y="1654" class="body">no_match, ambiguous y boundary.</text>
+<g class="reference" data-from="crimes.report_id" data-to="reports.report_id"><title>crimes.report_id → reports.report_id</title>
+<path d="M1016 352 L1058 352 Q1068 352 1068 342 L1068 309 Q1068 299 1078 299 L1119 299" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M1016 352 L1058 352 Q1068 352 1068 342 L1068 309 Q1068 299 1078 299 L1119 299" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g class="reference" data-from="crimes.nibrs_key" data-to="nibrs.nibrs_key"><title>crimes.nibrs_key → nibrs.nibrs_key</title>
+<path d="M600 400 L500 400 Q490 400 490 390 L490 314 Q490 304 480 304 L407 304" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M600 400 L500 400 Q490 400 490 390 L490 314 Q490 304 480 304 L407 304" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g class="reference" data-from="crimes.offense_category_id" data-to="offense_categories.offense_category_id"><title>crimes.offense_category_id → offense_categories.offense_category_id</title>
+<path d="M600 424 L477 424 Q467 424 467 434 L467 528 Q467 538 457 538 L407 538" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M600 424 L477 424 Q467 424 467 434 L467 528 Q467 538 457 538 L407 538" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g class="reference" data-from="crimes.offense_subcategory_id" data-to="offense_subcategories.offense_subcategory_id"><title>crimes.offense_subcategory_id → offense_subcategories.offense_subcategory_id</title>
+<path d="M600 448 L529 448 Q519 448 519 458 L519 699 Q519 709 509 709 L407 709" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M600 448 L529 448 Q519 448 519 458 L519 699 Q519 709 509 709 L407 709" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g class="reference" data-from="offense_subcategories.offense_category_id" data-to="offense_categories.offense_category_id"><title>offense_subcategories.offense_category_id → offense_categories.offense_category_id</title>
+<path d="M406 733 L422 733 Q432 733 432 723 L432 556 Q432 546 422 546 L407 546" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M406 733 L422 733 Q432 733 432 723 L432 556 Q432 546 422 546 L407 546" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g class="reference" data-from="crimes.address_id" data-to="full_address.address_id"><title>crimes.address_id → full_address.address_id</title>
+<path d="M1016 472 L1052 472 Q1062 472 1062 482 L1062 976 Q1062 986 1052 986 L942 986 Q932 986 932 996 L932 1127 Q932 1137 922 1137 L894 1137" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M1016 472 L1052 472 Q1062 472 1062 482 L1062 976 Q1062 986 1052 986 L942 986 Q932 986 932 996 L932 1127 Q932 1137 922 1137 L894 1137" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g class="reference" data-from="crimes.police_area_id" data-to="police_add.police_area_id"><title>crimes.police_area_id → police_add.police_area_id</title>
+<path d="M1016 496 L1068 496 Q1078 496 1078 506 L1078 1136 Q1078 1141 1083 1141 L1089 1141" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M1016 496 L1068 496 Q1078 496 1078 506 L1078 1136 Q1078 1141 1083 1141 L1089 1141" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g class="reference" data-from="crime_shooting_types.crime_key" data-to="crimes.crime_key"><title>crime_shooting_types.crime_key → crimes.crime_key</title>
+<path d="M600 804 L576 804 Q566 804 566 794 L566 314 Q566 304 576 304 L599 304" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M600 804 L576 804 Q566 804 566 794 L566 314 Q566 304 576 304 L599 304" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g class="reference" data-from="crime_shooting_types.shooting_type_id" data-to="shooting_types.shooting_type_id"><title>crime_shooting_types.shooting_type_id → shooting_types.shooting_type_id</title>
+<path d="M600 828 L500 828 Q490 828 490 838 L490 879 Q490 889 480 889 L407 889" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M600 828 L500 828 Q490 828 490 838 L490 879 Q490 889 480 889 L407 889" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g class="reference" data-from="arrest.report_id" data-to="reports.report_id"><title>arrest.report_id → reports.report_id</title>
+<path d="M1564 376 L1521 376 Q1511 376 1511 366 L1511 309 Q1511 299 1501 299 L1461 299" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M1564 376 L1521 376 Q1511 376 1511 366 L1511 309 Q1511 299 1501 299 L1461 299" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g class="reference" data-from="arrest.arrest_type_id" data-to="arrest_types.arrest_type_id"><title>arrest.arrest_type_id → arrest_types.arrest_type_id</title>
+<path d="M1918 400 L1938 400 Q1948 400 1948 390 L1948 309 Q1948 299 1958 299 L1974 299" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M1918 400 L1938 400 Q1948 400 1948 390 L1948 309 Q1948 299 1958 299 L1974 299" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g class="reference" data-from="arrest.agent_key" data-to="agents.agent_key"><title>arrest.agent_key → agents.agent_key</title>
+<path d="M1564 424 L1536 424 Q1526 424 1526 434 L1526 1131 Q1526 1141 1536 1141 L1563 1141" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M1564 424 L1536 424 Q1526 424 1526 434 L1526 1131 Q1526 1141 1536 1141 L1563 1141" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g class="reference" data-from="arrest.subject_key" data-to="subject.subject_key"><title>arrest.subject_key → subject.subject_key</title>
+<path d="M1918 448 L1926 448 Q1934 448 1934 456 L1934 1135 Q1934 1141 1940 1141 L1947 1141" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M1918 448 L1926 448 Q1934 448 1934 456 L1934 1135 Q1934 1141 1940 1141 L1947 1141" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g class="reference" data-from="arrest.address_id" data-to="full_address.address_id"><title>arrest.address_id → full_address.address_id</title>
+<path d="M1564 472 L1511 472 Q1501 472 1501 482 L1501 985 Q1501 995 1491 995 L969 995 Q959 995 959 1005 L959 1135 Q959 1145 949 1145 L894 1145" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M1564 472 L1511 472 Q1501 472 1501 482 L1501 985 Q1501 995 1491 995 L969 995 Q959 995 959 1005 L959 1135 Q959 1145 949 1145 L894 1145" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g class="reference" data-from="arrest.police_area_id" data-to="police_add.police_area_id"><title>arrest.police_area_id → police_add.police_area_id</title>
+<path d="M1564 496 L1524 496 Q1514 496 1514 506 L1514 1131 Q1514 1141 1504 1141 L1461 1141" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M1564 496 L1524 496 Q1514 496 1514 506 L1514 1131 Q1514 1141 1504 1141 L1461 1141" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g class="reference" data-from="arrest.cad_profile_id" data-to="cad_profiles.cad_profile_id"><title>arrest.cad_profile_id → cad_profiles.cad_profile_id</title>
+<path d="M1918 520 L1974 520" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M1918 520 L1974 520" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g class="reference" data-from="arrest_offenses.arrest_number" data-to="arrest.arrest_number"><title>arrest_offenses.arrest_number → arrest.arrest_number</title>
+<path d="M1975 813 L1968 813 Q1961 813 1961 806 L1961 319 Q1961 309 1951 309 L1919 309" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M1975 813 L1968 813 Q1961 813 1961 806 L1961 319 Q1961 309 1951 309 L1919 309" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g class="reference" data-from="full_address.cp" data-to="postal_codes.cp"><title>full_address.cp → postal_codes.cp</title>
+<path d="M520 1309 L476 1309 Q466 1309 466 1299 L466 1151 Q466 1141 456 1141 L407 1141" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M520 1309 L476 1309 Q466 1309 466 1299 L466 1151 Q466 1141 456 1141 L407 1141" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g class="reference" data-from="licencia.cp" data-to="postal_codes.cp"><title>licencia.cp → postal_codes.cp</title>
+<path d="M68 1704 L60 1704 Q52 1704 52 1696 L52 1148 Q52 1141 59 1141 L67 1141" fill="none" stroke="#f8fafd" stroke-width="6" stroke-linecap="round"/>
+<path d="M68 1704 L60 1704 Q52 1704 52 1696 L52 1148 Q52 1141 59 1141 L67 1141" fill="none" stroke="#536c8a" stroke-width="1.9" marker-end="url(#reference-arrow)"/>
+</g>
+<g id="reports" class="table" data-group="informes"><title>reports</title>
+<rect x="1120" y="239" width="340" height="132" rx="10" fill="#e1e8f1"/>
+<rect x="1120" y="235" width="340" height="132" rx="10" fill="#fff" stroke="#ced9e8"/>
+<rect x="1121" y="236" width="338" height="51" rx="9" fill="#e7edf8"/>
+<rect x="1121" y="273" width="338" height="12" fill="#e7edf8"/>
+<rect x="1121" y="285" width="338" height="2" fill="#637fae"/>
+<text x="1134" y="267" class="cardname" style="fill:#253f69">reports</text>
+<g class="column" data-name="report_id" data-type="varchar">
+<text x="1133" y="303" class="mono">report_id</text>
+<text x="1414" y="303" class="type" text-anchor="end">varchar</text>
+<rect x="1419" y="291" width="26" height="16" rx="4" fill="#ddeafa"/>
+<text x="1432" y="302.5" class="tag pk" text-anchor="middle">PK</text>
+</g>
+<g class="column" data-name="report_number" data-type="varchar">
+<rect x="1121" y="311" width="338" height="24" fill="#f5f8fc"/>
+<text x="1133" y="327" class="mono">report_number</text>
+<text x="1383" y="327" class="type" text-anchor="end">varchar</text>
+<rect x="1388" y="315" width="26" height="16" rx="4" fill="#f8eedc"/>
+<text x="1401" y="326.5" class="tag nn" text-anchor="middle">NN</text>
+<rect x="1419" y="315" width="26" height="16" rx="4" fill="#e8ecf3"/>
+<text x="1432" y="326.5" class="tag uk" text-anchor="middle">UK</text>
+</g>
+<g class="column" data-name="report_date_time" data-type="timestamp_ntz">
+<text x="1133" y="351" class="mono">report_date_time</text>
+<text x="1445" y="351" class="type" text-anchor="end">timestamp_ntz</text>
+</g>
+</g>
+<g id="crimes" class="table" data-group="delitos"><title>crimes: Una fila por delito lógico</title>
+<rect x="600" y="244" width="416" height="298" rx="10" fill="#e1e8f1"/>
+<rect x="600" y="240" width="416" height="298" rx="10" fill="#fff" stroke="#ced9e8"/>
+<rect x="601" y="241" width="414" height="51" rx="9" fill="#e7edf8"/>
+<rect x="601" y="278" width="414" height="12" fill="#e7edf8"/>
+<rect x="601" y="290" width="414" height="2" fill="#637fae"/>
+<text x="614" y="272" class="cardname" style="fill:#355582">crimes</text>
+<g class="column" data-name="crime_key" data-type="varchar">
+<title>Clave estable propuesta para identificar cada delito lógico.</title>
+<text x="613" y="308" class="mono">crime_key</text>
+<text x="970" y="308" class="type" text-anchor="end">varchar</text>
+<rect x="975" y="296" width="26" height="16" rx="4" fill="#ddeafa"/>
+<text x="988" y="307.5" class="tag pk" text-anchor="middle">PK</text>
+</g>
+<g class="column" data-name="offense_id" data-type="varchar">
+<title>Identificador de origen; no se presupone único.</title>
+<rect x="601" y="316" width="414" height="24" fill="#f5f8fc"/>
+<text x="613" y="332" class="mono">offense_id</text>
+<text x="970" y="332" class="type" text-anchor="end">varchar</text>
+<rect x="975" y="320" width="26" height="16" rx="4" fill="#f8eedc"/>
+<text x="988" y="331.5" class="tag nn" text-anchor="middle">NN</text>
+</g>
+<g class="column" data-name="report_id" data-type="varchar">
+<text x="613" y="356" class="mono">report_id</text>
+<text x="970" y="356" class="type" text-anchor="end">varchar</text>
+<rect x="975" y="344" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="988" y="355.5" class="tag fk" text-anchor="middle">FK</text>
+</g>
+<g class="column" data-name="offense_date" data-type="timestamp_ntz">
+<rect x="601" y="364" width="414" height="24" fill="#f5f8fc"/>
+<text x="613" y="380" class="mono">offense_date</text>
+<text x="1001" y="380" class="type" text-anchor="end">timestamp_ntz</text>
+</g>
+<g class="column" data-name="nibrs_key" data-type="varchar">
+<text x="613" y="404" class="mono">nibrs_key</text>
+<text x="970" y="404" class="type" text-anchor="end">varchar</text>
+<rect x="975" y="392" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="988" y="403.5" class="tag fk" text-anchor="middle">FK</text>
+</g>
+<g class="column" data-name="offense_category_id" data-type="varchar">
+<title>Solo se guarda cuando offense_subcategory_id es NULL.</title>
+<rect x="601" y="412" width="414" height="24" fill="#f5f8fc"/>
+<text x="613" y="428" class="mono">offense_category_id</text>
+<text x="970" y="428" class="type" text-anchor="end">varchar</text>
+<rect x="975" y="416" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="988" y="427.5" class="tag fk" text-anchor="middle">FK</text>
+</g>
+<g class="column" data-name="offense_subcategory_id" data-type="varchar">
+<text x="613" y="452" class="mono">offense_subcategory_id</text>
+<text x="970" y="452" class="type" text-anchor="end">varchar</text>
+<rect x="975" y="440" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="988" y="451.5" class="tag fk" text-anchor="middle">FK</text>
+</g>
+<g class="column" data-name="address_id" data-type="varchar">
+<rect x="601" y="460" width="414" height="24" fill="#f5f8fc"/>
+<text x="613" y="476" class="mono">address_id</text>
+<text x="970" y="476" class="type" text-anchor="end">varchar</text>
+<rect x="975" y="464" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="988" y="475.5" class="tag fk" text-anchor="middle">FK</text>
+</g>
+<g class="column" data-name="police_area_id" data-type="varchar">
+<text x="613" y="500" class="mono">police_area_id</text>
+<text x="970" y="500" class="type" text-anchor="end">varchar</text>
+<rect x="975" y="488" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="988" y="499.5" class="tag fk" text-anchor="middle">FK</text>
+</g>
+<path d="M612 509 H1004" stroke="#e3eaf3"/>
+<text x="613" y="527" class="small">Una fila por delito lógico</text>
+</g>
+<g id="nibrs" class="table" data-group="delitos"><title>nibrs</title>
+<rect x="68" y="244" width="338" height="180" rx="10" fill="#e1e8f1"/>
+<rect x="68" y="240" width="338" height="180" rx="10" fill="#fff" stroke="#ced9e8"/>
+<rect x="69" y="241" width="336" height="51" rx="9" fill="#e7edf8"/>
+<rect x="69" y="278" width="336" height="12" fill="#e7edf8"/>
+<rect x="69" y="290" width="336" height="2" fill="#637fae"/>
+<text x="82" y="272" class="cardname" style="fill:#355582">nibrs</text>
+<g class="column" data-name="nibrs_key" data-type="varchar">
+<text x="81" y="308" class="mono">nibrs_key</text>
+<text x="360" y="308" class="type" text-anchor="end">varchar</text>
+<rect x="365" y="296" width="26" height="16" rx="4" fill="#ddeafa"/>
+<text x="378" y="307.5" class="tag pk" text-anchor="middle">PK</text>
+</g>
+<g class="column" data-name="offense_code" data-type="varchar">
+<rect x="69" y="316" width="336" height="24" fill="#f5f8fc"/>
+<text x="81" y="332" class="mono">offense_code</text>
+<text x="329" y="332" class="type" text-anchor="end">varchar</text>
+<rect x="334" y="320" width="26" height="16" rx="4" fill="#f8eedc"/>
+<text x="347" y="331.5" class="tag nn" text-anchor="middle">NN</text>
+<rect x="365" y="320" width="26" height="16" rx="4" fill="#e8ecf3"/>
+<text x="378" y="331.5" class="tag uk" text-anchor="middle">UK</text>
+</g>
+<g class="column" data-name="offense_description" data-type="varchar">
+<text x="81" y="356" class="mono">offense_description</text>
+<text x="391" y="356" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="group_ab" data-type="varchar">
+<rect x="69" y="364" width="336" height="24" fill="#f5f8fc"/>
+<text x="81" y="380" class="mono">group_ab</text>
+<text x="391" y="380" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="crime_against_category" data-type="varchar">
+<text x="81" y="404" class="mono">crime_against_category</text>
+<text x="391" y="404" class="type" text-anchor="end">varchar</text>
+</g>
+</g>
+<g id="offense_categories" class="table" data-group="delitos"><title>offense_categories</title>
+<rect x="68" y="482" width="338" height="108" rx="10" fill="#e1e8f1"/>
+<rect x="68" y="478" width="338" height="108" rx="10" fill="#fff" stroke="#ced9e8"/>
+<rect x="69" y="479" width="336" height="51" rx="9" fill="#e7edf8"/>
+<rect x="69" y="516" width="336" height="12" fill="#e7edf8"/>
+<rect x="69" y="528" width="336" height="2" fill="#637fae"/>
+<text x="82" y="510" class="cardname" style="fill:#355582">offense_categories</text>
+<g class="column" data-name="offense_category_id" data-type="varchar">
+<text x="81" y="546" class="mono">offense_category_id</text>
+<text x="360" y="546" class="type" text-anchor="end">varchar</text>
+<rect x="365" y="534" width="26" height="16" rx="4" fill="#ddeafa"/>
+<text x="378" y="545.5" class="tag pk" text-anchor="middle">PK</text>
+</g>
+<g class="column" data-name="offense_category" data-type="varchar">
+<rect x="69" y="554" width="336" height="24" fill="#f5f8fc"/>
+<text x="81" y="570" class="mono">offense_category</text>
+<text x="329" y="570" class="type" text-anchor="end">varchar</text>
+<rect x="334" y="558" width="26" height="16" rx="4" fill="#f8eedc"/>
+<text x="347" y="569.5" class="tag nn" text-anchor="middle">NN</text>
+<rect x="365" y="558" width="26" height="16" rx="4" fill="#e8ecf3"/>
+<text x="378" y="569.5" class="tag uk" text-anchor="middle">UK</text>
+</g>
+</g>
+<g id="offense_subcategories" class="table" data-group="delitos"><title>offense_subcategories: UK: (offense_category_id, offense_sub_category)</title>
+<rect x="68" y="649" width="338" height="154" rx="10" fill="#e1e8f1"/>
+<rect x="68" y="645" width="338" height="154" rx="10" fill="#fff" stroke="#ced9e8"/>
+<rect x="69" y="646" width="336" height="51" rx="9" fill="#e7edf8"/>
+<rect x="69" y="683" width="336" height="12" fill="#e7edf8"/>
+<rect x="69" y="695" width="336" height="2" fill="#637fae"/>
+<text x="82" y="677" class="cardname" style="fill:#355582">offense_subcategories</text>
+<g class="column" data-name="offense_subcategory_id" data-type="varchar">
+<text x="81" y="713" class="mono">offense_subcategory_id</text>
+<text x="360" y="713" class="type" text-anchor="end">varchar</text>
+<rect x="365" y="701" width="26" height="16" rx="4" fill="#ddeafa"/>
+<text x="378" y="712.5" class="tag pk" text-anchor="middle">PK</text>
+</g>
+<g class="column" data-name="offense_category_id" data-type="varchar">
+<rect x="69" y="721" width="336" height="24" fill="#f5f8fc"/>
+<text x="81" y="737" class="mono">offense_category_id</text>
+<text x="360" y="737" class="type" text-anchor="end">varchar</text>
+<rect x="365" y="725" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="378" y="736.5" class="tag fk" text-anchor="middle">FK</text>
+</g>
+<g class="column" data-name="offense_sub_category" data-type="varchar">
+<text x="81" y="761" class="mono">offense_sub_category</text>
+<text x="360" y="761" class="type" text-anchor="end">varchar</text>
+<rect x="365" y="749" width="26" height="16" rx="4" fill="#f8eedc"/>
+<text x="378" y="760.5" class="tag nn" text-anchor="middle">NN</text>
+</g>
+<path d="M80 770 H394" stroke="#e3eaf3"/>
+<text x="81" y="788" class="small">UK: (offense_category_id, offense_sub_category)</text>
+</g>
+<g id="shooting_types" class="table" data-group="delitos"><title>shooting_types</title>
+<rect x="68" y="829" width="338" height="108" rx="10" fill="#e1e8f1"/>
+<rect x="68" y="825" width="338" height="108" rx="10" fill="#fff" stroke="#ced9e8"/>
+<rect x="69" y="826" width="336" height="51" rx="9" fill="#e7edf8"/>
+<rect x="69" y="863" width="336" height="12" fill="#e7edf8"/>
+<rect x="69" y="875" width="336" height="2" fill="#637fae"/>
+<text x="82" y="857" class="cardname" style="fill:#355582">shooting_types</text>
+<g class="column" data-name="shooting_type_id" data-type="varchar">
+<text x="81" y="893" class="mono">shooting_type_id</text>
+<text x="360" y="893" class="type" text-anchor="end">varchar</text>
+<rect x="365" y="881" width="26" height="16" rx="4" fill="#ddeafa"/>
+<text x="378" y="892.5" class="tag pk" text-anchor="middle">PK</text>
+</g>
+<g class="column" data-name="description" data-type="varchar">
+<rect x="69" y="901" width="336" height="24" fill="#f5f8fc"/>
+<text x="81" y="917" class="mono">description</text>
+<text x="329" y="917" class="type" text-anchor="end">varchar</text>
+<rect x="334" y="905" width="26" height="16" rx="4" fill="#f8eedc"/>
+<text x="347" y="916.5" class="tag nn" text-anchor="middle">NN</text>
+<rect x="365" y="905" width="26" height="16" rx="4" fill="#e8ecf3"/>
+<text x="378" y="916.5" class="tag uk" text-anchor="middle">UK</text>
+</g>
+</g>
+<g id="crime_shooting_types" class="table" data-group="delitos"><title>crime_shooting_types: PK: (crime_key, shooting_type_id)</title>
+<rect x="600" y="744" width="416" height="130" rx="10" fill="#e1e8f1"/>
+<rect x="600" y="740" width="416" height="130" rx="10" fill="#fff" stroke="#ced9e8"/>
+<rect x="601" y="741" width="414" height="51" rx="9" fill="#e7edf8"/>
+<rect x="601" y="778" width="414" height="12" fill="#e7edf8"/>
+<rect x="601" y="790" width="414" height="2" fill="#637fae"/>
+<text x="614" y="772" class="cardname" style="fill:#355582">crime_shooting_types</text>
+<g class="column" data-name="crime_key" data-type="varchar">
+<title>Nueva FK propuesta en lugar de offense_id, que no es único.</title>
+<text x="613" y="808" class="mono">crime_key</text>
+<text x="908" y="808" class="type" text-anchor="end">varchar</text>
+<rect x="913" y="796" width="26" height="16" rx="4" fill="#ddeafa"/>
+<text x="926" y="807.5" class="tag pk" text-anchor="middle">PK</text>
+<rect x="944" y="796" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="957" y="807.5" class="tag fk" text-anchor="middle">FK</text>
+<rect x="975" y="796" width="26" height="16" rx="4" fill="#f8eedc"/>
+<text x="988" y="807.5" class="tag nn" text-anchor="middle">NN</text>
+</g>
+<g class="column" data-name="shooting_type_id" data-type="varchar">
+<rect x="601" y="816" width="414" height="24" fill="#f5f8fc"/>
+<text x="613" y="832" class="mono">shooting_type_id</text>
+<text x="908" y="832" class="type" text-anchor="end">varchar</text>
+<rect x="913" y="820" width="26" height="16" rx="4" fill="#ddeafa"/>
+<text x="926" y="831.5" class="tag pk" text-anchor="middle">PK</text>
+<rect x="944" y="820" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="957" y="831.5" class="tag fk" text-anchor="middle">FK</text>
+<rect x="975" y="820" width="26" height="16" rx="4" fill="#f8eedc"/>
+<text x="988" y="831.5" class="tag nn" text-anchor="middle">NN</text>
+</g>
+<path d="M612 841 H1004" stroke="#e3eaf3"/>
+<text x="613" y="859" class="small">PK: (crime_key, shooting_type_id)</text>
+</g>
+<g id="arrest" class="table" data-group="detenciones"><title>arrest: Última versión por arrest_number · delete+insert</title>
+<rect x="1564" y="244" width="354" height="514" rx="10" fill="#e1e8f1"/>
+<rect x="1564" y="240" width="354" height="514" rx="10" fill="#fff" stroke="#ced9e8"/>
+<rect x="1565" y="241" width="352" height="51" rx="9" fill="#eeebf8"/>
+<rect x="1565" y="278" width="352" height="12" fill="#eeebf8"/>
+<rect x="1565" y="290" width="352" height="2" fill="#8d78b6"/>
+<text x="1578" y="272" class="cardname" style="fill:#514179">arrest</text>
+<g class="column" data-name="arrest_number" data-type="varchar">
+<text x="1577" y="308" class="mono">arrest_number</text>
+<text x="1872" y="308" class="type" text-anchor="end">varchar</text>
+<rect x="1877" y="296" width="26" height="16" rx="4" fill="#ddeafa"/>
+<text x="1890" y="307.5" class="tag pk" text-anchor="middle">PK</text>
+</g>
+<g class="column" data-name="arrest_occurred_date_time" data-type="timestamp_ntz">
+<rect x="1565" y="316" width="352" height="24" fill="#f5f8fc"/>
+<text x="1577" y="332" class="mono">arrest_occurred_date_time</text>
+<text x="1903" y="332" class="type" text-anchor="end">timestamp_ntz</text>
+</g>
+<g class="column" data-name="arrest_reported_date_time" data-type="timestamp_ntz">
+<text x="1577" y="356" class="mono">arrest_reported_date_time</text>
+<text x="1903" y="356" class="type" text-anchor="end">timestamp_ntz</text>
+</g>
+<g class="column" data-name="report_id" data-type="varchar">
+<rect x="1565" y="364" width="352" height="24" fill="#f5f8fc"/>
+<text x="1577" y="380" class="mono">report_id</text>
+<text x="1872" y="380" class="type" text-anchor="end">varchar</text>
+<rect x="1877" y="368" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="1890" y="379.5" class="tag fk" text-anchor="middle">FK</text>
+</g>
+<g class="column" data-name="arrest_type_id" data-type="varchar">
+<text x="1577" y="404" class="mono">arrest_type_id</text>
+<text x="1872" y="404" class="type" text-anchor="end">varchar</text>
+<rect x="1877" y="392" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="1890" y="403.5" class="tag fk" text-anchor="middle">FK</text>
+</g>
+<g class="column" data-name="agent_key" data-type="varchar">
+<rect x="1565" y="412" width="352" height="24" fill="#f5f8fc"/>
+<text x="1577" y="428" class="mono">agent_key</text>
+<text x="1872" y="428" class="type" text-anchor="end">varchar</text>
+<rect x="1877" y="416" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="1890" y="427.5" class="tag fk" text-anchor="middle">FK</text>
+</g>
+<g class="column" data-name="subject_key" data-type="varchar">
+<text x="1577" y="452" class="mono">subject_key</text>
+<text x="1872" y="452" class="type" text-anchor="end">varchar</text>
+<rect x="1877" y="440" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="1890" y="451.5" class="tag fk" text-anchor="middle">FK</text>
+</g>
+<g class="column" data-name="address_id" data-type="varchar">
+<rect x="1565" y="460" width="352" height="24" fill="#f5f8fc"/>
+<text x="1577" y="476" class="mono">address_id</text>
+<text x="1872" y="476" class="type" text-anchor="end">varchar</text>
+<rect x="1877" y="464" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="1890" y="475.5" class="tag fk" text-anchor="middle">FK</text>
+</g>
+<g class="column" data-name="police_area_id" data-type="varchar">
+<text x="1577" y="500" class="mono">police_area_id</text>
+<text x="1872" y="500" class="type" text-anchor="end">varchar</text>
+<rect x="1877" y="488" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="1890" y="499.5" class="tag fk" text-anchor="middle">FK</text>
+</g>
+<g class="column" data-name="cad_profile_id" data-type="varchar">
+<rect x="1565" y="508" width="352" height="24" fill="#f5f8fc"/>
+<text x="1577" y="524" class="mono">cad_profile_id</text>
+<text x="1872" y="524" class="type" text-anchor="end">varchar</text>
+<rect x="1877" y="512" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="1890" y="523.5" class="tag fk" text-anchor="middle">FK</text>
+</g>
+<g class="column" data-name="crisis_involved" data-type="boolean">
+<text x="1577" y="548" class="mono">crisis_involved</text>
+<text x="1903" y="548" class="type" text-anchor="end">boolean</text>
+</g>
+<g class="column" data-name="complaint_involved" data-type="boolean">
+<rect x="1565" y="556" width="352" height="24" fill="#f5f8fc"/>
+<text x="1577" y="572" class="mono">complaint_involved</text>
+<text x="1903" y="572" class="type" text-anchor="end">boolean</text>
+</g>
+<g class="column" data-name="force_involved" data-type="boolean">
+<text x="1577" y="596" class="mono">force_involved</text>
+<text x="1903" y="596" class="type" text-anchor="end">boolean</text>
+</g>
+<g class="column" data-name="terry_stop" data-type="boolean">
+<rect x="1565" y="604" width="352" height="24" fill="#f5f8fc"/>
+<text x="1577" y="620" class="mono">terry_stop</text>
+<text x="1903" y="620" class="type" text-anchor="end">boolean</text>
+</g>
+<g class="column" data-name="demonstration" data-type="boolean">
+<text x="1577" y="644" class="mono">demonstration</text>
+<text x="1903" y="644" class="type" text-anchor="end">boolean</text>
+</g>
+<g class="column" data-name="subgect_age_at_detention" data-type="varchar">
+<rect x="1565" y="652" width="352" height="24" fill="#f5f8fc"/>
+<text x="1577" y="668" class="mono">subgect_age_at_detention</text>
+<text x="1903" y="668" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="agents_age_at_detention" data-type="number(38,0)">
+<text x="1577" y="692" class="mono">agents_age_at_detention</text>
+<text x="1903" y="692" class="type" text-anchor="end">number(38,0)</text>
+</g>
+<g class="column" data-name="last_ingested_at" data-type="timestamp_ltz">
+<rect x="1565" y="700" width="352" height="24" fill="#f5f8fc"/>
+<text x="1577" y="716" class="mono">last_ingested_at</text>
+<text x="1903" y="716" class="type" text-anchor="end">timestamp_ltz</text>
+</g>
+<path d="M1576 725 H1906" stroke="#e3eaf3"/>
+<text x="1577" y="743" class="small">Última versión por arrest_number · delete+insert</text>
+</g>
+<g id="arrest_offenses" class="table" data-group="detenciones"><title>arrest_offenses: offense_type_id no tiene FK</title>
+<rect x="1975" y="729" width="270" height="178" rx="10" fill="#e1e8f1"/>
+<rect x="1975" y="725" width="270" height="178" rx="10" fill="#fff" stroke="#ced9e8"/>
+<rect x="1976" y="726" width="268" height="51" rx="9" fill="#eeebf8"/>
+<rect x="1976" y="763" width="268" height="12" fill="#eeebf8"/>
+<rect x="1976" y="775" width="268" height="2" fill="#8d78b6"/>
+<text x="1989" y="757" class="cardname" style="fill:#514179">arrest_offenses</text>
+<g class="column" data-name="arrest_offense_id" data-type="varchar">
+<text x="1988" y="793" class="mono">arrest_offense_id</text>
+<text x="2199" y="793" class="type" text-anchor="end">varchar</text>
+<rect x="2204" y="781" width="26" height="16" rx="4" fill="#ddeafa"/>
+<text x="2217" y="792.5" class="tag pk" text-anchor="middle">PK</text>
+</g>
+<g class="column" data-name="arrest_number" data-type="varchar">
+<rect x="1976" y="801" width="268" height="24" fill="#f5f8fc"/>
+<text x="1988" y="817" class="mono">arrest_number</text>
+<text x="2168" y="817" class="type" text-anchor="end">varchar</text>
+<rect x="2173" y="805" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="2186" y="816.5" class="tag fk" text-anchor="middle">FK</text>
+<rect x="2204" y="805" width="26" height="16" rx="4" fill="#f8eedc"/>
+<text x="2217" y="816.5" class="tag nn" text-anchor="middle">NN</text>
+</g>
+<g class="column" data-name="offense_type_id" data-type="varchar">
+<title>Sin FK: el esquema no incluye offense_types.</title>
+<text x="1988" y="841" class="mono">offense_type_id</text>
+<text x="2230" y="841" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="nibrs_description" data-type="varchar">
+<rect x="1976" y="849" width="268" height="24" fill="#f5f8fc"/>
+<text x="1988" y="865" class="mono">nibrs_description</text>
+<text x="2230" y="865" class="type" text-anchor="end">varchar</text>
+</g>
+<path d="M1987 874 H2233" stroke="#e3eaf3"/>
+<text x="1988" y="892" class="small">offense_type_id no tiene FK</text>
+</g>
+<g id="arrest_types" class="table" data-group="detenciones"><title>arrest_types</title>
+<rect x="1975" y="244" width="270" height="108" rx="10" fill="#e1e8f1"/>
+<rect x="1975" y="240" width="270" height="108" rx="10" fill="#fff" stroke="#ced9e8"/>
+<rect x="1976" y="241" width="268" height="51" rx="9" fill="#eeebf8"/>
+<rect x="1976" y="278" width="268" height="12" fill="#eeebf8"/>
+<rect x="1976" y="290" width="268" height="2" fill="#8d78b6"/>
+<text x="1989" y="272" class="cardname" style="fill:#514179">arrest_types</text>
+<g class="column" data-name="arrest_type_id" data-type="varchar">
+<text x="1988" y="308" class="mono">arrest_type_id</text>
+<text x="2199" y="308" class="type" text-anchor="end">varchar</text>
+<rect x="2204" y="296" width="26" height="16" rx="4" fill="#ddeafa"/>
+<text x="2217" y="307.5" class="tag pk" text-anchor="middle">PK</text>
+</g>
+<g class="column" data-name="description" data-type="varchar">
+<rect x="1976" y="316" width="268" height="24" fill="#f5f8fc"/>
+<text x="1988" y="332" class="mono">description</text>
+<text x="2168" y="332" class="type" text-anchor="end">varchar</text>
+<rect x="2173" y="320" width="26" height="16" rx="4" fill="#f8eedc"/>
+<text x="2186" y="331.5" class="tag nn" text-anchor="middle">NN</text>
+<rect x="2204" y="320" width="26" height="16" rx="4" fill="#e8ecf3"/>
+<text x="2217" y="331.5" class="tag uk" text-anchor="middle">UK</text>
+</g>
+</g>
+<g id="cad_profiles" class="table" data-group="detenciones"><title>cad_profiles: Describe un perfil, no una llamada</title>
+<rect x="1975" y="460" width="270" height="178" rx="10" fill="#e1e8f1"/>
+<rect x="1975" y="456" width="270" height="178" rx="10" fill="#fff" stroke="#ced9e8"/>
+<rect x="1976" y="457" width="268" height="51" rx="9" fill="#eeebf8"/>
+<rect x="1976" y="494" width="268" height="12" fill="#eeebf8"/>
+<rect x="1976" y="506" width="268" height="2" fill="#8d78b6"/>
+<text x="1989" y="488" class="cardname" style="fill:#514179">cad_profiles</text>
+<g class="column" data-name="cad_profile_id" data-type="varchar">
+<text x="1988" y="524" class="mono">cad_profile_id</text>
+<text x="2199" y="524" class="type" text-anchor="end">varchar</text>
+<rect x="2204" y="512" width="26" height="16" rx="4" fill="#ddeafa"/>
+<text x="2217" y="523.5" class="tag pk" text-anchor="middle">PK</text>
+</g>
+<g class="column" data-name="cad_clearance" data-type="varchar">
+<rect x="1976" y="532" width="268" height="24" fill="#f5f8fc"/>
+<text x="1988" y="548" class="mono">cad_clearance</text>
+<text x="2230" y="548" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="cad_initial_call_type" data-type="varchar">
+<text x="1988" y="572" class="mono">cad_initial_call_type</text>
+<text x="2230" y="572" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="cad_priority" data-type="number(38,0)">
+<rect x="1976" y="580" width="268" height="24" fill="#f5f8fc"/>
+<text x="1988" y="596" class="mono">cad_priority</text>
+<text x="2230" y="596" class="type" text-anchor="end">number(38,0)</text>
+</g>
+<path d="M1987 605 H2233" stroke="#e3eaf3"/>
+<text x="1988" y="623" class="small">Describe un perfil, no una llamada</text>
+</g>
+<g id="agents" class="table" data-group="personas"><title>agents: officer_id puede repetirse entre perfiles</title>
+<rect x="1564" y="1081" width="329" height="226" rx="10" fill="#e1e8f1"/>
+<rect x="1564" y="1077" width="329" height="226" rx="10" fill="#fff" stroke="#ced9e8"/>
+<rect x="1565" y="1078" width="327" height="51" rx="9" fill="#e5eff4"/>
+<rect x="1565" y="1115" width="327" height="12" fill="#e5eff4"/>
+<rect x="1565" y="1127" width="327" height="2" fill="#5d91a9"/>
+<text x="1578" y="1109" class="cardname" style="fill:#3d5b6c">agents</text>
+<g class="column" data-name="agent_key" data-type="varchar">
+<text x="1577" y="1145" class="mono">agent_key</text>
+<text x="1847" y="1145" class="type" text-anchor="end">varchar</text>
+<rect x="1852" y="1133" width="26" height="16" rx="4" fill="#ddeafa"/>
+<text x="1865" y="1144.5" class="tag pk" text-anchor="middle">PK</text>
+</g>
+<g class="column" data-name="officer_id" data-type="varchar">
+<rect x="1565" y="1153" width="327" height="24" fill="#f5f8fc"/>
+<text x="1577" y="1169" class="mono">officer_id</text>
+<text x="1847" y="1169" class="type" text-anchor="end">varchar</text>
+<rect x="1852" y="1157" width="26" height="16" rx="4" fill="#f8eedc"/>
+<text x="1865" y="1168.5" class="tag nn" text-anchor="middle">NN</text>
+</g>
+<g class="column" data-name="officer_gender" data-type="varchar">
+<text x="1577" y="1193" class="mono">officer_gender</text>
+<text x="1878" y="1193" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="officer_race" data-type="varchar">
+<rect x="1565" y="1201" width="327" height="24" fill="#f5f8fc"/>
+<text x="1577" y="1217" class="mono">officer_race</text>
+<text x="1878" y="1217" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="squad_description" data-type="varchar">
+<text x="1577" y="1241" class="mono">squad_description</text>
+<text x="1878" y="1241" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="officer_title" data-type="varchar">
+<rect x="1565" y="1249" width="327" height="24" fill="#f5f8fc"/>
+<text x="1577" y="1265" class="mono">officer_title</text>
+<text x="1878" y="1265" class="type" text-anchor="end">varchar</text>
+</g>
+<path d="M1576 1274 H1881" stroke="#e3eaf3"/>
+<text x="1577" y="1292" class="small">officer_id puede repetirse entre perfiles</text>
+</g>
+<g id="subject" class="table" data-group="personas"><title>subject: sk_person puede repetirse entre perfiles</title>
+<rect x="1948" y="1081" width="297" height="178" rx="10" fill="#e1e8f1"/>
+<rect x="1948" y="1077" width="297" height="178" rx="10" fill="#fff" stroke="#ced9e8"/>
+<rect x="1949" y="1078" width="295" height="51" rx="9" fill="#e5eff4"/>
+<rect x="1949" y="1115" width="295" height="12" fill="#e5eff4"/>
+<rect x="1949" y="1127" width="295" height="2" fill="#5d91a9"/>
+<text x="1962" y="1109" class="cardname" style="fill:#3d5b6c">subject</text>
+<g class="column" data-name="subject_key" data-type="varchar">
+<text x="1961" y="1145" class="mono">subject_key</text>
+<text x="2199" y="1145" class="type" text-anchor="end">varchar</text>
+<rect x="2204" y="1133" width="26" height="16" rx="4" fill="#ddeafa"/>
+<text x="2217" y="1144.5" class="tag pk" text-anchor="middle">PK</text>
+</g>
+<g class="column" data-name="sk_person" data-type="varchar">
+<rect x="1949" y="1153" width="295" height="24" fill="#f5f8fc"/>
+<text x="1961" y="1169" class="mono">sk_person</text>
+<text x="2199" y="1169" class="type" text-anchor="end">varchar</text>
+<rect x="2204" y="1157" width="26" height="16" rx="4" fill="#f8eedc"/>
+<text x="2217" y="1168.5" class="tag nn" text-anchor="middle">NN</text>
+</g>
+<g class="column" data-name="subject_gender" data-type="varchar">
+<text x="1961" y="1193" class="mono">subject_gender</text>
+<text x="2230" y="1193" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="subject_race" data-type="varchar">
+<rect x="1949" y="1201" width="295" height="24" fill="#f5f8fc"/>
+<text x="1961" y="1217" class="mono">subject_race</text>
+<text x="2230" y="1217" class="type" text-anchor="end">varchar</text>
+</g>
+<path d="M1960 1226 H2233" stroke="#e3eaf3"/>
+<text x="1961" y="1244" class="small">sk_person puede repetirse entre perfiles</text>
+</g>
+<g id="full_address" class="table" data-group="geografia"><title>full_address</title>
+<rect x="520" y="1081" width="373" height="276" rx="10" fill="#e1e8f1"/>
+<rect x="520" y="1077" width="373" height="276" rx="10" fill="#fff" stroke="#ced9e8"/>
+<rect x="521" y="1078" width="371" height="51" rx="9" fill="#e2f3ed"/>
+<rect x="521" y="1115" width="371" height="12" fill="#e2f3ed"/>
+<rect x="521" y="1127" width="371" height="2" fill="#2c997e"/>
+<text x="534" y="1109" class="cardname" style="fill:#1a5e4b">full_address</text>
+<g class="column" data-name="address_id" data-type="varchar">
+<text x="533" y="1145" class="mono">address_id</text>
+<text x="847" y="1145" class="type" text-anchor="end">varchar</text>
+<rect x="852" y="1133" width="26" height="16" rx="4" fill="#ddeafa"/>
+<text x="865" y="1144.5" class="tag pk" text-anchor="middle">PK</text>
+</g>
+<g class="column" data-name="block_address" data-type="varchar">
+<rect x="521" y="1153" width="371" height="24" fill="#f5f8fc"/>
+<text x="533" y="1169" class="mono">block_address</text>
+<text x="878" y="1169" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="latitude" data-type="number(18,5)">
+<text x="533" y="1193" class="mono">latitude</text>
+<text x="878" y="1193" class="type" text-anchor="end">number(18,5)</text>
+</g>
+<g class="column" data-name="longitude" data-type="number(18,5)">
+<rect x="521" y="1201" width="371" height="24" fill="#f5f8fc"/>
+<text x="533" y="1217" class="mono">longitude</text>
+<text x="878" y="1217" class="type" text-anchor="end">number(18,5)</text>
+</g>
+<g class="column" data-name="neighborhood" data-type="varchar">
+<text x="533" y="1241" class="mono">neighborhood</text>
+<text x="878" y="1241" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="reporting_area" data-type="varchar">
+<rect x="521" y="1249" width="371" height="24" fill="#f5f8fc"/>
+<text x="533" y="1265" class="mono">reporting_area</text>
+<text x="878" y="1265" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="census_block_2020" data-type="varchar">
+<text x="533" y="1289" class="mono">census_block_2020</text>
+<text x="878" y="1289" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="cp" data-type="varchar">
+<rect x="521" y="1297" width="371" height="24" fill="#f5f8fc"/>
+<text x="533" y="1313" class="mono">cp</text>
+<text x="847" y="1313" class="type" text-anchor="end">varchar</text>
+<rect x="852" y="1301" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="865" y="1312.5" class="tag fk" text-anchor="middle">FK</text>
+</g>
+<g class="column" data-name="cp_status" data-type="varchar">
+<title>matched, missing_coordinates, redacted, invalid_coordinates, no_match, ambiguous o boundary.</title>
+<text x="533" y="1337" class="mono">cp_status</text>
+<text x="847" y="1337" class="type" text-anchor="end">varchar</text>
+<rect x="852" y="1325" width="26" height="16" rx="4" fill="#f8eedc"/>
+<text x="865" y="1336.5" class="tag nn" text-anchor="middle">NN</text>
+</g>
+</g>
+<g id="police_add" class="table" data-group="geografia"><title>police_add</title>
+<rect x="1090" y="1081" width="370" height="156" rx="10" fill="#e1e8f1"/>
+<rect x="1090" y="1077" width="370" height="156" rx="10" fill="#fff" stroke="#ced9e8"/>
+<rect x="1091" y="1078" width="368" height="51" rx="9" fill="#e2f3ed"/>
+<rect x="1091" y="1115" width="368" height="12" fill="#e2f3ed"/>
+<rect x="1091" y="1127" width="368" height="2" fill="#2c997e"/>
+<text x="1104" y="1109" class="cardname" style="fill:#1a5e4b">police_add</text>
+<g class="column" data-name="police_area_id" data-type="varchar">
+<text x="1103" y="1145" class="mono">police_area_id</text>
+<text x="1414" y="1145" class="type" text-anchor="end">varchar</text>
+<rect x="1419" y="1133" width="26" height="16" rx="4" fill="#ddeafa"/>
+<text x="1432" y="1144.5" class="tag pk" text-anchor="middle">PK</text>
+</g>
+<g class="column" data-name="precinct" data-type="varchar">
+<rect x="1091" y="1153" width="368" height="24" fill="#f5f8fc"/>
+<text x="1103" y="1169" class="mono">precinct</text>
+<text x="1445" y="1169" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="sector" data-type="varchar">
+<text x="1103" y="1193" class="mono">sector</text>
+<text x="1445" y="1193" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="beat" data-type="varchar">
+<rect x="1091" y="1201" width="368" height="24" fill="#f5f8fc"/>
+<text x="1103" y="1217" class="mono">beat</text>
+<text x="1445" y="1217" class="type" text-anchor="end">varchar</text>
+</g>
+</g>
+<g id="postal_codes" class="table" data-group="geografia"><title>postal_codes: Una geometría activa por CP</title>
+<rect x="68" y="1081" width="338" height="154" rx="10" fill="#e1e8f1"/>
+<rect x="68" y="1077" width="338" height="154" rx="10" fill="#fff" stroke="#ced9e8"/>
+<rect x="69" y="1078" width="336" height="51" rx="9" fill="#e2f3ed"/>
+<rect x="69" y="1115" width="336" height="12" fill="#e2f3ed"/>
+<rect x="69" y="1127" width="336" height="2" fill="#2c997e"/>
+<text x="82" y="1109" class="cardname" style="fill:#1a5e4b">postal_codes</text>
+<g class="column" data-name="cp" data-type="varchar">
+<text x="81" y="1145" class="mono">cp</text>
+<text x="360" y="1145" class="type" text-anchor="end">varchar</text>
+<rect x="365" y="1133" width="26" height="16" rx="4" fill="#ddeafa"/>
+<text x="378" y="1144.5" class="tag pk" text-anchor="middle">PK</text>
+</g>
+<g class="column" data-name="geography" data-type="geography">
+<title>Polígono o multipolígono del código postal.</title>
+<rect x="69" y="1153" width="336" height="24" fill="#f5f8fc"/>
+<text x="81" y="1169" class="mono">geography</text>
+<text x="391" y="1169" class="type" text-anchor="end">geography</text>
+</g>
+<g class="column" data-name="boundary_version" data-type="varchar">
+<title>Versión activa de la cartografía.</title>
+<text x="81" y="1193" class="mono">boundary_version</text>
+<text x="391" y="1193" class="type" text-anchor="end">varchar</text>
+</g>
+<path d="M80 1202 H394" stroke="#e3eaf3"/>
+<text x="81" y="1220" class="small">Una geometría activa por CP</text>
+</g>
+<g id="licencia" class="table" data-group="licencias"><title>licencia</title>
+<rect x="68" y="1476" width="338" height="252" rx="10" fill="#e1e8f1"/>
+<rect x="68" y="1472" width="338" height="252" rx="10" fill="#fff" stroke="#ced9e8"/>
+<rect x="69" y="1473" width="336" height="51" rx="9" fill="#e2f3ed"/>
+<rect x="69" y="1510" width="336" height="12" fill="#e2f3ed"/>
+<rect x="69" y="1522" width="336" height="2" fill="#2c997e"/>
+<text x="82" y="1504" class="cardname" style="fill:#1a5e4b">licencia</text>
+<g class="column" data-name="license_number" data-type="varchar">
+<text x="81" y="1540" class="mono">license_number</text>
+<text x="360" y="1540" class="type" text-anchor="end">varchar</text>
+<rect x="365" y="1528" width="26" height="16" rx="4" fill="#ddeafa"/>
+<text x="378" y="1539.5" class="tag pk" text-anchor="middle">PK</text>
+</g>
+<g class="column" data-name="license_id" data-type="varchar">
+<rect x="69" y="1548" width="336" height="24" fill="#f5f8fc"/>
+<text x="81" y="1564" class="mono">license_id</text>
+<text x="329" y="1564" class="type" text-anchor="end">varchar</text>
+<rect x="334" y="1552" width="26" height="16" rx="4" fill="#f8eedc"/>
+<text x="347" y="1563.5" class="tag nn" text-anchor="middle">NN</text>
+<rect x="365" y="1552" width="26" height="16" rx="4" fill="#e8ecf3"/>
+<text x="378" y="1563.5" class="tag uk" text-anchor="middle">UK</text>
+</g>
+<g class="column" data-name="license_issue_date" data-type="date">
+<text x="81" y="1588" class="mono">license_issue_date</text>
+<text x="391" y="1588" class="type" text-anchor="end">date</text>
+</g>
+<g class="column" data-name="animal_name" data-type="varchar">
+<rect x="69" y="1596" width="336" height="24" fill="#f5f8fc"/>
+<text x="81" y="1612" class="mono">animal_name</text>
+<text x="391" y="1612" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="species" data-type="varchar">
+<text x="81" y="1636" class="mono">species</text>
+<text x="391" y="1636" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="primary_breed" data-type="varchar">
+<rect x="69" y="1644" width="336" height="24" fill="#f5f8fc"/>
+<text x="81" y="1660" class="mono">primary_breed</text>
+<text x="391" y="1660" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="secondary_breed" data-type="varchar">
+<text x="81" y="1684" class="mono">secondary_breed</text>
+<text x="391" y="1684" class="type" text-anchor="end">varchar</text>
+</g>
+<g class="column" data-name="cp" data-type="varchar">
+<rect x="69" y="1692" width="336" height="24" fill="#f5f8fc"/>
+<text x="81" y="1708" class="mono">cp</text>
+<text x="360" y="1708" class="type" text-anchor="end">varchar</text>
+<rect x="365" y="1696" width="26" height="16" rx="4" fill="#e0f1eb"/>
+<text x="378" y="1707.5" class="tag fk" text-anchor="middle">FK</text>
+</g>
+</g>
+<circle cx="1016" cy="352" r="2.7" fill="#536c8a"/>
+<circle cx="600" cy="400" r="2.7" fill="#536c8a"/>
+<circle cx="600" cy="424" r="2.7" fill="#536c8a"/>
+<circle cx="600" cy="448" r="2.7" fill="#536c8a"/>
+<circle cx="406" cy="733" r="2.7" fill="#536c8a"/>
+<circle cx="1016" cy="472" r="2.7" fill="#536c8a"/>
+<circle cx="1016" cy="496" r="2.7" fill="#536c8a"/>
+<circle cx="600" cy="804" r="2.7" fill="#536c8a"/>
+<circle cx="600" cy="828" r="2.7" fill="#536c8a"/>
+<circle cx="1564" cy="376" r="2.7" fill="#536c8a"/>
+<circle cx="1918" cy="400" r="2.7" fill="#536c8a"/>
+<circle cx="1564" cy="424" r="2.7" fill="#536c8a"/>
+<circle cx="1918" cy="448" r="2.7" fill="#536c8a"/>
+<circle cx="1564" cy="472" r="2.7" fill="#536c8a"/>
+<circle cx="1564" cy="496" r="2.7" fill="#536c8a"/>
+<circle cx="1918" cy="520" r="2.7" fill="#536c8a"/>
+<circle cx="1975" cy="813" r="2.7" fill="#536c8a"/>
+<circle cx="520" cy="1309" r="2.7" fill="#536c8a"/>
+<circle cx="68" cy="1704" r="2.7" fill="#536c8a"/>
+<text x="52" y="1780" class="small">Fuente: DBML Seattle_Silver_3FN · Diseño propuesto</text>
+<text x="2258" y="1780" class="label" text-anchor="end">CÍVICA  /  SILVER</text>
+</svg>
