@@ -1,0 +1,25 @@
+version: 2
+
+unit_tests:
+  - name: dim_offense_classification_conserva_niveles_parciales
+    description: Conserva categorías sin subcategoría, subcategorías sin padre y etiquetas iguales en categorías distintas.
+    model: dim_offense_classification
+    given:
+      - input: ref('offense_categories')
+        rows:
+          - {offense_category_id: C1, offense_category: PERSON}
+          - {offense_category_id: C2, offense_category: PROPERTY}
+          - {offense_category_id: C3, offense_category: SOCIETY}
+      - input: ref('offense_subcategories')
+        rows:
+          - {offense_category_id: C1, offense_subcategory_id: S1, offense_sub_category: OTHER}
+          - {offense_category_id: C2, offense_subcategory_id: S2, offense_sub_category: OTHER}
+          - {offense_category_id: null, offense_subcategory_id: S3, offense_sub_category: UNKNOWN}
+    expect:
+      rows:
+        - {offense_category_id: C1, offense_subcategory_id: S1, offense_category: PERSON, offense_sub_category: OTHER}
+        - {offense_category_id: C2, offense_subcategory_id: S2, offense_category: PROPERTY, offense_sub_category: OTHER}
+        - {offense_category_id: null, offense_subcategory_id: S3, offense_category: null, offense_sub_category: UNKNOWN}
+        - {offense_category_id: C1, offense_subcategory_id: null, offense_category: PERSON, offense_sub_category: null}
+        - {offense_category_id: C2, offense_subcategory_id: null, offense_category: PROPERTY, offense_sub_category: null}
+        - {offense_category_id: C3, offense_subcategory_id: null, offense_category: SOCIETY, offense_sub_category: null}

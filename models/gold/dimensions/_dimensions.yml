@@ -77,18 +77,19 @@ models:
     columns:
       - {name: police_area_id, data_tests: [unique, not_null]}
 
-  - name: dim_offense_category
-    description: Categoría del delito publicada por Seattle, independiente de NIBRS.
+  - name: dim_offense_classification
+    description: Una fila por combinación de categoría y subcategoría de Seattle, independiente de NIBRS. Admite que falte uno de los dos niveles.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [offense_category_id, offense_subcategory_id]}
+      - dbt_utils.expression_is_true:
+          arguments: {expression: "offense_category_id is not null or offense_subcategory_id is not null"}
     columns:
-      - {name: offense_category_id, data_tests: [unique, not_null]}
-
-  - name: dim_offense_subcategory
-    description: Etiqueta de subcategoría en el contexto de su categoría, cuando se conoce.
-    columns:
-      - {name: offense_subcategory_id, data_tests: [unique, not_null]}
-      - name: offense_category_id
-        data_tests:
-          - relationships: {arguments: {to: "ref('dim_offense_category')", field: offense_category_id}}
+      - {name: offense_classification_id, data_tests: [unique, not_null]}
+      - {name: offense_category_id, description: Clave de categoría en Silver; nula si no se conoce.}
+      - {name: offense_subcategory_id, description: Clave de subcategoría en Silver; nula si no se conoce.}
+      - {name: offense_category, description: Categoría publicada por Seattle.}
+      - {name: offense_sub_category, description: Subcategoría publicada por Seattle.}
 
   - name: dim_shooting_type
     description: Etiqueta de tiroteo observada, vinculada al delito únicamente mediante el puente.

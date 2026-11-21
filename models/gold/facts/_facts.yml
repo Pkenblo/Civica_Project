@@ -8,7 +8,7 @@ models:
       - dbt_utils.equality:
           arguments:
             compare_model: "ref('crimes')"
-            compare_columns: [crime_id, report_id, offense_id, nibrs_key, address_id, police_area_id, offense_category_id, offense_subcategory_id, ingested_at]
+            compare_columns: [crime_id, report_id, offense_id, nibrs_key, address_id, police_area_id, ingested_at]
       - dbt_utils.expression_is_true:
           arguments:
             expression: >-
@@ -36,12 +36,10 @@ models:
       - name: nibrs_key
         data_tests:
           - relationships: {arguments: {to: "ref('dim_nibrs')", field: nibrs_key}}
-      - name: offense_category_id
+      - name: offense_classification_id
+        description: Referencia a la clasificación de Seattle; nula si faltan ambos niveles.
         data_tests:
-          - relationships: {arguments: {to: "ref('dim_offense_category')", field: offense_category_id}}
-      - name: offense_subcategory_id
-        data_tests:
-          - relationships: {arguments: {to: "ref('dim_offense_subcategory')", field: offense_subcategory_id}}
+          - relationships: {arguments: {to: "ref('dim_offense_classification')", field: offense_classification_id}}
       - name: offense_date_key
         data_tests:
           - relationships: {arguments: {to: "ref('dim_date')", field: date_key}}
