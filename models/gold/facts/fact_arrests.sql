@@ -1,4 +1,4 @@
-{{ config(unique_key='arrest_number', post_hook="{{ gold_prune_missing_keys(ref('arrest'), 'arrest_number') }}") }}
+{{ config(unique_key='arrest_number', post_hook="{{ gold_prune(ref('arrest'), 'arrest_number') }}") }}
 
 with current_rows as (
 select a.arrest_number, a.report_id, a.address_id, a.police_area_id,
@@ -13,4 +13,7 @@ from {{ ref('arrest') }} a
 left join {{ ref('dim_date') }} occurred on occurred.full_date = a.arrest_occurred_date_time::date
 left join {{ ref('dim_date') }} reported on reported.full_date = a.arrest_reported_date_time::date
 )
-{{ gold_changed_rows(by_ingestion=true) }}
+select * from current_rows
+{% if is_incremental() %}
+where {{ after_max_ingested_at('ingested_at') }}
+{% endif %}

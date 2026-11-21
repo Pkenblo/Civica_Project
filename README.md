@@ -9,7 +9,7 @@ Cívica prepara datos abiertos de Seattle con dbt y Snowflake: delitos, detencio
 | Bronze | `DBT_BRONZE.RAW` | Declara `CRIMES`, `ARRESTS`, `PET_LICENSES` y `ZIPCODE_AREAS`. La carga es externa a dbt. |
 | Staging | `DBT_BRONZE.STG` | Cuatro vistas que renombran, tipan y normalizan sin deduplicar ni eliminar asociaciones. |
 | Silver | `DBT_SILVER.SILVER` | 17 modelos: fijan los granos, seleccionan versiones, conservan asociaciones y calculan el CP policial. |
-| Gold | `DBT_GOLD.GOLD` | Dimensiones, hechos y tablas puente reutilizables. |
+| Gold | `DBT_GOLD.GOLD` | Publica dimensiones y hechos. Los dos puentes se usan mediante `ref()` en dbt y no crean objetos en Snowflake. |
 
 ## Silver: diseño definitivo
 

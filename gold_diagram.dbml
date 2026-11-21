@@ -1,6 +1,6 @@
 Project seattle_gold {
   database_type: 'Snowflake'
-  Note: 'Dimensiones, hechos y puentes de Gold. Las claves lógicas se comprueban en dbt.'
+  Note: 'Modelo lógico de Gold. Los dos puentes son CTE de dbt, no objetos de Snowflake.'
 }
 
 Table dim_date {
@@ -75,14 +75,11 @@ Table dim_nibrs {
   crime_against_category varchar
 }
 
-Table dim_offense_category {
-  offense_category_id varchar [pk]
-  offense_category varchar
-}
-
-Table dim_offense_subcategory {
-  offense_subcategory_id varchar [pk]
+Table dim_offense_classification {
+  offense_classification_id varchar [pk]
   offense_category_id varchar
+  offense_subcategory_id varchar
+  offense_category varchar
   offense_sub_category varchar
 }
 
@@ -98,8 +95,7 @@ Table fact_crimes {
   nibrs_key varchar
   address_id varchar [not null]
   police_area_id varchar
-  offense_category_id varchar
-  offense_subcategory_id varchar
+  offense_classification_id varchar
   offense_date_time timestamp_ntz
   offense_date date
   offense_date_key number(8,0)
@@ -111,6 +107,7 @@ Table fact_crimes {
 }
 
 Table bridge_crime_shooting_types {
+  Note: 'ephemeral: solo mediante ref() en dbt.'
   crime_id varchar [not null]
   shooting_type_id varchar [not null]
 
@@ -176,6 +173,7 @@ Table fact_arrests {
 }
 
 Table bridge_arrest_offenses {
+  Note: 'ephemeral: solo mediante ref() en dbt.'
   arrest_offense_id varchar [pk]
   arrest_number varchar [not null]
   offense_type varchar
@@ -185,13 +183,11 @@ Table bridge_arrest_offenses {
 Ref: dim_address.cp > dim_postal_codes.cp
 Ref: dim_licenses.cp > dim_postal_codes.cp
 Ref: dim_licenses.license_issue_date_key > dim_date.date_key
-Ref: dim_offense_subcategory.offense_category_id > dim_offense_category.offense_category_id
 Ref: fact_crimes.report_id > dim_report.report_id
 Ref: fact_crimes.nibrs_key > dim_nibrs.nibrs_key
 Ref: fact_crimes.address_id > dim_address.address_id
 Ref: fact_crimes.police_area_id > dim_police_area.police_area_id
-Ref: fact_crimes.offense_category_id > dim_offense_category.offense_category_id
-Ref: fact_crimes.offense_subcategory_id > dim_offense_subcategory.offense_subcategory_id
+Ref: fact_crimes.offense_classification_id > dim_offense_classification.offense_classification_id
 Ref: fact_crimes.offense_date_key > dim_date.date_key
 Ref: fact_crimes.report_date_key > dim_date.date_key
 Ref: fact_arrests.report_id > dim_report.report_id
@@ -222,8 +218,7 @@ TableGroup licencias {
 TableGroup delitos {
   fact_crimes
   dim_nibrs
-  dim_offense_category
-  dim_offense_subcategory
+  dim_offense_classification
   dim_shooting_type
   bridge_crime_shooting_types
 }

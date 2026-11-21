@@ -23,6 +23,10 @@ clean-targets:         # directories to be removed by `dbt clean`
 
 models:
   my_new_project:
+    marts:
+      +database: "{{ env_var('DBT_GOLD', target.database) }}"
+      +schema: MARTS
+      +materialized: table
     silver:
       +database: "{{ env_var('DBT_SILVER') }}"
       +schema: SILVER

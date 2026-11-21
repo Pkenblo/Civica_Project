@@ -1,4 +1,4 @@
-{{ config(unique_key='license_number', post_hook="{{ gold_prune_missing_keys(ref('licenses'), 'license_number') }}") }}
+{{ config(unique_key='license_number', post_hook="{{ gold_prune(ref('licenses'), 'license_number') }}") }}
 
 with current_rows as (
 select l.license_number, l.license_id, l.license_issue_date, d.date_key as license_issue_date_key,
@@ -12,4 +12,7 @@ select l.license_number, l.license_id, l.license_issue_date, d.date_key as licen
 from {{ ref('licenses') }} l
 left join {{ ref('dim_date') }} d on d.full_date = l.license_issue_date
 )
-{{ gold_changed_rows(by_ingestion=true) }}
+select * from current_rows
+{% if is_incremental() %}
+where {{ after_max_ingested_at('ingested_at') }}
+{% endif %}

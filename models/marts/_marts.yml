@@ -1,0 +1,55 @@
+version: 2
+
+models:
+  - name: mart_vehicle_theft_pet_licenses
+    description: >
+      Robos de vehículos y licencias emitidas por CP y año natural. Incluye todos los CP del catálogo
+      en los años con registros en ambas fuentes, aunque el año sea parcial. Un cero indica que no
+      hay registros asignados al CP; no garantiza cobertura policial en toda la zona. El CP del delito
+      corresponde al lugar del hecho y el de la licencia es el declarado por el propietario.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [cp, year]}
+    columns:
+      - {name: cp, data_tests: [not_null]}
+      - {name: year, data_tests: [not_null]}
+      - {name: vehicle_theft_count, description: "Delitos NIBRS 240 (Motor Vehicle Theft) por fecha del hecho; excluye los hurtos de objetos del vehículo."}
+      - {name: dog_license_count, description: Licencias de perro emitidas.}
+      - {name: cat_license_count, description: Licencias de gato emitidas.}
+      - {name: goat_license_count, description: Licencias de cabra emitidas.}
+      - {name: pig_license_count, description: Licencias de cerdo emitidas.}
+      - {name: pet_license_count, description: Total de licencias emitidas para las cuatro especies.}
+      - {name: dog_license_share, description: Fracción de licencias de perro entre 0 y 1; nula si el total es cero.}
+      - {name: cat_license_share, description: Fracción de licencias de gato entre 0 y 1; nula si el total es cero.}
+      - {name: goat_license_share, description: Fracción de licencias de cabra entre 0 y 1; nula si el total es cero.}
+      - {name: pig_license_share, description: Fracción de licencias de cerdo entre 0 y 1; nula si el total es cero.}
+      - {name: geography, description: Polígono postal de la cartografía activa si está disponible.}
+      - {name: boundary_version, description: Versión de esa cartografía.}
+
+  - name: mart_theft_pet_licenses
+    description: >
+      Atracos y hurtos registrados y licencias emitidas por CP y año natural.
+      Incluye todos los CP del catálogo en los años con registros de delitos y de licencias.
+      Un cero indica que no hay registros asignados a ese CP y año.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [cp, year]}
+    columns:
+      - {name: cp, data_tests: [not_null]}
+      - {name: year, data_tests: [not_null]}
+      - name: theft_count
+        description: >
+          Número de delitos por fecha del hecho: atracos (120), carterismos (23A), tirones de bolso (23B)
+          y otros hurtos (23H), con independencia de la categoría de la víctima.
+        data_tests: [not_null]
+      - {name: dog_license_count, description: Licencias de perro emitidas.}
+      - {name: cat_license_count, description: Licencias de gato emitidas.}
+      - {name: goat_license_count, description: Licencias de cabra emitidas.}
+      - {name: pig_license_count, description: Licencias de cerdo emitidas.}
+      - {name: pet_license_count, description: Total de licencias emitidas de las cuatro especies.}
+      - {name: dog_license_share, description: Proporción de licencias de perro; nula si el total es cero.}
+      - {name: cat_license_share, description: Proporción de licencias de gato; nula si el total es cero.}
+      - {name: goat_license_share, description: Proporción de licencias de cabra; nula si el total es cero.}
+      - {name: pig_license_share, description: Proporción de licencias de cerdo; nula si el total es cero.}
+      - {name: geography, description: Polígono postal de la cartografía activa si está disponible.}
+      - {name: boundary_version, description: Versión de esa cartografía.}
