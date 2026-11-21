@@ -9,17 +9,12 @@ models:
       - {name: iso_week_year, description: Año de la semana ISO; puede diferir del año natural.}
 
   - name: dim_nibrs
-    description: Catálogo dinámico de códigos NIBRS y clasificación analítica no jurídica.
+    description: Catálogo de códigos NIBRS publicado en Silver.
     columns:
       - {name: nibrs_key, data_tests: [unique, not_null]}
       - {name: offense_code, data_tests: [unique, not_null]}
       - name: group_ab
-        description: Grupo de reporte NIBRS, independiente de la gravedad.
-      - name: severity
-        data_tests:
-          - not_null
-          - accepted_values: {arguments: {values: [grave, leve, sin_clasificar]}}
-      - {name: severity_rationale, description: Motivo de la regla; nulo si el código no tiene correspondencia.}
+        description: Grupo de reporte NIBRS.
 
   - name: dim_address
     description: Ubicación publicada del evento; el CP solo se asigna con una coincidencia interior única.

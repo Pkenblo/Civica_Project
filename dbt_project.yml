@@ -14,7 +14,6 @@ profile: 'default'
 model-paths: ["models"]
 analysis-paths: ["analyses"]
 test-paths: ["tests"]
-seed-paths: ["seeds"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
 
@@ -46,11 +45,3 @@ models:
           +materialized: incremental
           +incremental_strategy: delete+insert
           +on_schema_change: fail
-
-seeds:
-  my_new_project:
-    nibrs_severity_map:
-      +database: "{{ env_var('DBT_GOLD', target.database) }}"
-      +schema: GOLD
-      +column_types:
-        offense_code: varchar(16)

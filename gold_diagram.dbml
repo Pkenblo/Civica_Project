@@ -1,6 +1,6 @@
 Project seattle_gold {
   database_type: 'Snowflake'
-  Note: 'Claves lógicas comprobadas en dbt. Los marts CP × año se documentan en docs/gold.md.'
+  Note: 'Dimensiones, hechos y puentes de Gold. Las claves lógicas se comprueban en dbt.'
 }
 
 Table dim_date {
@@ -73,8 +73,6 @@ Table dim_nibrs {
   offense_description varchar
   group_ab varchar
   crime_against_category varchar
-  severity varchar [not null]
-  severity_rationale varchar
 }
 
 Table dim_offense_category {
