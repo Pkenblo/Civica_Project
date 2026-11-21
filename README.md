@@ -10,6 +10,7 @@ Cívica prepara datos abiertos de Seattle con dbt y Snowflake: delitos, detencio
 | Staging | `DBT_BRONZE.STG` | Cuatro vistas que renombran, tipan y normalizan sin deduplicar ni eliminar asociaciones. |
 | Silver | `DBT_SILVER.SILVER` | 17 modelos: fijan los granos, seleccionan versiones, conservan asociaciones y calculan el CP policial. |
 | Gold | `DBT_GOLD.GOLD` | Publica dimensiones y hechos. Los dos puentes se usan mediante `ref()` en dbt y no crean objetos en Snowflake. |
+| Marts | `DBT_GOLD.MARTS` | Dos tablas anuales por CP para comparar robos y licencias de perro, gato, cabra y cerdo. |
 
 ## Silver: diseño definitivo
 
@@ -26,6 +27,10 @@ El [SVG definitivo](docs/silver_diagram.svg) y el [diccionario con DBML editable
 ## Gold
 
 La [guía de Gold](docs/gold.md) documenta las tablas, sus claves y cómo construir la capa. El [diagrama Gold en DBML](gold_diagram.dbml) se puede importar en dbdiagram.io.
+
+## Casos de uso
+
+El primer mart cuenta robos de vehículos (NIBRS `240`); el segundo reúne atracos, carterismos, tirones de bolso y otros hurtos (`120`, `23A`, `23B`, `23H`). Ambos conservan las zonas con cero casos registrados. La [guía de los marts](docs/marts.md) detalla las columnas, los criterios de selección y el comando de construcción en DEV. La lógica se comprobó con datos sintéticos locales; los marts siguen pendientes de prueba en dbt.
 
 ## Desarrollo y validación
 

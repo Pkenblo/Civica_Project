@@ -2,14 +2,15 @@
 
 Proyecto dbt sobre Snowflake para delitos, detenciones, licencias de mascotas y cartografía postal de Seattle. La comparación por CP es **geográfica**, no una relación entre mascotas, personas y hechos policiales. Para los contratos vigentes, consultar la [memoria de Silver](docs/silver.md) y la [guía de Gold](docs/gold.md); este archivo resume cómo retomar el trabajo.
 
-**Punto de relevo:** Silver queda cerrada en código y documentación. Queda pendiente comprobar el `dbt build` integral de esta versión con datos reales en Snowflake DEV; que el diseño esté cerrado no implica que esté desplegado. No reabrir decisiones de grano, claves o materialización sin evidencia nueva.
+**Punto de relevo:** Silver queda cerrada en código y documentación. Sobre Gold ya están definidos los [dos marts de robos y licencias](docs/marts.md). Se comprobó su lógica con datos sintéticos locales; los marts siguen sin probarse en dbt. Está pendiente el `dbt build` integral con datos reales en Snowflake DEV.
 
 ## Qué hay y qué se ha comprobado
 
 - Repositorio: [Pkenblo/Civica_Project](https://github.com/Pkenblo/Civica_Project). Consultar `git status` y `git log` al retomar: puede haber trabajo local sin commit. No descartarlo ni hacer commits o pushes sin petición.
 - **Bronze:** `CRIMES`, `ARRESTS`, `PET_LICENSES`, `ZIPCODE_AREAS`. dbt declara las fuentes; no carga RAW. **Staging:** `stg_crimes`, `stg_arrests`, `stg_pet_licenses`, `stg_zipcode_areas`, todos vistas. Las cuatro vistas existían en el entorno consultado anteriormente; no asumir que estén publicadas con el SQL actual.
 - **Silver:** 17 modelos, 96 columnas y 19 relaciones lógicas, recogidos en el [SVG definitivo](docs/silver_diagram.svg) y el [diccionario con DBML editable](docs/silver_diagram.md). Se retiró el SVG anterior. Se comprobaron los enlaces de la documentación y la coherencia entre el SVG, el DBML y los modelos y relaciones declarados en dbt.
-- **Gold:** el código ya existe en `models/gold/`. Consume Silver por `ref()` y compara delitos y licencias por CP y año. No hay snapshots ni vigencias en el alcance actual.
+- **Gold:** `models/gold/` publica hechos y dimensiones a partir de Silver. No hay snapshots ni vigencias en el alcance actual.
+- **Marts:** `models/marts/` agrega los datos de Gold por CP y año en `DBT_GOLD.MARTS`. Un modelo cuenta el código `240`; el otro suma `120`, `23A`, `23B` y `23H` sin filtrar por víctima. Ambos comparan los delitos con licencias emitidas de perro, gato, cabra y cerdo.
 - **Qué no se ha comprobado:** el cierre documental no ejecutó dbt contra Snowflake. La [regresión histórica del `MERGE`](docs/arrest_incremental.md#validación-de-la-implementación-inicial-del-merge) se hizo en un esquema aislado y no valida el incremental vigente. El [runner sintético actual](tests/integration/arrest_delete_insert_check.py) y los datos reales son comprobaciones distintas.
 
 ## Contratos que hay que conservar
@@ -48,6 +49,7 @@ Las comprobaciones locales recientes usaron dbt Core 1.12.7 y dbt-snowflake 1.12
 ### Ingesta y datos locales
 
 - `Datos_ejemplo/` está ignorada y no llega con el clon. Los modelos leen Snowflake, nunca esos CSV. No subir la carpeta a Git.
+- El [catálogo de códigos NIBRS](datos_ejemplo/Todos_los_crimenes.csv) sí está versionado, en `datos_ejemplo/` con minúscula. Sirve de referencia para los indicadores; no interviene en la ejecución de dbt.
 - `scripts/`, `systemd/` y `requirements.txt` se documentaron como parte de la ingesta externa y no están versionados en Git. `batch_crimes.py` y `batch_arrests.py` usaban `batch_common.py` para descargar cambios de Seattle Open Data, comparar hashes y multiplicidades en SQLite y subir gzip a `DEV_BRONZE.RAW.STG_SEATTLE_BATCH/`. No reflejan bajas ni automatizan licencias o cartografía. No asumir que la automatización se restaura al clonar.
 - Si se trabaja con esa copia, preservar `scripts/state/` y los pendientes. `--inicial` y `--inicial-web` registran el estado base, no suben RAW; no reinicializar entre cargas ni asumir que la base web coincide con lo ya cargado. `run_daily.sh` preparaba ambos conjuntos en paralelo con su entorno del conector, no con dbt. La programación documentada era a las 03:00 locales para los scripts, con reintentos, y una task esperada a las 04:00; no se ha comprobado que ambas estén activas ni la zona horaria efectiva de la task.
 
@@ -56,5 +58,6 @@ Las comprobaciones locales recientes usaron dbt Core 1.12.7 y dbt-snowflake 1.12
 1. **Si ya existe un esquema Silver antiguo, preparar la migración antes de escribir.** Revisar columnas, claves y nombres, y coordinar la reconstrucción con los consumidores. No lanzar `--full-refresh` ni operaciones destructivas sin autorización, verificación de RAW y respaldo de destinos. Si no existe la tabla, basta la primera carga normal.
 2. **Validar Silver en Snowflake DEV.** Primero correr la regresión sintética en su esquema aislado. Después seguir la [ejecución de Silver en DEV](docs/silver.md#ejecución-en-dev) y, con los destinos y el mapa comprobados, ejecutar `dbt build --target dev --select '+path:models/silver'`. Revisar cobertura por clave y última ingesta, preservación de cargos y etiquetas, distribución de `cp_status` y un segundo pase sin novedades. No presentar resultados locales o sintéticos como validación con datos reales.
 3. **Validar Gold sobre Silver completo.** Seguir la [guía de Gold](docs/gold.md); no ejecutar la reconciliación de bajas de Gold sobre un Silver incompleto. Los snapshots y las vigencias no forman parte del alcance actual.
+4. **Construir y contrastar los marts en DEV.** Con Gold validado, seguir la [guía de ejecución y comprobaciones](docs/marts.md#estado-y-ejecución-en-dev). Revisar los años parciales y la cobertura postal antes de interpretar una correlación.
 
 Preferencias del proyecto: revisar datos y SQL antes de cambiar el diseño, mantener las soluciones incrementales simples y no reintroducir los 42 usos de `normalized_text` que se retiraron. Modificar otros Markdown o el diagrama solo si se pide; cuando se actualice el diagrama, conservar el DBML completo y el estilo visual del SVG.
