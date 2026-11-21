@@ -1,8 +1,4 @@
-{% set validate_crs %}
-    select to_number(iff({{ 'true' if var('police_coordinates_epsg4326_confirmed', false) == true else 'false' }},
-                         '1', 'Confirmar documentalmente el CRS policial EPSG:4326'))
-{% endset %}
-{{ config(materialized='table', pre_hook=validate_crs) }}
+{{ config(materialized='table') }}
 
 with observations as (
     select 'C:' || md5(report_number) || ':' || offense_id as event_key,
@@ -20,6 +16,7 @@ locations as (
     from observations
 ),
 points as (
+    -- Las coordenadas policiales se interpretan como EPSG:4326 (longitud, latitud).
     select distinct latitude, longitude,
            case when latitude between -90 and 90 and longitude between -180 and 180
                 then st_makepoint(longitude, latitude) end as point

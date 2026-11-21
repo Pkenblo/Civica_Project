@@ -1,13 +1,8 @@
-# Obtención del código postal de delitos y arrestos
+# Histórico: propuesta de código postal para delitos y arrestos
 
 ## Alcance y archivos
 
-El diseño está actualizado; la carga de cartografía y los modelos dbt todavía no están implementados. No se ha cambiado `Silver_Diagram.pdf` ni se han ejecutado cargas en Snowflake.
-
-- [Diagrama actualizado en PDF](../Silver_Diagram_actualizado.pdf).
-- [Diagrama actualizado en SVG](../Silver_Diagram_actualizado.svg).
-- [Fuente editable DBML](../silver_diagram.dbml), importable en dbdiagram.io.
-- [Diccionario completo](../silver_diagram.md).
+Esta página conserva la propuesta inicial y las comprobaciones que la motivaron. Las tablas, pasos y SQL siguientes no son el diseño vigente. Consultar la [implementación postal de Silver](silver.md#áreas-cartografía-y-código-postal) y el [diccionario y diagrama definitivos](silver_diagram.md).
 
 La solución calcula el CP de la zona que contiene las coordenadas publicadas. No reconstruye una dirección exacta ni verifica un domicilio con USPS. Las licencias mantienen el CP que proporciona su propia fuente.
 

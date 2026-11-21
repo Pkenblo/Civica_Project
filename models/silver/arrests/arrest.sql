@@ -10,12 +10,9 @@ with candidates as (
            iff(is_location_redacted or has_missing_coordinates or has_invalid_coordinates,
                'A:' || s.arrest_number, null) as location_context
     from {{ ref('stg_arrests') }} s
-    {% if is_incremental() %}
-    left join {{ this }} t on t.arrest_number = s.arrest_number
-    {% endif %}
     where s.arrest_number is not null and s.ingested_at is not null
     {% if is_incremental() %}
-      and (t.ingested_at is null or s.ingested_at >= t.ingested_at)
+      and {{ after_max_ingested_at('s.ingested_at') }}
     {% endif %}
 ),
 resolved as (
@@ -48,9 +45,3 @@ qualify row_number() over (
                                      address_id, police_area_id, cad_profile_id, crisis_involved, complaint_involved,
                                      force_involved, terry_stop, demonstration)) desc
 ) = 1
-{% if is_incremental() %}
-except select arrest_number, ingested_at, arrest_occurred_date_time, arrest_reported_date_time,
-              report_id, arrest_type_id, agent_key, subject_key, officer_age, subject_age_range,
-              address_id, police_area_id, cad_profile_id, crisis_involved, complaint_involved,
-              force_involved, terry_stop, demonstration from {{ this }}
-{% endif %}

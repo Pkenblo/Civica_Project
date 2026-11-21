@@ -8,12 +8,9 @@
 with latest as (
     select s.*
     from {{ ref('stg_pet_licenses') }} s
-    {% if is_incremental() %}
-    left join {{ this }} t on t.license_number = s.license_number
-    {% endif %}
     where s.license_number is not null and s.ingested_at is not null
     {% if is_incremental() %}
-      and (t.ingested_at is null or s.ingested_at >= t.ingested_at)
+      and {{ after_max_ingested_at('s.ingested_at') }}
     {% endif %}
     qualify row_number() over (
         partition by s.license_number
@@ -27,7 +24,3 @@ select md5(license_number || '|' || coalesce(animal_name, '')) as license_id,
        license_number, license_issue_date, animal_name, species, primary_breed, secondary_breed,
        iff(regexp_like(zip_code, '^[0-9]{5}$'), zip_code, null) as cp, ingested_at
 from latest
-{% if is_incremental() %}
-except select license_id, license_number, license_issue_date, animal_name, species,
-              primary_breed, secondary_breed, cp, ingested_at from {{ this }}
-{% endif %}

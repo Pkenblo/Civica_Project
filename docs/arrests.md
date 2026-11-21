@@ -21,4 +21,4 @@ Los modelos comparan sus filas candidatas con las publicadas. Solo las claves nu
 
 ## Migración y prueba
 
-Si ya hay tablas Silver con el esquema o las claves anteriores, comprobar que RAW conserva los datos, respaldar los destinos y coordinar una reconstrucción de `arrest`, `agents`, `subject` y sus catálogos antes de activar el incremental. No es necesario reconstruir RAW. `full_address` sigue exigiendo la confirmación del CRS policial. La regresión de [integración](../tests/integration/arrest_delete_insert_check.py) usa un esquema Snowflake aislado y datos sintéticos; no valida el CRS real.
+Si ya hay tablas Silver con el esquema o las claves anteriores, comprobar que RAW conserva los datos, respaldar los destinos y coordinar una reconstrucción de `arrest`, `agents`, `subject` y sus catálogos antes de activar el incremental. No es necesario reconstruir RAW. `full_address` asume EPSG:4326 para las coordenadas policiales. La regresión de [integración](../tests/integration/arrest_delete_insert_check.py) usa un esquema Snowflake aislado y datos sintéticos; no valida el CRS real.

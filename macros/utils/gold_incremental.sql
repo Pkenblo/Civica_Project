@@ -1,7 +1,11 @@
-{% macro gold_changed_rows() -%}
+{% macro gold_changed_rows(by_ingestion=false) -%}
 select * from current_rows
 {% if is_incremental() %}
+{% if by_ingestion %}
+where {{ after_max_ingested_at('ingested_at') }}
+{% else %}
 except select * from {{ this }}
+{% endif %}
 {% endif %}
 {%- endmacro %}
 

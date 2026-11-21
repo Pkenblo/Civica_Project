@@ -15,4 +15,4 @@ left join {{ ref('dim_report') }} r on r.report_id = c.report_id
 left join {{ ref('dim_date') }} occurred on occurred.full_date = c.offense_date::date
 left join {{ ref('dim_date') }} reported on reported.full_date = r.report_date_time::date
 )
-{{ gold_changed_rows() }}
+{{ gold_changed_rows(by_ingestion=true) }}

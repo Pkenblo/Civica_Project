@@ -1,6 +1,6 @@
-# Revisión del diagrama Silver
+# Histórico: revisión del primer diseño Silver
 
-Fuentes: [Silver_Diagram.pdf](Silver_Diagram.pdf), [diseño actualizado](silver_diagram.md), los modelos de staging de `models/staging/` y los CSV de `Datos_ejemplo/`.
+Esta revisión describe los problemas del primer diseño, no el estado actual. Para las decisiones adoptadas y el único diagrama vigente, consultar la [memoria de Silver](silver.md) y la [referencia definitiva](silver_diagram.md).
 
 Esta revisión identifica problemas y decisiones pendientes del diseño. No todos los puntos son errores confirmados: algunos requieren comprobar los datos. Se ha comprobado localmente la viabilidad del enriquecimiento postal con los CSV; no se han ejecutado cargas ni consultas de validación en Snowflake, ni modificado los modelos dbt.
 
@@ -55,7 +55,7 @@ No es obligatorio aplicar historización a todas las tablas; la solución depend
 
 `Full_address` incluye `cp`, pero `models/staging/stg_crimes.sql` y `models/staging/stg_arrests.sql` no proporcionan un código postal. Las licencias sí lo incluyen como `zip_code` en `models/staging/stg_pet_licenses.sql`.
 
-El [diagrama actualizado](Silver_Diagram_actualizado.pdf) resuelve esta carencia mediante polígonos postales de King County y un cruce espacial. Se añaden `ref_zipcode_versions` y `ref_zipcode_areas`, además del estado, la versión, la fecha de evaluación y el número de CP candidatos en `Full_address`.
+La [propuesta postal inicial](codigo_postal.md) planteaba resolver esta carencia mediante polígonos postales de King County y un cruce espacial. Proponía añadir `ref_zipcode_versions` y `ref_zipcode_areas`, además del estado, la versión, la fecha de evaluación y el número de CP candidatos en `Full_address`.
 
 **Riesgo:** no poder construir la relación o asignar códigos postales incorrectos. Las direcciones policiales son aproximadas y algunas ubicaciones están ocultadas, por lo que no siempre será posible obtener un código fiable.
 
@@ -67,7 +67,7 @@ El [diagrama actualizado](Silver_Diagram_actualizado.pdf) resuelve esta carencia
 - No limitar la referencia a Seattle ni imputar el CP más cercano.
 - Confirmar los metadatos del sistema de referencia policial antes de activar el proceso y exportar los límites de King County a EPSG:4326.
 
-La comprobación local encontró una única zona postal para el 74,41 % de las filas de delitos y el 98,34 % de las filas de arrestos. No son porcentajes de entidades únicas ni garantías de precisión postal. El procedimiento y sus límites se documentan en la [guía paso a paso](docs/codigo_postal.md).
+La comprobación local encontró una única zona postal para el 74,41 % de las filas de delitos y el 98,34 % de las filas de arrestos. No son porcentajes de entidades únicas ni garantías de precisión postal. El procedimiento y sus límites se documentan en la [propuesta postal inicial](codigo_postal.md).
 
 La comparación por código postal será una asociación geográfica; no vinculará una licencia concreta con un delito, arresto o persona.
 

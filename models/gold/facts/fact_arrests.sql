@@ -13,4 +13,4 @@ from {{ ref('arrest') }} a
 left join {{ ref('dim_date') }} occurred on occurred.full_date = a.arrest_occurred_date_time::date
 left join {{ ref('dim_date') }} reported on reported.full_date = a.arrest_reported_date_time::date
 )
-{{ gold_changed_rows() }}
+{{ gold_changed_rows(by_ingestion=true) }}

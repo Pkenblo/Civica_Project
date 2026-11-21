@@ -37,7 +37,7 @@ Gold publica 14 dimensiones, dos hechos y dos tablas puente reutilizables. Consu
 
 Solo `fact_crimes`, `fact_arrests` y `dim_licenses` usan `delete+insert` por clave y `on_schema_change: fail`: conservan el grano de los tres modelos incrementales de Silver. Las otras dimensiones se reconstruyen como `table`, incluidas las de agentes y sujetos aunque tengan `ingested_at`. `dim_date` también se reconstruye: combina fuentes incrementales y no incrementales para generar un calendario, sin heredar el grano de ninguna.
 
-Gold compara la fila completa con `EXCEPT` y sustituye solo las altas y versiones distintas, incluidos cambios a `NULL`. No aplica un máximo global de `ingested_at`: así una corrección tardía o una fecha de informe actualizada puede reflejarse sin nueva ingesta del hecho. La comparación puede releer todo Silver y Gold: ahorra **escrituras**, no necesariamente lecturas.
+`fact_crimes`, `fact_arrests` y `dim_licenses` solo admiten filas con `ingested_at` estrictamente mayor que el máximo de su propia tabla Gold. La primera carga y `--full-refresh` no tienen ese corte. Una tabla existente vacía necesita un `--full-refresh` para volver a poblarse. Cambios derivados, como una corrección en `dim_report` que no cambie `crimes.ingested_at`, no reescriben por sí solos las filas de esos tres modelos; para incorporarlos al histórico, usar `--full-refresh`.
 
 En los modelos incrementales, un post-hook elimina las claves que desaparecen de la relación Silver publicada; no infiere borrados del origen a partir de ficheros diferenciales. Las ejecuciones deben ser seriales contra el mismo destino. La limpieza y el `delete+insert` no se publican como una única transacción; si falla un hook, corregir y volver a ejecutar antes de consumir los resultados. No lanzar esta reconciliación contra Silver incompleto ni migrar esquemas con `--full-refresh` sin revisar el histórico y los destinos.
 
@@ -57,8 +57,8 @@ dbt compile --target dev --select 'path:models/gold path:tests/singular/gold'
 dbt build --target dev --select 'path:models/gold'
 dbt test --target dev --select 'path:models/gold path:tests/singular/gold'
 
-# Desde RAW, solo después de verificar el mapa activo y documentar el CRS policial:
-dbt build --target dev --select '+path:models/gold' --vars '{police_coordinates_epsg4326_confirmed: true}'
+# Desde RAW, después de verificar el mapa activo:
+dbt build --target dev --select '+path:models/gold'
 ```
 
 Las dependencias de transformación se declaran con `ref()`. Las pruebas comprueban unicidad, referencias entre tablas, fechas por papel, recuentos y paridad de hechos y puentes frente a Silver.
@@ -69,4 +69,4 @@ Se encontraron los tres CSV originales en `Downloads`, no en `Datos_ejemplo/`: 1
 
 Consultas **de solo lectura** en Snowflake DEV sobre los datos cargados encontraron 1.575.321 parejas informe/delito, 110.143 detenciones y 38.410 licencias, 38.312 de ellas con CP válido y fecha. El mapa tiene 251 CP con geometría; de 156 CP de licencias, 53 no tienen polígono local. Estas cifras no proceden de tablas Gold desplegadas con datos reales.
 
-Pasaron `dbt parse`, `dbt compile` y la comprobación del DAG en el manifiesto. El analizador DBML aceptó las 18 tablas y sus 24 relaciones. La validación nativa de dbt usó un esquema DEV aislado y datos sintéticos; no validó el build completo con datos reales. No se hicieron escrituras en PRE ni PRO.
+Pasaron `dbt parse`, `dbt compile` y la comprobación del DAG en el manifiesto. El analizador DBML aceptó las 18 tablas y sus 24 relaciones. La validación nativa de dbt usó un esquema DEV aislado y datos sintéticos; no validó el build completo con datos reales. El procesamiento asume EPSG:4326 para las coordenadas policiales, sin requerir una variable de confirmación. No se hicieron escrituras en PRE ni PRO.

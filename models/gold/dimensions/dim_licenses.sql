@@ -12,4 +12,4 @@ select l.license_number, l.license_id, l.license_issue_date, d.date_key as licen
 from {{ ref('licenses') }} l
 left join {{ ref('dim_date') }} d on d.full_date = l.license_issue_date
 )
-{{ gold_changed_rows() }}
+{{ gold_changed_rows(by_ingestion=true) }}

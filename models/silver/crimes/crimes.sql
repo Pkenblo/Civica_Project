@@ -5,19 +5,15 @@
     on_schema_change='fail'
 ) }}
 
-with identified as (
+with candidates as (
     select s.*, r.report_id, md5(r.report_id || '|' || s.offense_id) as crime_id,
            iff(is_location_redacted or has_missing_coordinates or has_invalid_coordinates,
                'C:' || r.report_id || ':' || s.offense_id, null) as location_context
     from {{ ref('stg_crimes') }} s
     left join {{ ref('reports') }} r on s.report_number = r.report_number
     where s.report_number is not null and s.offense_id is not null and s.ingested_at is not null
-),
-candidates as (
-    select i.* from identified i
     {% if is_incremental() %}
-    left join {{ this }} t on i.crime_id = t.crime_id
-    where t.ingested_at is null or i.ingested_at >= t.ingested_at
+      and {{ after_max_ingested_at('s.ingested_at') }}
     {% endif %}
 ),
 resolved as (
@@ -44,7 +40,3 @@ qualify row_number() over (
     order by ingested_at desc, source_file desc nulls last, batch_id desc nulls last, offense_date desc nulls last,
              to_json(array_construct(nibrs_key, offense_category_id, offense_subcategory_id, address_id, police_area_id)) desc
 ) = 1
-{% if is_incremental() %}
-except select crime_id, report_id, offense_id, offense_date, ingested_at, nibrs_key,
-              offense_category_id, offense_subcategory_id, address_id, police_area_id from {{ this }}
-{% endif %}

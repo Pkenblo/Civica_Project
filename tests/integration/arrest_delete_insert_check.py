@@ -33,7 +33,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='silver-regression-') as work:
         project = Path(work)
         for folder in ('models', 'macros', 'tests/singular'):
-            # Este fixture solo construye Bronze/staging/Silver, no Gold ni su seed.
+            # Este fixture solo construye Bronze/staging/Silver, no Gold.
             shutil.copytree(repo / folder, project / folder, ignore=shutil.ignore_patterns('gold'))
         for file in ('dbt_project.yml', 'packages.yml', 'package-lock.yml'):
             shutil.copy2(repo / file, project)
@@ -56,14 +56,13 @@ def main():
         (project / 'profiles.yml').write_text(yaml.safe_dump({'default': {'target': 'dev', 'outputs': {'dev': profile}}}))
         env = dict(os.environ, DBT_BRONZE=database, DBT_SILVER=database, DBT_PROFILES_DIR=work,
                    DBT_SEND_ANONYMOUS_USAGE_STATS='false')
-        variables = json.dumps(dict(police_coordinates_epsg4326_confirmed=True,
-                                    zipcode_boundary_version='fixture', zipcode_expected_feature_count=1))
+        variables = json.dumps(dict(zipcode_boundary_version='fixture', zipcode_expected_feature_count=1))
 
         def run(*args):
             subprocess.run([os.environ.get('DBT_BIN', 'dbt'), *args], cwd=project, env=env, check=True)
 
-        def build():
-            run('build', '--vars', variables)
+        def build(*args):
+            run('build', '--vars', variables, *args)
 
         run('deps')
         with snowflake.connector.connect(connection_name=name, role=role, login_timeout=20) as conn, conn.cursor() as q:
@@ -101,29 +100,40 @@ def main():
                 assert rows('select distinct report_id from arrest minus select report_id from crimes') == []
                 assert rows('select animal_name from licenses') == [('DOG A',)]
                 assert rows('select count(*) from crime_shooting_types') == [(2,)]
-                # NULL explícito y valor nuevo. Nuevas claves por debajo del máximo global.
+                # Una versión con ingesta más reciente sustituye la anterior, incluso con NULL.
                 add('ARRESTS', 3, **(arrest | dict(ARREST_TYPE='NEW', OFFICER_ID=None, OFFICER_AGE=None,
                                                    BLOCK_ADDRESS='REDACTED')), OFFENSE_TYPE='CHARGE C')
                 add('CRIMES', 3, **(crime | dict(OFFENSE_SUB_CATEGORY=None)), SHOOTING_TYPE_GROUP='TYPE C')
                 add('PET_LICENSES', 3, **pet, ANIMAL_S_NAME=None)
                 build()
-                add('ARRESTS', 1, **(arrest | dict(ARREST_NUMBER='A2')))
-                add('CRIMES', 1, **(crime | dict(OFFENSE_ID='C2')))
-                add('PET_LICENSES', 1, **(pet | dict(LICENSE_NUMBER='L2')))
+                # Una clave nueva en un lote anterior o con la misma ingesta no cruza el corte.
+                for day in (1, 3):
+                    add('ARRESTS', day, **(arrest | dict(ARREST_NUMBER='A2')))
+                    add('CRIMES', day, **(crime | dict(OFFENSE_ID='C2')))
+                    add('PET_LICENSES', day, **(pet | dict(LICENSE_NUMBER='L2')))
                 add('PET_LICENSES', 1, **pet, ANIMAL_S_NAME='OBSOLETE')
-                # Empate reproducible en el mismo instante.
-                add('PET_LICENSES', 1, **(pet | dict(LICENSE_NUMBER='L2')), ANIMAL_S_NAME='TIE', _SOURCE_FILE='z.csv')
+                add('ARRESTS', 4, **(arrest | dict(ARREST_NUMBER='A3')))
+                add('CRIMES', 4, **(crime | dict(OFFENSE_ID='C3')))
+                # Las dos versiones cruzan el corte: el desempate sigue eligiendo una.
+                add('PET_LICENSES', 4, **(pet | dict(LICENSE_NUMBER='L3')), ANIMAL_S_NAME='OTHER', _SOURCE_FILE='a.csv')
+                add('PET_LICENSES', 4, **(pet | dict(LICENSE_NUMBER='L3')), ANIMAL_S_NAME='TIE', _SOURCE_FILE='z.csv')
                 for _ in range(2):
-                    build()
-                    assert rows('select arrest_number from arrest order by 1') == [('A1',), ('A2',)]
+                    # Estas pruebas de cobertura detectan justamente las omisiones provocadas aquí.
+                    build('--exclude', 'arrest_source_ids_complete', 'crime_source_ids_complete',
+                          'license_source_ids_complete')
+                    assert rows('select arrest_number from arrest order by 1') == [('A1',), ('A3',)]
                     assert rows("select agent_key, officer_age, d.cp_status, t.description from arrest a "
                                 "join full_address d using (address_id) join arrest_types t using (arrest_type_id) "
                                 "where arrest_number='A1'") == [(None, None, 'redacted', 'NEW')]
                     assert rows('select count(*) from arrest_offenses') == [(3,)]
-                    assert rows('select offense_id, offense_subcategory_id is null from crimes order by 1') == [('C1', True), ('C2', False)]
+                    assert rows('select offense_id, offense_subcategory_id is null from crimes order by 1') == [('C1', True), ('C3', False)]
                     assert rows('select count(*) from crime_shooting_types') == [(3,)]
-                    assert rows('select license_number, animal_name, cp from licenses order by 1') == [('L1', None, None), ('L2', 'TIE', None)]
-                print('PASS: tres incrementales, cargas tardías, NULL, empates, catálogos, puentes y repetición.')
+                    assert rows('select license_number, animal_name, cp from licenses order by 1') == [('L1', None, None), ('L3', 'TIE', None)]
+                build('--full-refresh')
+                assert rows("select arrest_number from arrest where arrest_number = 'A2'") == [('A2',)]
+                assert rows("select offense_id from crimes where offense_id = 'C2'") == [('C2',)]
+                assert rows("select license_number from licenses where license_number = 'L2'") == [('L2',)]
+                print('PASS: corte global, NULL, empates del lote nuevo, catálogos, puentes, repetición y full refresh.')
             finally:
                 q.execute(f'drop schema {namespace} cascade')
 
