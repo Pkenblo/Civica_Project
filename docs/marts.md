@@ -6,6 +6,8 @@
 
 `block_address` representa el bloque aproximado, no el número de portal. Se excluyen ubicaciones ocultas, sin dirección o sin coordenadas utilizables. La falta de clasificación, barrio o CP no impide mostrar el punto.
 
+Para filtrar el mapa por las 15 categorías del proyecto, usa `nibrs_category`. La [agrupación en `dim_nibrs`](../models/gold/dimensions/dim_nibrs.sql) asigna los 64 códigos del catálogo a una categoría cada uno. Si falta el código o aparece uno nuevo, el punto figura como `Sin clasificar`. El código y su descripción siguen disponibles para filtrar con más detalle.
+
 ## Delitos y licencias por código postal
 
 Los tres marts de licencias tienen una fila por `(cp, year)` y un solo indicador de delitos para comparar zonas de Seattle por año.

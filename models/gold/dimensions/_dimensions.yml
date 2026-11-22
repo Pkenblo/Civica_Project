@@ -13,6 +13,7 @@ models:
     columns:
       - {name: nibrs_key, data_tests: [unique, not_null]}
       - {name: offense_code, data_tests: [unique, not_null]}
+      - {name: nibrs_category, description: Agrupación analítica del proyecto; Sin clasificar para códigos fuera del catálogo acordado., data_tests: [not_null]}
       - name: group_ab
         description: Grupo de reporte NIBRS.
 

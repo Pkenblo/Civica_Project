@@ -1,6 +1,7 @@
 select c.crime_id, c.offense_date,
        o.offense_category, o.offense_sub_category,
        n.offense_code as nibrs_code, n.offense_description as nibrs_description,
+       coalesce(n.nibrs_category, 'Sin clasificar') as nibrs_category,
        a.block_address, a.neighborhood, a.cp, a.latitude, a.longitude,
        st_makepoint(a.longitude, a.latitude) as point_geography
 from {{ ref('fact_crimes') }} c

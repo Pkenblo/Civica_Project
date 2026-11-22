@@ -11,6 +11,7 @@ models:
       - {name: offense_category, description: Categoría del delito según Seattle.}
       - {name: offense_sub_category, description: Subcategoría del delito según Seattle.}
       - {name: nibrs_code, description: Código NIBRS si está informado.}
+      - {name: nibrs_category, description: Categoría analítica en español; Sin clasificar si el código falta o no está catalogado., data_tests: [not_null]}
       - {name: nibrs_description, description: Descripción del código NIBRS.}
       - {name: block_address, description: Dirección aproximada por bloque publicada por la fuente., data_tests: [not_null]}
       - {name: neighborhood, description: Barrio publicado.}
