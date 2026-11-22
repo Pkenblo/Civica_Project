@@ -20,80 +20,56 @@ models:
       - {name: longitude, data_tests: [not_null]}
       - {name: point_geography, description: Punto GEOGRAPHY en EPSG:4326., data_tests: [not_null]}
 
-  - name: mart_shooting_homicide_pet_licenses
+  - name: mart_crimes_pet_licenses
     description: >
-      Delitos con etiqueta observada de tiroteo o código de homicidio (09A, 09B o 09C) y licencias emitidas de perro,
-      gato, cabra y cerdo. Una fila por CP y año común a las fuentes de delitos y licencias.
+      Una fila por CP y año común a delitos y licencias. Tres indicadores no excluyentes:
+      robos de vehículos, atracos y hurtos seleccionados, y delitos con tiroteo u homicidio.
+      Las licencias de perro, gato, cabra y cerdo y la cartografía aparecen una sola vez.
+      Conserva CP con cero casos o sin polígono. No sumar los indicadores como conjuntos disjuntos.
     data_tests:
       - dbt_utils.unique_combination_of_columns:
           arguments: {combination_of_columns: [cp, year]}
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: >-
+              vehicle_theft_count >= 0 and theft_count >= 0 and shooting_or_homicide_count >= 0
+              and dog_license_count >= 0 and cat_license_count >= 0
+              and goat_license_count >= 0 and pig_license_count >= 0
+              and pet_license_count = dog_license_count + cat_license_count + goat_license_count + pig_license_count
+              and cumulative_dog_license_count >= dog_license_count
+              and cumulative_cat_license_count >= cat_license_count
+              and cumulative_goat_license_count >= goat_license_count
+              and cumulative_pig_license_count >= pig_license_count
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: >-
+              (pet_license_count = 0 and dog_license_share is null and cat_license_share is null
+               and goat_license_share is null and pig_license_share is null)
+              or (pet_license_count > 0
+                  and dog_license_share is not null and cat_license_share is not null
+                  and goat_license_share is not null and pig_license_share is not null
+                  and abs(dog_license_share - dog_license_count * 1.0 / pet_license_count) < 0.00001
+                  and abs(cat_license_share - cat_license_count * 1.0 / pet_license_count) < 0.00001
+                  and abs(goat_license_share - goat_license_count * 1.0 / pet_license_count) < 0.00001
+                  and abs(pig_license_share - pig_license_count * 1.0 / pet_license_count) < 0.00001)
     columns:
       - {name: cp, data_tests: [not_null]}
       - {name: year, data_tests: [not_null]}
-      - name: shooting_or_homicide_count
-        description: Cada delito cuenta una vez aunque tenga varias etiquetas o cumpla ambos criterios.
-        data_tests: [not_null]
-      - {name: dog_license_count, description: Licencias de perro emitidas.}
-      - {name: cat_license_count, description: Licencias de gato emitidas.}
-      - {name: goat_license_count, description: Licencias de cabra emitidas.}
-      - {name: pig_license_count, description: Licencias de cerdo emitidas.}
-      - {name: pet_license_count, description: Total de licencias emitidas de las cuatro especies.}
-      - {name: dog_license_share, description: Proporción de licencias de perro; nula si el total es cero.}
-      - {name: cat_license_share, description: Proporción de licencias de gato; nula si el total es cero.}
-      - {name: goat_license_share, description: Proporción de licencias de cabra; nula si el total es cero.}
-      - {name: pig_license_share, description: Proporción de licencias de cerdo; nula si el total es cero.}
+      - {name: vehicle_theft_count, description: Robo de vehículos de motor NIBRS 240; no incluye objetos ni piezas., data_tests: [not_null]}
+      - {name: theft_count, description: Atracos y hurtos NIBRS 120/23A/23B/23H sin inferir el tipo de víctima., data_tests: [not_null]}
+      - {name: shooting_or_homicide_count, description: Delito con etiqueta de tiroteo o código 09A/09B/09C; cuenta una vez aunque cumpla ambos criterios., data_tests: [not_null]}
+      - {name: dog_license_count, description: Licencias de perro emitidas., data_tests: [not_null]}
+      - {name: cat_license_count, description: Licencias de gato emitidas., data_tests: [not_null]}
+      - {name: goat_license_count, description: Licencias de cabra emitidas., data_tests: [not_null]}
+      - {name: pig_license_count, description: Licencias de cerdo emitidas., data_tests: [not_null]}
+      - {name: pet_license_count, description: Suma de las cuatro especies; no animales únicos ni licencias vigentes., data_tests: [not_null]}
+      - {name: cumulative_dog_license_count, description: Emisiones de perro hasta el año de la fila inclusive; incluye años anteriores sin delitos., data_tests: [not_null]}
+      - {name: cumulative_cat_license_count, description: Emisiones de gato hasta el año de la fila inclusive., data_tests: [not_null]}
+      - {name: cumulative_goat_license_count, description: Emisiones de cabra hasta el año de la fila inclusive., data_tests: [not_null]}
+      - {name: cumulative_pig_license_count, description: Emisiones de cerdo hasta el año de la fila inclusive., data_tests: [not_null]}
+      - {name: dog_license_share, description: Fracción de licencias de perro; NULL sin licencias.}
+      - {name: cat_license_share, description: Fracción de licencias de gato; NULL sin licencias.}
+      - {name: goat_license_share, description: Fracción de licencias de cabra; NULL sin licencias.}
+      - {name: pig_license_share, description: Fracción de licencias de cerdo; NULL sin licencias.}
       - {name: geography, description: Polígono postal de la cartografía activa si está disponible.}
-      - {name: boundary_version, description: Versión de esa cartografía.}
-
-  - name: mart_vehicle_theft_pet_licenses
-    description: >
-      Robos de vehículos y licencias emitidas por CP y año natural. Incluye todos los CP del catálogo
-      en los años con registros en ambas fuentes, aunque el año sea parcial. Un cero indica que no
-      hay registros asignados al CP; no garantiza cobertura policial en toda la zona. El CP del delito
-      corresponde al lugar del hecho y el de la licencia es el declarado por el propietario.
-    data_tests:
-      - dbt_utils.unique_combination_of_columns:
-          arguments: {combination_of_columns: [cp, year]}
-    columns:
-      - {name: cp, data_tests: [not_null]}
-      - {name: year, data_tests: [not_null]}
-      - {name: vehicle_theft_count, description: "Delitos NIBRS 240 (Motor Vehicle Theft) por fecha del hecho; excluye los hurtos de objetos del vehículo."}
-      - {name: dog_license_count, description: Licencias de perro emitidas.}
-      - {name: cat_license_count, description: Licencias de gato emitidas.}
-      - {name: goat_license_count, description: Licencias de cabra emitidas.}
-      - {name: pig_license_count, description: Licencias de cerdo emitidas.}
-      - {name: pet_license_count, description: Total de licencias emitidas para las cuatro especies.}
-      - {name: dog_license_share, description: Fracción de licencias de perro entre 0 y 1; nula si el total es cero.}
-      - {name: cat_license_share, description: Fracción de licencias de gato entre 0 y 1; nula si el total es cero.}
-      - {name: goat_license_share, description: Fracción de licencias de cabra entre 0 y 1; nula si el total es cero.}
-      - {name: pig_license_share, description: Fracción de licencias de cerdo entre 0 y 1; nula si el total es cero.}
-      - {name: geography, description: Polígono postal de la cartografía activa si está disponible.}
-      - {name: boundary_version, description: Versión de esa cartografía.}
-
-  - name: mart_theft_pet_licenses
-    description: >
-      Atracos y hurtos registrados y licencias emitidas por CP y año natural.
-      Incluye todos los CP del catálogo en los años con registros de delitos y de licencias.
-      Un cero indica que no hay registros asignados a ese CP y año.
-    data_tests:
-      - dbt_utils.unique_combination_of_columns:
-          arguments: {combination_of_columns: [cp, year]}
-    columns:
-      - {name: cp, data_tests: [not_null]}
-      - {name: year, data_tests: [not_null]}
-      - name: theft_count
-        description: >
-          Número de delitos por fecha del hecho: atracos (120), carterismos (23A), tirones de bolso (23B)
-          y otros hurtos (23H), con independencia de la categoría de la víctima.
-        data_tests: [not_null]
-      - {name: dog_license_count, description: Licencias de perro emitidas.}
-      - {name: cat_license_count, description: Licencias de gato emitidas.}
-      - {name: goat_license_count, description: Licencias de cabra emitidas.}
-      - {name: pig_license_count, description: Licencias de cerdo emitidas.}
-      - {name: pet_license_count, description: Total de licencias emitidas de las cuatro especies.}
-      - {name: dog_license_share, description: Proporción de licencias de perro; nula si el total es cero.}
-      - {name: cat_license_share, description: Proporción de licencias de gato; nula si el total es cero.}
-      - {name: goat_license_share, description: Proporción de licencias de cabra; nula si el total es cero.}
-      - {name: pig_license_share, description: Proporción de licencias de cerdo; nula si el total es cero.}
-      - {name: geography, description: Polígono postal de la cartografía activa si está disponible.}
-      - {name: boundary_version, description: Versión de esa cartografía.}
+      - {name: boundary_version, description: Versión de la cartografía.}
