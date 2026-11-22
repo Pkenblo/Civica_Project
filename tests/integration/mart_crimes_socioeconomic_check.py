@@ -15,6 +15,8 @@ MODEL = "mart_crimes_socioeconomic"
 
 def fixture():
     conn = database()
+    # WKB sintético: comprueba identidad y NULL, no geometrías reales.
+    conn.create_function("ST_ASWKB", 1, lambda value: value.encode() if value is not None else None)
     conn.executescript("""
         create table fact_crimes (
             crime_id text, offense_date text, address_id text,
@@ -79,6 +81,12 @@ def main():
     check_yaml(conn)
     results = singular_results(conn)
     assert len(results) == 2 and not any(results.values()), results
+    # El contexto repetido se valida una vez, sin muestrear delitos del CP.
+    conn.execute(f"update {MODEL} set population=999 where cp='98101'")
+    assert singular_results(conn)[f"{MODEL}_context"] == 1
+    conn.execute(f"update {MODEL} set population=998 where crime_id='c1'")
+    assert singular_results(conn)[f"{MODEL}_context"] == 2
+    build(conn)
     rows = {row["crime_id"]: dict(row) for row in conn.execute(f"select * from {MODEL}")}
     assert len(rows) == 18
     # El contrato previo mantiene coordenadas, clasificación y fechas sin imputar.
@@ -128,6 +136,12 @@ def main():
         (f"update {MODEL} set median_household_income=999 where cp='98101'", "context"),
         (f"update {MODEL} set income_quintile=5 where cp='98101'", "context"),
         (f"update {MODEL} set income_level='alto' where cp='98101'", "context"),
+        (f"update {MODEL} set geography='wrong-polygon' where crime_id='c1'", "context"),
+        (f"update {MODEL} set geography=NULL where crime_id='c1'", "context"),
+        (f"update {MODEL} set geography='unexpected-polygon' where crime_id='c14'", "context"),
+        (f"update {MODEL} set geography='unexpected-polygon' where crime_id='extra-5'", "context"),
+        (f"update {MODEL} set geography='unexpected-polygon' where crime_id='extra-6'", "context"),
+        ("update dim_postal_codes set geography='changed-polygon' where cp='98101'", "context"),
         (f"delete from {MODEL} where crime_id='extra-6'", "reconciliation"),
         (f"insert into {MODEL} select * from {MODEL} where crime_id='c1'", "reconciliation"),
     ]:
@@ -135,6 +149,32 @@ def main():
         build(conn)
         conn.execute(statement)
         assert singular_results(conn)[f"{MODEL}_{test}"] > 0
+        conn.close()
+    # Cada atributo sigue comprobándose incluso si solo cambia un delito
+    # entre los tres que comparten el CP 98101.
+    for column, value in {
+        "has_postal_reference": "0",
+        "boundary_version": "'wrong-version'",
+        "zcta_name": "'wrong-name'",
+        "has_socioeconomic_data": "0",
+        "median_household_income": "999",
+        "income_margin_of_error": "999",
+        "population": "NULL",
+        "median_home_value": "999",
+        "median_monthly_rent": "999",
+        "income_top_coded": "1",
+        "home_value_top_coded": "1",
+        "rent_top_coded": "1",
+        "income_lower_bound": "250000",
+        "home_value_lower_bound": "2000000",
+        "rent_lower_bound": "3500",
+        "income_quintile": "5",
+        "income_level": "'alto'",
+    }.items():
+        conn = fixture()
+        build(conn)
+        conn.execute(f"update {MODEL} set {column}={value} where crime_id='c1'")
+        assert singular_results(conn)[f"{MODEL}_context"] == 1, column
         conn.close()
     for table in ["dim_postal_codes", "dim_census_socioeconomic"]:
         conn = fixture()

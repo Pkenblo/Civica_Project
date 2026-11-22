@@ -1,0 +1,46 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cívica · Correlaciones del mart unificado</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f3ea;color:#193c39;font:16px/1.5 system-ui,sans-serif}main{max-width:1120px;margin:auto;padding:24px clamp(14px,4vw,46px) 60px}header{border-top:5px solid #17645f;padding-top:16px}h1,h2,h3{font-family:Georgia,serif;line-height:1.17;margin:.45em 0}h1{font-size:clamp(2rem,5vw,3.6rem)}h2{font-size:1.6rem}.eyebrow{letter-spacing:.12em;font-weight:700;font-size:.8rem}section,article{background:#fff;border:1px solid #cbd9d1;border-radius:10px;padding:16px;margin:14px 0}label{display:inline-flex;flex-direction:column;margin:0 12px 8px 0;font-weight:600}select,button{border:1px solid #a4b6ad;border-radius:5px;padding:7px;color:inherit;background:white;font:inherit}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grid article{margin:0}svg{width:100%;height:auto}svg text{fill:#405853;font:13px system-ui}button{cursor:pointer;width:100%}button[aria-pressed=true]{outline:2px solid #193c39}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #dce5df;padding:4px;text-align:left}#summary{font-size:1.1rem;font-weight:600}output{display:block;min-height:1.6em;color:#405853}.note{color:#405853}p{margin:.5em 0}details{margin-top:12px}@media(max-width:700px){.grid{grid-template-columns:1fr}td,th{padding:2px}}
+</style></head><body><main><header><span class="eyebrow">CÍVICA / MART UNIFICADO · 2024–2026</span>
+<h1>¿Más mascotas o más licencias en total?</h1><p>Compara zonas en un mismo año. El primer gráfico pregunta si donde se emiten más licencias de una especie hay más robos. El segundo pregunta si también hay más robos donde esa especie representa una mayor parte de las licencias.</p></header>
+<section><label>Año<select id="year"></select></label><label>Muestra<select id="sample"><option value="1">CP con alguna licencia</option><option value="20">CP con al menos 20 licencias</option><option value="50" selected>CP con al menos 50 licencias</option></select></label><label>Especie<select id="species"></select></label><label>Indicador del mart<select id="crime"><option value="3">Robos de vehículos</option><option value="2">Robos y hurtos seleccionados</option></select></label>
+<p id="report-source" role="status">Consultando el mart unificado…</p><p id="summary" aria-live="polite"></p><p class="note" id="context"></p></section>
+<div class="grid"><article><h2>1. Número de licencias</h2><div id="absolute"></div></article><article><h2>2. Peso de la especie</h2><div id="relative"></div></article></div><output id="detail" aria-live="polite"></output>
+<section><h2>Las cuatro especies frente a los dos indicadores</h2><p>Correlación de Pearson (r) entre <strong>recuentos</strong>. Selecciona una celda para ver sus dos gráficos. Un valor cercano a +1 indica que ambas variables tienden a aumentar juntas; cerca de cero, no hay una relación lineal clara.</p><div id="matrix"></div></section>
+<details><summary>Fuentes y límites de la comparación</summary><p>Fuente: <code>DEV_GOLD.MARTS.MART_CRIMES_PET_LICENSES</code>. La unidad es el CP-año y se usan licencias anuales, no acumuladas. La muestra incluye CP con y sin polígono. Los CP sin licencias no tienen una composición por especie definida. Los umbrales permiten explorar la influencia de las zonas con pocas licencias; no son límites oficiales.</p><p>Robos de vehículos: NIBRS 240. El otro indicador suma 120, 23A, 23B y 23H (atracos y determinados hurtos), no todos los robos. Las licencias son emisiones, no animales únicos. Un cero en delitos no garantiza cobertura policial. No hay ajuste por población, vehículos ni cobertura de licencias. Son asociaciones entre zonas; no explican el riesgo individual ni una relación causal.</p></details>
+</main><script>
+'use strict';
+const $=id=>document.getElementById(id),names=['Perros','Gatos','Cabras','Cerdos'],fmt=n=>n.toLocaleString('es-ES',{maximumFractionDigits:2}),total=row=>row.slice(4).reduce((a,n)=>a+n,0);
+let observaciones=[];
+function correl(x,y){if(x.length<2)return null;const avg=a=>a.reduce((s,v)=>s+v,0)/a.length,m=avg(x),n=avg(y);let xx=0,xy=0,yy=0;x.forEach((v,i)=>{const a=v-m,b=y[i]-n;xx+=a*a;xy+=a*b;yy+=b*b});return xx&&yy?Math.max(-1,Math.min(1,xy/Math.sqrt(xx*yy))):null}
+const rf=r=>r===null?'no calculable':r.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2});
+function el(p,tag,text){const e=document.createElement(tag);p.append(e);if(text!==undefined)e.textContent=text;return e}
+function svg(p,tag,attrs,text){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);p.append(e);if(text!==undefined)e.textContent=text;return e}
+function plot(id,x,y,rows,title,percent){const box=$(id);box.replaceChildren();const chart=svg(box,'svg',{viewBox:'0 0 460 280',role:'img','aria-label':title});
+ const xmax=percent?100:Math.max(1,...x),ymax=Math.max(1,...y),X=v=>56+375*v/xmax,Y=v=>215-170*v/ymax;
+ svg(chart,'text',{x:56,y:22},$('crime').selectedOptions[0].textContent);
+ for(const v of new Set([0,Math.round(ymax/2),ymax])){svg(chart,'line',{x1:56,x2:431,y1:Y(v),y2:Y(v),stroke:'#d4dfd8'});svg(chart,'text',{x:48,y:Y(v)+4,'text-anchor':'end'},fmt(v))}
+ for(const v of new Set([0,Math.round(xmax/2),xmax]))svg(chart,'text',{x:X(v),y:237,'text-anchor':'middle'},fmt(v)+(percent?' %':''));
+ svg(chart,'text',{x:240,y:264,'text-anchor':'middle'},title);rows.forEach((row,i)=>{const text=`CP ${row[1]} · ${fmt(x[i])}${percent?' %':' licencias'} · ${fmt(y[i])} ${$('crime').selectedOptions[0].textContent.toLowerCase()}`;
+ const dot=svg(chart,'circle',{cx:X(x[i]),cy:Y(y[i]),r:4.5,fill:percent?'#a65028':'#126d65',opacity:.65});svg(dot,'title',{},text);dot.onmouseenter=dot.onclick=()=>{$('detail').textContent=text}});
+}
+function draw(){const year=+$('year').value,all=observaciones.filter(r=>r[0]===year),rows=all.filter(r=>total(r)>=+$('sample').value),s=+$('species').value,c=+$('crime').value;
+ const x=rows.map(r=>r[s]),p=rows.map(r=>100*r[s]/total(r)),y=rows.map(r=>r[c]),animal=names[s-4].toLowerCase();
+ $('summary').textContent=`${year} · ${animal} y ${$('crime').selectedOptions[0].textContent.toLowerCase()}: r = ${rf(correl(x,y))} por número de licencias; r = ${rf(correl(p,y))} por porcentaje.`;
+ $('context').textContent=`${rows.length} de ${all.length} CP incluidos; ${x.filter(v=>v>0).length} con licencias de ${animal} (${fmt(x.reduce((a,b)=>a+b,0))} licencias).`+(x.filter(v=>v>0).length<5?' Hay muy pocos CP con esta especie para interpretar un patrón.':'')+(year===2026?' El año 2026 es parcial en esta exportación.':'');
+ plot('absolute',x,y,rows,`Licencias de ${animal}`,false);plot('relative',p,y,rows,`% de licencias de ${animal}`,true);$('detail').textContent='Cada punto es un CP. Pasa sobre él para consultar los valores.';
+ const m=$('matrix');m.replaceChildren();const table=el(m,'table'),head=el(table,'tr');for(const h of ['Especie','Robos y hurtos seleccionados','Robos de vehículos'])el(head,'th',h);
+ names.forEach((name,i)=>{const tr=el(table,'tr');el(tr,'th',name);for(const j of [2,3]){const r=correl(rows.map(row=>row[i+4]),rows.map(row=>row[j])),b=el(el(tr,'td'),'button',rf(r));b.style.backgroundColor=r===null?'#eee':`rgba(${r>=0?'27,145,119':'193,105,59'},${.06+.47*Math.abs(r)})`;b.setAttribute('aria-pressed',s===i+4&&c===j);b.onclick=()=>{$('species').value=i+4;$('crime').value=j;draw()}}});
+}
+for(const year of [2024,2025,2026])el($('year'),'option',year);$('year').value=2024;
+names.forEach((n,i)=>el($('species'),'option',n).value=i+4);$('species').value=5;
+for(const id of ['year','sample','species','crime'])$(id).onchange=draw;
+(async()=>{try{
+  if(location.protocol==='file:')throw Error('Abre este informe desde el enlace del panel local.');
+  const response=await fetch('/datos',{method:'POST',cache:'no-store',headers:{'X-Civica':'panel'}}),result=await response.json();
+  if(!response.ok)throw Error(result.aviso);
+  observaciones=result.datos.rows.filter(r=>r[0]==='comparacion'&&r[2]>=2024&&r[2]<=2026).map(r=>[r[2],r[1],r[8],r[3],...r.slice(4,8)]);
+  $('report-source').textContent=(result.aviso?result.aviso+' · ':'')+'MART_CRIMES_PET_LICENSES · Lectura: '+result.datos.date;draw();
+}catch(error){$('report-source').textContent=error.message}})();
+</script></body></html>

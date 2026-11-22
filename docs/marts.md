@@ -31,6 +31,8 @@ DBT_BRONZE=DEV_BRONZE DBT_SILVER=DEV_SILVER DBT_GOLD=DEV_GOLD \
 
 La regresión local se ejecuta con `python3 tests/integration/mart_crimes_socioeconomic_check.py` (Jinja2, sqlglot y PyYAML). Comprueba conservación de puntos, contexto ACS, censura y coincidencia de quintiles con detenciones sobre datos sintéticos; no sustituye la validación en Snowflake.
 
+El test `mart_crimes_socioeconomic_context` deduplica los contextos antes de unirlos con las dimensiones y comprobar sus atributos. Compara los polígonos en binario (WKB), sin convertirlos a texto WKT. Sigue leyendo todo el mart y serializando sus geometrías, pero evita repetir los joins y las comparaciones por cada delito con idéntico contexto. No toma una muestra por CP: conserva y detecta cualquier variante incorrecta, incluidos los cambios entre NULL y no NULL. Cada fila devuelta representa un contexto incorrecto, no un delito; el test de reconciliación sigue comprobando el grano por `crime_id`. La mejora de tiempo debe medirse en Snowflake.
+
 ## Delitos y licencias por código postal
 
 [`mart_crimes_pet_licenses`](../models/gold/marts/mart_crimes_pet_licenses.sql), en `DBT_GOLD.MARTS`, sustituye los tres marts separados de robos, robos de vehículos y tiroteos/homicidios. Tiene una fila por `(cp, year)` con los tres indicadores y una sola copia de las licencias, sus proporciones y la cartografía.
