@@ -2,11 +2,34 @@
 
 ## Mapa de delitos por calle
 
-[`mart_crimes_by_street`](../models/gold/marts/mart_crimes_by_street.sql) contiene una fila por delito con dirección de bloque publicada y coordenadas válidas. Permite filtrar por fecha del hecho, categoría y subcategoría de Seattle o código y descripción NIBRS. Para dibujarlo se puede usar `point_geography` o el par `latitude`, `longitude`. Varios delitos pueden compartir punto: `crime_id` identifica cada uno.
+[`mart_crimes_socioeconomic`](../models/gold/marts/mart_crimes_socioeconomic.sql) contiene una fila por delito con dirección de bloque publicada y coordenadas válidas. Permite filtrar por fecha del hecho, categoría y subcategoría de Seattle o código y descripción NIBRS. Para dibujarlo se puede usar `point_geography` o el par `latitude`, `longitude`. Varios delitos pueden compartir punto: `crime_id` identifica cada uno.
 
 `block_address` representa el bloque aproximado, no el número de portal. Se excluyen ubicaciones ocultas, sin dirección o sin coordenadas utilizables. La falta de clasificación, barrio o CP no impide mostrar el punto.
 
 Para filtrar el mapa por las 15 categorías del proyecto, usa `nibrs_category`. El propio mart asigna los 64 códigos del catálogo a sus categorías a partir de `dim_nibrs.offense_code`. Si falta el código o aparece uno nuevo, el punto figura como `Sin clasificar`. El código y su descripción siguen disponibles para filtrar con más detalle.
+
+### Filtros socioeconómicos
+
+El mart incorpora el mismo contexto ACS por CP que [`mart_arrest_socioeconomic`](mart_arrest_socioeconomic.md):
+
+- `income_quintile` (1–5) e `income_level` (`muy bajo`, `bajo`, `medio`, `alto`, `muy alto`).
+- `median_household_income`, `median_home_value` y `median_monthly_rent`, para filtrar por renta anual del hogar, valor de vivienda o alquiler mensual en USD.
+- `population`, `income_margin_of_error`, `zcta_name` y `has_socioeconomic_data`, para consultar el contexto y su disponibilidad.
+
+Los quintiles se calculan sobre el catálogo postal con polígono y renta válida no censurada, una vez por CP, incluidas zonas sin delitos. Se ordenan por renta y CP antes de unir los hechos: coinciden con los de detenciones y no cambian al filtrar calles, fechas o categorías.
+
+Se conservan todos los delitos que ya cumplían los requisitos del mapa, incluso sin CP o ACS; sus campos económicos quedan NULL y `has_socioeconomic_data = false`. Las medianas censuradas también quedan NULL, con sus indicadores `*_top_coded` y límites `*_lower_bound` (renta > 250000 USD, vivienda > 2000000 USD y alquiler > 3500 USD/mes). `has_postal_reference` indica si existe el CP en el catálogo; `geography` y `boundary_version` aportan la cartografía postal sin sustituir el punto del delito.
+
+`acs_year = 2024` y `acs_period = '2020–2024'` describen un contexto fijo, no la economía de cada año del delito. ZIP y ZCTA se corresponden por código como aproximación. La renta es la de la zona, no la de las personas implicadas; población y medianas se repiten por delito y no deben sumarse.
+
+Con las dependencias ya construidas y el perfil DEV configurado:
+
+```bash
+DBT_BRONZE=DEV_BRONZE DBT_SILVER=DEV_SILVER DBT_GOLD=DEV_GOLD \
+  dbt build --target dev --select mart_crimes_socioeconomic
+```
+
+La regresión local se ejecuta con `python3 tests/integration/mart_crimes_socioeconomic_check.py` (Jinja2, sqlglot y PyYAML). Comprueba conservación de puntos, contexto ACS, censura y coincidencia de quintiles con detenciones sobre datos sintéticos; no sustituye la validación en Snowflake.
 
 ## Delitos y licencias por código postal
 

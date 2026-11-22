@@ -1,10 +1,25 @@
 version: 2
 
 models:
-  - name: mart_crimes_by_street
+  - name: mart_crimes_socioeconomic
     description: >
       Una fila por delito con dirección de bloque publicada y coordenadas válidas.
       La ubicación es aproximada. Se conservan delitos sin clasificación, fecha o CP.
+      Añade contexto ACS 2020–2024 por CP y los mismos quintiles de renta que
+      mart_arrest_socioeconomic, sin excluir delitos sin ACS. Las medianas y la
+      población se repiten entre delitos y no deben sumarse. ZIP y ZCTA se unen
+      por código como aproximación; la renta de la zona no es la de las personas.
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: >-
+              acs_year = 2024 and acs_period = '2020–2024'
+              and (income_quintile is null or income_quintile between 1 and 5)
+              and (median_household_income is null or median_household_income >= 0)
+              and (income_margin_of_error is null or income_margin_of_error >= 0)
+              and (population is null or population >= 0)
+              and (median_home_value is null or median_home_value >= 0)
+              and (median_monthly_rent is null or median_monthly_rent >= 0)
     columns:
       - {name: crime_id, data_tests: [unique, not_null]}
       - {name: offense_date, description: Fecha del hecho.}
@@ -19,6 +34,34 @@ models:
       - {name: latitude, data_tests: [not_null]}
       - {name: longitude, data_tests: [not_null]}
       - {name: point_geography, description: Punto GEOGRAPHY en EPSG:4326., data_tests: [not_null]}
+      - {name: has_postal_reference, description: El CP de la ubicación existe en dim_postal_codes., data_tests: [not_null]}
+      - {name: geography, description: "Polígono postal original si está disponible; no sustituye al punto del delito."}
+      - {name: boundary_version, description: Versión de la cartografía postal.}
+      - {name: zcta_name, description: Nombre de la ZCTA asociada por código.}
+      - {name: has_socioeconomic_data, description: "Existe correspondencia ACS por CP; no garantiza todas las estimaciones.", data_tests: [not_null]}
+      - {name: acs_year, description: "Edición fija 2024, no año del delito.", data_tests: [not_null]}
+      - {name: acs_period, description: Periodo fijo 2020–2024 de las estimaciones quinquenales., data_tests: [not_null]}
+      - {name: median_household_income, description: "Renta mediana anual por hogar en USD de 2024; NULL si ausente o censurada. No sumar."}
+      - {name: income_margin_of_error, description: "Margen de error de renta al 90 %, USD; puede ser NULL."}
+      - {name: population, description: "Población de la ZCTA completa, repetida entre delitos y años; no sumar esas repeticiones."}
+      - {name: median_home_value, description: "Valor mediano de viviendas ocupadas por propietarios, USD; NULL si ausente o censurado. No sumar."}
+      - {name: median_monthly_rent, description: "Alquiler contractual mediano mensual, USD; NULL si ausente o censurado. No sumar."}
+      - {name: income_top_coded, description: "Renta superior al umbral sin importe exacto; NULL sin ACS."}
+      - {name: home_value_top_coded, description: "Vivienda superior al umbral sin importe exacto; NULL sin ACS."}
+      - {name: rent_top_coded, description: "Alquiler superior al umbral sin importe exacto; NULL sin ACS."}
+      - {name: income_lower_bound, description: "250000 USD si renta limitada superiormente: renta > umbral, no renta = umbral."}
+      - {name: home_value_lower_bound, description: "2000000 USD si vivienda limitada superiormente: valor > umbral."}
+      - {name: rent_lower_bound, description: "3500 USD/mes si alquiler limitado superiormente: alquiler > umbral."}
+      - name: income_quintile
+        description: >
+          NTILE(5) ascendente sobre una fila por CP con polígono y renta válida no censurada,
+          antes de unir delitos, incluyendo zonas sin eventos. Desempate por CP.
+          Mismo catálogo y criterio que mart_arrest_socioeconomic; no se recalcula
+          con filtros BI. NULL fuera de ese ámbito.
+      - name: income_level
+        description: Etiqueta relativa del quintil, no umbral absoluto de pobreza; NULL sin quintil.
+        data_tests:
+          - accepted_values: {arguments: {values: [muy bajo, bajo, medio, alto, muy alto]}}
 
   - name: mart_crimes_pet_licenses
     description: >
