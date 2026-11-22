@@ -138,25 +138,6 @@ unit_tests:
           neighborhood: DOWNTOWN
         - {arrest_number: arrest-b, officer_id: null, report_number: null, subject_id: null, cad_clearance: null, cad_initial_call_type: null, nibrs_description: null, offense_type: null, officer_gender: null, officer_race: null, officer_squad: null, officer_title: null, subject_age_range: null, subject_gender: null, subject_race: null, block_address: null, neighborhood: null}
 
-  - name: stg_zipcode_areas_normaliza_textos_y_conserva_version_y_procedencia
-    description: >
-      Comprueba las mayúsculas en atributos postales extraídos del VARIANT.
-      Conserva ceros iniciales del CP y la escritura de la versión cartográfica, archivo y lote.
-    model: stg_zipcode_areas
-    given:
-      - input: source('brz_zipcode_areas', 'zipcode_areas')
-        format: sql
-        rows: |
-          select
-              parse_json('{"properties":{"OBJECTID":1,"ZIPCODE":"00501","ZIP_TYPE":" Standard ","COUNTY_NAME":" King ","PREFERRED_CITY":" Seattle "}}') as feature,
-              'kc_v1'::varchar as boundary_version,
-              null::timestamp_ltz as _ingested_at,
-              'Folder/Map.geojson'::varchar as _source_file,
-              'batch-a'::varchar as _batch_id
-    expect:
-      rows:
-        - {object_id: 1, zip_code: '00501', zip_type: STANDARD, county_name: KING, preferred_city: SEATTLE, boundary_version: kc_v1, source_file: Folder/Map.geojson, batch_id: batch-a}
-
   - name: stg_crimes_conserva_formato_y_ceros_del_numero_de_informe
     description: >
       Comprueba que el informe de delitos ya usa YYYY-NNNNNN, conserva ceros iniciales

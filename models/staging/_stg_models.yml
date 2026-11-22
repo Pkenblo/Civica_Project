@@ -393,7 +393,8 @@ models:
       Zonas postales de King County y alrededores con atributos y geometría tipados.
       Textos descriptivos y CP en mayúsculas, sin espacios exteriores ni cadenas vacías.
       La versión cartográfica y los metadatos conservan su escritura de origen.
-      Conserva una fila por entidad del origen, sin unir piezas ni seleccionar una versión.
+      Conserva una fila por entidad con CP de prefijo 981, sin unir piezas ni seleccionar una versión.
+      El prefijo no equivale al límite municipal exacto de Seattle.
 
     data_tests:
       - dbt_utils.unique_combination_of_columns:

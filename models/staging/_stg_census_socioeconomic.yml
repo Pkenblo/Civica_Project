@@ -1,0 +1,75 @@
+version: 2
+
+models:
+  - name: stg_census_socioeconomic
+    config:
+      materialized: view
+      database: "{{ env_var('DBT_BRONZE') }}"
+      schema: STG
+    description: >
+      ACS 2024 5-year (2020–2024) por ZCTA, restringido a códigos con prefijo 981.
+      Bronze conserva la carga nacional completa. Staging conserva las versiones del ámbito
+      seleccionado; Silver resuelve duplicados por cp, no en Staging.
+      Los códigos ACS -999999999, -888888888, -666666666, -555555555, -333333333 y
+      -222222222 se convierten en NULL, al igual que los textos no convertibles.
+      Los marcadores superiores 250001, 2000001 y 3501 se conservan numéricamente con
+      flags booleanos. No deben usarse como importes exactos en futuros agregados o Gold.
+      El código se lee directamente de ZCTA, columna VARCHAR(5) de Bronze.
+      Se validan cinco dígitos antes de aplicar el filtro; no se rellenan ni se truncan códigos.
+      Los códigos nulos o inválidos no entran en el ámbito seleccionado.
+      El prefijo es una aproximación analítica, no el límite municipal exacto de Seattle.
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments: {expression: "income_top_coded = coalesce(median_household_income = 250001, false)"}
+      - dbt_utils.expression_is_true:
+          arguments: {expression: "home_value_top_coded = coalesce(median_home_value = 2000001, false)"}
+      - dbt_utils.expression_is_true:
+          arguments: {expression: "rent_top_coded = coalesce(median_monthly_rent = 3501, false)"}
+    columns:
+      - name: cp
+        data_type: varchar(5)
+        description: "Código ZCTA textual de cinco dígitos, incluidos ceros iniciales. No es una delimitación ZIP exacta."
+        data_tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments: {expression: "rlike '^[0-9]{5}$'"}
+      - {name: zcta_name, data_type: varchar, description: "Nombre descriptivo de la ZCTA en mayúsculas; no es una clave."}
+      - name: median_household_income
+        data_type: number(38,0)
+        description: "Ingreso mediano anual por hogar, USD ajustados a 2024; 250001 es un marcador, no un importe exacto."
+        data_tests:
+          - dbt_utils.expression_is_true:
+              arguments: {expression: ">= 0"}
+      - name: income_margin_of_error
+        data_type: number(38,0)
+        description: "Margen de error al 90 % del ingreso mediano; NULL si no está disponible o no es aplicable."
+        data_tests:
+          - dbt_utils.expression_is_true:
+              arguments: {expression: ">= 0"}
+      - name: population
+        data_type: number(38,0)
+        description: "Población estimada; conservar cero y NULL, y comprobarlos antes de calcular tasas."
+        data_tests:
+          - dbt_utils.expression_is_true:
+              arguments: {expression: ">= 0"}
+      - name: median_home_value
+        data_type: number(38,0)
+        description: "Valor mediano de viviendas ocupadas por sus propietarios, USD; 2000001 es un marcador superior."
+        data_tests:
+          - dbt_utils.expression_is_true:
+              arguments: {expression: ">= 0"}
+      - name: median_monthly_rent
+        data_type: number(38,0)
+        description: "Alquiler contractual mediano mensual, USD; 3501 es un marcador superior. No es alquiler bruto."
+        data_tests:
+          - dbt_utils.expression_is_true:
+              arguments: {expression: ">= 0"}
+      - {name: income_top_coded, data_type: boolean, data_tests: [not_null]}
+      - {name: home_value_top_coded, data_type: boolean, data_tests: [not_null]}
+      - {name: rent_top_coded, data_type: boolean, data_tests: [not_null]}
+      - name: ingested_at
+        data_type: timestamp_ntz
+        description: "Timestamp de RAW conservado sin cambiar la zona horaria ni sustituirlo por la fecha actual."
+        data_tests: [not_null]
+      - {name: source_file, data_type: varchar, description: "Archivo de origen, sin cambiar de caso."}
+      - {name: batch_id, data_type: varchar, description: "Lote de ingesta, sin cambiar de caso."}

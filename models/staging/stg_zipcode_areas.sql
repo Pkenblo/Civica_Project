@@ -1,6 +1,7 @@
 -- stg_zipcode_areas.sql
 -- Extrae y normaliza las propiedades y geometrías de las zonas postales.
 -- Textos descriptivos en mayúsculas; versión cartográfica y trazabilidad sin cambiar de caso.
+-- Recorte por prefijo 981; no equivale al límite municipal exacto de Seattle.
 
 with source as (
 
@@ -29,3 +30,4 @@ renamed as (
 
 select *
 from renamed
+where zip_code like '981%'
