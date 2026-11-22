@@ -1,0 +1,91 @@
+version: 2
+
+models:
+  - name: mart_crime_socioeconomic
+    description: >
+      Una fila por (cp, year, offense_classification_id): categoría y subcategoría de Seattle,
+      con una fila de clasificación NULL para delitos sin clasificar. Tabla Gold que conserva
+      todos los CP del catálogo, cruzados con los años de los hechos y las clasificaciones Gold,
+      incluso con cero delitos o sin contexto económico. SUM(crime_count) es aditivo; población,
+      medianas y totales postales se repiten y no deben sumarse entre clasificaciones o años.
+      ZCTA y ZIP se relacionan por cp como aproximación, no por igualdad de sus límites.
+      ACS 2024 5-year (2020–2024) es contexto fijo, no una serie económica histórica ni un
+      atributo individual de las personas implicadas. El catálogo no delimita Seattle ni
+      garantiza cobertura policial completa. Véase docs/mart_crime_socioeconomic.md.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [cp, year, offense_classification_id]}
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: >-
+              crime_count >= 0 and postal_year_crime_count >= crime_count
+              and acs_year = 2024 and acs_period = '2020–2024'
+              and (crime_share_pct is null or crime_share_pct between 0 and 100)
+              and (income_quintile is null or income_quintile between 1 and 5)
+              and (median_household_income is null or median_household_income >= 0)
+              and (income_margin_of_error is null or income_margin_of_error >= 0)
+              and (population is null or population >= 0)
+              and (median_home_value is null or median_home_value >= 0)
+              and (median_monthly_rent is null or median_monthly_rent >= 0)
+    columns:
+      - name: cp
+        description: CP de cinco dígitos del catálogo postal; clave de enlace aproximado con ZCTA.
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: "ref('dim_postal_codes')", field: cp}}
+      - name: year
+        description: Año natural de offense_date, no de la fecha de denuncia. Puede ser parcial.
+        data_tests: [not_null]
+      - name: offense_classification_id
+        description: Clave Gold de categoría y subcategoría; NULL conserva los delitos sin clasificación.
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_offense_classification')", field: offense_classification_id}}
+      - name: offense_category_id
+        description: Clave original de categoría Seattle; no es una clave NIBRS.
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_offense_classification')", field: offense_category_id}}
+      - name: offense_subcategory_id
+        description: Clave original de subcategoría Seattle; puede faltar aunque exista categoría.
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_offense_classification')", field: offense_subcategory_id}}
+      - {name: offense_category, description: "Nombre de categoría Gold sin recodificar; puede ser NULL."}
+      - {name: offense_sub_category, description: "Nombre de subcategoría Gold sin recodificar; puede ser NULL."}
+      - name: crime_count
+        description: Delitos lógicos de la clasificación y CP-año. Sumar subcategorías para obtener el total de categoría.
+        data_tests: [not_null]
+      - name: postal_year_crime_count
+        description: Total de delitos del CP-año, incluidos los no clasificados. Repetido; usar MAX por CP-año, no SUM.
+        data_tests: [not_null]
+      - {name: crimes_per_1000, description: "crime_count × 1000 / población ACS; NULL con población ausente o cero. No sumar entre zonas."}
+      - {name: postal_year_crimes_per_1000, description: "Total CP-año × 1000 / población ACS. Repetido entre clasificaciones; no sumar."}
+      - {name: crime_share_pct, description: "Porcentaje de esta clasificación sobre el total CP-año (0–100); NULL si el total es cero. Sumar subcategorías para obtener el porcentaje de categoría."}
+      - {name: geography, description: "GEOGRAPHY postal original, sin alterar; puede faltar. No es un polígono ZCTA ni municipal."}
+      - {name: boundary_version, description: Versión de la cartografía postal original.}
+      - {name: zcta_name, description: Nombre ACS de la ZCTA asociada por código.}
+      - name: has_socioeconomic_data
+        description: Existe correspondencia por CP en ACS; no garantiza que todas las estimaciones estén disponibles.
+        data_tests: [not_null]
+      - {name: acs_year, description: "Edición fija 2024, no año de cada delito.", data_tests: [not_null]}
+      - {name: acs_period, description: "Periodo fijo 2020–2024 de las estimaciones quinquenales.", data_tests: [not_null]}
+      - {name: median_household_income, description: "Renta mediana anual por hogar, USD de 2024. NULL si limitada superiormente o no disponible; no sumar medianas."}
+      - {name: income_margin_of_error, description: "Margen de error de renta al 90 %, USD; puede ser NULL."}
+      - {name: population, description: "Población estimada ACS 2020–2024 de la ZCTA completa. Repetida entre clasificaciones y años; no sumar esas repeticiones."}
+      - {name: median_home_value, description: "Valor mediano de viviendas ocupadas por propietarios, USD. NULL si limitado superiormente o ausente; no sumar."}
+      - {name: median_monthly_rent, description: "Alquiler contractual mediano mensual, USD. NULL si limitado superiormente o ausente; no sumar."}
+      - {name: income_top_coded, description: "Renta superior al umbral, sin importe exacto; NULL sin correspondencia ACS."}
+      - {name: home_value_top_coded, description: "Vivienda superior al umbral, sin importe exacto; NULL sin correspondencia ACS."}
+      - {name: rent_top_coded, description: "Alquiler superior al umbral, sin importe exacto; NULL sin correspondencia ACS."}
+      - {name: income_lower_bound, description: "250000 USD si renta limitada superiormente: renta > umbral, no renta = umbral."}
+      - {name: home_value_lower_bound, description: "2000000 USD si vivienda limitada superiormente: valor > umbral."}
+      - {name: rent_lower_bound, description: "3500 USD/mes si alquiler limitado superiormente: alquiler > umbral."}
+      - name: income_quintile
+        description: >
+          NTILE(5) ascendente sobre un CP por zona con polígono y renta válida no censurada,
+          antes de expandir por años y clasificaciones. Desempate por cp; rentas iguales pueden
+          quedar en quintiles distintos. NULL fuera de ese ámbito o con renta ausente/censurada.
+          Quintiles fijos del catálogo completo, no recalculados al filtrar en BI; con menos de
+          cinco zonas válidas habrá menos de cinco grupos.
+      - name: income_level
+        description: Etiqueta relativa del quintil; NULL sin quintil. No representa umbrales absolutos de pobreza.
+        data_tests:
+          - accepted_values: {arguments: {values: [muy bajo, bajo, medio, alto, muy alto]}}
