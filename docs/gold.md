@@ -2,7 +2,7 @@
 
 Gold publica 13 dimensiones y dos hechos. Incluye además dos puentes `ephemeral` para los consumidores dbt. Consume los 17 modelos [Silver](silver.md) vía `ref()`; no lee Bronze ni los CSV. [Importar el diagrama lógico DBML](../gold_diagram.dbml) en dbdiagram.io.
 
-Los [marts de robos y licencias](marts.md) consumen `fact_crimes`, `dim_nibrs`, `dim_address`, `dim_postal_codes` y `dim_licenses`. Se construyen en el esquema `MARTS` de la misma base; el comando que selecciona solo `path:models/gold` no los materializa.
+Los [marts de delitos y licencias](marts.md) consumen `fact_crimes`, `dim_nibrs`, `dim_address`, `dim_postal_codes` y `dim_licenses`. El de tiroteos y homicidios también usa `bridge_crime_shooting_types`. Se construyen en el esquema `MARTS` de la misma base; el comando que selecciona solo `path:models/gold` no los materializa.
 
 ## Inventario
 

@@ -2,7 +2,7 @@
 
 Proyecto dbt sobre Snowflake para delitos, detenciones, licencias de mascotas y cartografía postal de Seattle. La comparación por CP es **geográfica**, no una relación entre mascotas, personas y hechos policiales. Para los contratos vigentes, consultar la [memoria de Silver](docs/silver.md) y la [guía de Gold](docs/gold.md); este archivo resume cómo retomar el trabajo.
 
-**Punto de relevo:** Silver queda cerrada en código y documentación. Sobre Gold ya están definidos los [dos marts de robos y licencias](docs/marts.md). Se comprobó su lógica con datos sintéticos locales; los marts siguen sin probarse en dbt. Está pendiente el `dbt build` integral con datos reales en Snowflake DEV.
+**Punto de relevo:** Silver queda cerrada en código y documentación. Sobre Gold ya están definidos los [tres marts de delitos y licencias](docs/marts.md). Se comprobó su lógica con datos sintéticos locales. Está pendiente el `dbt build` integral con datos reales en Snowflake DEV.
 
 ## Qué hay y qué se ha comprobado
 
@@ -10,7 +10,7 @@ Proyecto dbt sobre Snowflake para delitos, detenciones, licencias de mascotas y 
 - **Bronze:** `CRIMES`, `ARRESTS`, `PET_LICENSES`, `ZIPCODE_AREAS`. dbt declara las fuentes; no carga RAW. **Staging:** `stg_crimes`, `stg_arrests`, `stg_pet_licenses`, `stg_zipcode_areas`, todos vistas. Las cuatro vistas existían en el entorno consultado anteriormente; no asumir que estén publicadas con el SQL actual.
 - **Silver:** 17 modelos, 96 columnas y 19 relaciones lógicas, recogidos en el [SVG definitivo](docs/silver_diagram.svg) y el [diccionario con DBML editable](docs/silver_diagram.md). Se retiró el SVG anterior. Se comprobaron los enlaces de la documentación y la coherencia entre el SVG, el DBML y los modelos y relaciones declarados en dbt.
 - **Gold:** `models/gold/` publica hechos y dimensiones a partir de Silver. No hay snapshots ni vigencias en el alcance actual.
-- **Marts:** `models/marts/` agrega los datos de Gold por CP y año en `DBT_GOLD.MARTS`. Un modelo cuenta el código `240`; el otro suma `120`, `23A`, `23B` y `23H` sin filtrar por víctima. Ambos comparan los delitos con licencias emitidas de perro, gato, cabra y cerdo.
+- **Marts:** `models/marts/` agrega los datos de Gold por CP y año en `DBT_GOLD.MARTS`. Los tres indicadores son robos de vehículos (`240`), atracos y hurtos (`120`, `23A`, `23B`, `23H`) y delitos con etiqueta de tiroteo o código de homicidio (`09A`, `09B`, `09C`). Se comparan con licencias emitidas de perro, gato, cabra y cerdo.
 - **Qué no se ha comprobado:** el cierre documental no ejecutó dbt contra Snowflake. La [regresión histórica del `MERGE`](docs/arrest_incremental.md#validación-de-la-implementación-inicial-del-merge) se hizo en un esquema aislado y no valida el incremental vigente. El [runner sintético actual](tests/integration/arrest_delete_insert_check.py) y los datos reales son comprobaciones distintas.
 
 ## Contratos que hay que conservar
