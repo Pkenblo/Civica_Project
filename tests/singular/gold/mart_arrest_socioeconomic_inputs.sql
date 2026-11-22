@@ -1,14 +1,14 @@
--- depends_on: {{ ref('mart_crime_socioeconomic') }}
+-- depends_on: {{ ref('mart_arrest_socioeconomic') }}
 -- Solo contratos necesarios para que los JOIN del nuevo mart sean muchos-a-uno.
 with issues as (
-    select 'fact_crimes.crime_id' as input_key, crime_id as key_value
-    from {{ ref('fact_crimes') }}
-    group by crime_id
-    having crime_id is null or count(*) <> 1
+    select 'fact_arrests.arrest_number' as input_key, arrest_number as key_value
+    from {{ ref('fact_arrests') }}
+    group by arrest_number
+    having arrest_number is null or count(*) <> 1
 
     union all
-    select 'fact_crimes.crime_count', crime_id
-    from {{ ref('fact_crimes') }} where crime_count is distinct from 1
+    select 'fact_arrests.arrest_count', arrest_number
+    from {{ ref('fact_arrests') }} where arrest_count is distinct from 1
 
     union all
     select 'dim_address.address_id', address_id
@@ -27,19 +27,6 @@ with issues as (
     from {{ ref('dim_census_socioeconomic') }}
     group by cp
     having cp is null or count(*) <> 1
-
-    union all
-    select 'dim_offense_classification.offense_classification_id', offense_classification_id
-    from {{ ref('dim_offense_classification') }}
-    group by offense_classification_id
-    having offense_classification_id is null or count(*) <> 1
-
-    union all
-    select 'fact_crimes.offense_classification_id', c.crime_id
-    from {{ ref('fact_crimes') }} c
-    left join {{ ref('dim_offense_classification') }} o
-        on o.offense_classification_id = c.offense_classification_id
-    where c.offense_classification_id is not null and o.offense_classification_id is null
 
     union all
     select 'dim_address.cp_status', address_id

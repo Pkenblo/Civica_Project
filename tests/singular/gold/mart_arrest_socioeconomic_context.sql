@@ -5,18 +5,13 @@ with quintiles as (
     where p.geography is not null and s.median_household_income >= 0 and not s.income_top_coded
 )
 
-select m.cp, m.year, m.offense_classification_id
-from {{ ref('mart_crime_socioeconomic') }} m
-join {{ ref('dim_postal_codes') }} p on p.cp = m.cp
+select m.arrest_number
+from {{ ref('mart_arrest_socioeconomic') }} m
+left join {{ ref('dim_postal_codes') }} p on p.cp = m.cp
 left join {{ ref('dim_census_socioeconomic') }} s on s.cp = p.cp
-left join {{ ref('dim_offense_classification') }} o
-    on o.offense_classification_id = m.offense_classification_id
 left join quintiles q on q.cp = m.cp
-where m.offense_category_id is distinct from o.offense_category_id
-   or m.offense_subcategory_id is distinct from o.offense_subcategory_id
-   or m.offense_category is distinct from o.offense_category
-   or m.offense_sub_category is distinct from o.offense_sub_category
-   or st_aswkt(m.geography) is distinct from st_aswkt(p.geography)
+where st_aswkt(m.geography) is distinct from st_aswkt(p.geography)
+   or m.has_postal_reference is distinct from (p.cp is not null)
    or m.boundary_version is distinct from p.boundary_version
    or m.zcta_name is distinct from s.zcta_name
    or m.has_socioeconomic_data is distinct from (s.cp is not null)
