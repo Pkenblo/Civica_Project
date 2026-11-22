@@ -34,6 +34,8 @@ models:
       +database: "{{ env_var('DBT_GOLD', target.database) }}"
       +schema: GOLD
       +materialized: table
+      marts:
+        +schema: MARTS
       # Solo los modelos que conservan el grano de un incremental de Silver.
       dimensions:
         dim_licenses:

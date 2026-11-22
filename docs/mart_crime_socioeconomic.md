@@ -3,9 +3,11 @@
 ## Modelo y dependencias comprobadas
 
 [`mart_crime_socioeconomic`](../models/gold/marts/mart_crime_socioeconomic.sql)
-es una tabla en `DBT_GOLD.GOLD`, según la configuración vigente de `models/gold/`.
-Sigue la ubicación y materialización de los marts actuales en `models/gold/marts/`;
-no utiliza la configuración antigua de `models/marts/` ni cambia `dbt_project.yml`.
+es una tabla en `DBT_GOLD.MARTS`. La configuración de `gold.marts` en
+`dbt_project.yml` asigna ese esquema a los modelos de `models/gold/marts/`,
+sobrescribiendo el esquema `GOLD` heredado de la carpeta padre. Los marts conservan
+la materialización `table` y la base Gold. Una tabla anterior en `GOLD` no se
+elimina al volver a construir el modelo en `MARTS`.
 
 Utiliza únicamente estas dependencias Gold mediante `ref()`:
 
