@@ -1,0 +1,31 @@
+version: 2
+
+unit_tests:
+  - name: arrest_offenses_agrupa_por_detencion_y_nibrs
+    description: Conserva la última ingesta de cada descripción, omite ausencias y distingue coincidencias únicas, ambiguas y sin resolver.
+    model: arrest_offenses
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('stg_arrests')
+        rows:
+          - {arrest_number: a1, nibrs_description: SIMPLE ASSAULT, ingested_at: '2026-01-01 00:00:00'}
+          - {arrest_number: a1, nibrs_description: SIMPLE ASSAULT, ingested_at: '2026-01-02 00:00:00'}
+          - {arrest_number: a1, nibrs_description: AMBIGUOUS, ingested_at: '2026-01-01 00:00:00'}
+          - {arrest_number: a1, nibrs_description: UNKNOWN, ingested_at: '2026-01-01 00:00:00'}
+          - {arrest_number: a1, nibrs_description: null, ingested_at: '2026-01-01 00:00:00'}
+          - {arrest_number: a2, nibrs_description: SIMPLE ASSAULT, ingested_at: '2026-01-01 00:00:00'}
+      - input: ref('arrest')
+        rows:
+          - {arrest_number: a1}
+      - input: ref('nibrs')
+        rows:
+          - {nibrs_key: n1, offense_description: SIMPLE ASSAULT}
+          - {nibrs_key: n2, offense_description: AMBIGUOUS}
+          - {nibrs_key: n3, offense_description: AMBIGUOUS}
+    expect:
+      rows:
+        - {arrest_number: a1, nibrs_key: n1, nibrs_match_status: matched, unresolved_nibrs_description: null, ingested_at: '2026-01-02 00:00:00'}
+        - {arrest_number: a1, nibrs_key: null, nibrs_match_status: ambiguous, unresolved_nibrs_description: AMBIGUOUS, ingested_at: '2026-01-01 00:00:00'}
+        - {arrest_number: a1, nibrs_key: null, nibrs_match_status: unmatched, unresolved_nibrs_description: UNKNOWN, ingested_at: '2026-01-01 00:00:00'}

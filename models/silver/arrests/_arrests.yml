@@ -74,15 +74,14 @@ models:
 
   - name: arrest_offenses
     description: >-
-      Una combinación histórica observada de detención, texto legal normalizado y
-      descripción NIBRS. No se limita a la última versión de la detención.
-      Las clasificaciones legal y NIBRS son independientes. Solo una coincidencia
-      exacta y única de descripción asigna nibrs_key; las excepciones conservan su texto.
+      Una combinación histórica observada de detención y descripción NIBRS no nula.
+      No se limita a la última versión de la detención. Solo una coincidencia exacta
+      y única de descripción asigna nibrs_key; las excepciones conservan su texto.
       Incremental delete+insert por arrest_offense_id, con corte global de ingesta
       en las observaciones de staging. No elimina cargos por omisión en un lote.
     columns:
       - name: arrest_offense_id
-        description: Clave generada sobre arrest_number, offense_type y nibrs_description de staging.
+        description: Clave generada sobre arrest_number y nibrs_description de staging.
         data_tests: [unique, not_null]
       - name: arrest_number
         description: Detención a la que pertenece el cargo observado.
@@ -90,11 +89,6 @@ models:
           - not_null
           - relationships:
               arguments: {to: "ref('arrest')", field: arrest_number}
-      - name: offense_type_id
-        description: Referencia al texto legal completo, si está informado.
-        data_tests:
-          - relationships:
-              arguments: {to: "ref('offense_types')", field: offense_type_id}
       - name: nibrs_key
         description: Referencia NIBRS solo cuando la descripción identifica un único código.
         data_tests:
@@ -105,7 +99,7 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              arguments: {values: [matched, missing, ambiguous, unmatched]}
+              arguments: {values: [matched, ambiguous, unmatched]}
       - name: unresolved_nibrs_description
         description: Descripción normalizada conservada cuando la resolución es ambigua o no hay coincidencia.
       - name: ingested_at
@@ -136,44 +130,3 @@ models:
         description: Tipo inicial de llamada informado.
       - name: cad_priority
         description: Prioridad CAD informada.
-
-  - name: offense_types
-    description: >-
-      Un texto legal completo normalizado de staging, sin deduplicar por código ni
-      por componentes. Conserva todas sus variantes originales de RAW. El parsing
-      extrae referencias explícitas sin corregirlas ni validar su vigencia jurídica;
-      un formato inseguro se conserva con estado review_required.
-      Incremental delete+insert con corte global de ingesta al leer staging.
-      Las ingestas iguales o anteriores al máximo del destino se omiten.
-    columns:
-      - name: offense_type_id
-        description: Clave generada sobre offense_type completo, no sobre su código legal.
-        data_tests: [unique, not_null]
-      - name: offense_type
-        description: Texto legal completo normalizado con las reglas de staging.
-        data_tests: [not_null]
-      - name: offense_type_original_values
-        description: Array ordenado de todas las variantes exactas de RAW observadas para este texto.
-      - name: ingested_at
-        description: Fecha de ingesta de la última observación elegible del texto y cursor incremental.
-        data_tests: [not_null]
-      - name: legal_source
-        description: Fuente explícita RCW o SMC; no se infiere desde el código.
-      - name: legal_code
-        description: Primer código legal literal, sin correcciones ni equivalencias NIBRS.
-      - name: secondary_legal_source
-        description: Segunda fuente legal explícita en referencias encadenadas.
-      - name: secondary_legal_code
-        description: Segundo código legal literal.
-      - name: external_code
-        description: Identificador numérico externo literal; no es un código legal ni una fuente.
-      - name: offense_description
-        description: Sufijo descriptivo completo, conservando guiones y segmentos internos.
-      - name: offense_category
-        description: Familia explícita revisada ASSAULT, DRUGS, FIRE o KIDNAP/IMPRISON; nula sin correspondencia.
-      - name: parse_status
-        description: Resultado de extracción sintáctica; parsed no certifica validez jurídica.
-        data_tests:
-          - not_null
-          - accepted_values:
-              arguments: {values: [parsed, administrative, review_required]}

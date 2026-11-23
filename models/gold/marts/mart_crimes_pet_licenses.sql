@@ -1,14 +1,19 @@
 {{ config(materialized='view') }}
 
 with crime_events as (
-    select c.crime_id, c.address_id, c.nibrs_key, d.year
+    select
+          c.crime_id
+        , c.address_id
+        , c.nibrs_key
+        , d.year
     from {{ ref('fact_crimes') }} c
     join {{ ref('dim_date') }} d on d.date_key = c.offense_date_key
 ),
 
 common_years as (
     -- La cobertura se calcula antes de filtrar por delito, CP o especie.
-    select year from crime_events
+    select year
+    from crime_events
     intersect
     select year(license_issue_date) as year
     from {{ ref('dim_licenses') }}
@@ -37,7 +42,9 @@ crime_counts as (
     left join {{ ref('dim_nibrs') }} n on n.nibrs_key = c.nibrs_key
     left join shooting_crimes s on s.crime_id = c.crime_id
     where a.cp is not null
-    group by a.cp, c.year
+    group by
+          a.cp
+        , c.year
 ),
 
 license_counts as (
@@ -53,11 +60,17 @@ license_counts as (
     where cp is not null
         and license_issue_date is not null
         and species in ('DOG', 'CAT', 'GOAT', 'PIG')
-    group by cp, year(license_issue_date)
+    group by
+          cp
+        , year(license_issue_date)
 ),
 
 postal_years as (
-    select p.cp, y.year, p.geography, p.boundary_version
+    select
+          p.cp
+        , y.year
+        , p.geography
+        , p.boundary_version
     from {{ ref('dim_postal_codes') }} p
     cross join common_years y
 ),
@@ -73,7 +86,9 @@ licenses_by_cutoff as (
         , coalesce(sum(l.pig_license_count), 0) as cumulative_pig_license_count
     from postal_years p
     left join license_counts l on l.cp = p.cp and l.year <= p.year
-    group by p.cp, p.year
+    group by
+          p.cp
+        , p.year
 ),
 
 counts as (

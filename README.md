@@ -20,7 +20,7 @@ La [memoria de Silver](docs/silver.md) explica los 17 modelos, los datos que mot
 - Solo `crimes`, `arrest` y `licenses` son incrementales: reemplazan la fila completa mediante `delete+insert` y solo admiten ingestas posteriores al máximo de su propia tabla. Los otros 14 modelos se reconstruyen.
 - El CP policial se asigna solo si el punto está en el interior de una única zona. `full_address.cp_status` explica por qué puede quedar nulo. Las licencias toman el CP de origen si tiene cinco dígitos.
 
-El [SVG definitivo](docs/silver_diagram.svg) y el [diccionario con DBML editable](docs/silver_diagram.md) muestran el mismo esquema: 17 modelos y 19 relaciones lógicas.
+El [SVG de Silver](docs/silver_diagram.svg) y el [diccionario con DBML editable](docs/silver_diagram.md) muestran el mismo esquema: 17 modelos y 17 referencias lógicas.
 
 [![Diagrama definitivo de Silver](docs/silver_diagram.svg)](docs/silver_diagram.svg)
 

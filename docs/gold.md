@@ -14,7 +14,6 @@ Los YAML de dimensiones comprueban que cada clave lógica sea única y no nula, 
 |---|---|---|---|
 | `dim_date` | view | `date_key` | Calendario generado |
 | `dim_nibrs` | view | `nibrs_key` | `nibrs` |
-| `dim_offense_types` | view | `offense_type_id` | `offense_types` |
 | `dim_address` | view | `address_id` | `full_address` |
 | `dim_postal_codes` | view | `cp` | `postal_codes` |
 | `dim_licenses` | view | `license_number` | `licenses`, `dim_date` |
@@ -36,7 +35,7 @@ Los YAML de dimensiones comprueban que cada clave lógica sea única y no nula, 
 
 - `fact_crimes` tiene **una fila por delito lógico**, con `crime_id` generado en Silver mediante `dbt_utils.generate_surrogate_key(['report_id', 'offense_id'])`. Conserva las referencias a informe, dirección, área policial, NIBRS y clasificación de Seattle (categoría y subcategoría en una sola dimensión). Conserva el identificador de origen y el timestamp de ocurrencia; para las fechas de ocurrencia y reporte publica las claves de `dim_date`. El timestamp de reporte pertenece a `dim_report`. La subcategoría mantiene su categoría padre solo si Silver la conoce.
 - `fact_arrests` tiene **una fila por `arrest_number`**, con los timestamps propios de ocurrencia y de registro, sus claves de `dim_date` y las referencias de Silver a dirección, área, tipo de detención, agente, sujeto, perfil CAD e informe. Edades, unidad, cargo e indicadores se mantienen en el evento. El dataset incluye más modalidades que detenciones físicas bajo custodia; consultar [la fuente SPD](https://data.seattle.gov/d/9bjs-7a7w).
-- No unir directamente los dos hechos por `report_id`: un informe puede tener varios delitos y varias detenciones. Para usar una etiqueta como filtro, usar `EXISTS` contra el puente o contar claves de evento distintas. Los puentes describen asociaciones **observadas**, no necesariamente vigentes; no son hechos adicionales. No existe un catálogo Silver `offense_types`: el puente de arrestos conserva texto legal y descripción publicada, sin inferir el código NIBRS.
+- No unir directamente los dos hechos por `report_id`: un informe puede tener varios delitos y varias detenciones. Para usar una etiqueta como filtro, usar `EXISTS` contra el puente o contar claves de evento distintas. Los puentes describen asociaciones **observadas**, no necesariamente vigentes; no son hechos adicionales. El puente de arrestos conserva una asociación por descripción NIBRS no nula y detención, sin texto legal. Solo asigna `nibrs_key` si la descripción coincide de forma exacta y única.
 - El calendario se genera con `dbt_date.get_date_dimension` desde `1900-01-01` hasta `2101-01-01` (fecha final excluida). `year` es el año natural; `iso_week` y `iso_week_year` deben usarse juntos; `day_of_week` es lunes = 1. Los nombres de mes y día siguen abreviados.
 - `dim_address` conserva `cp_status`: `matched` (interior de un único CP), `redacted`, `missing_coordinates`, `invalid_coordinates`, `no_match`, `ambiguous` o `boundary`. Solo `matched` tiene CP. La cartografía de `dim_postal_codes` permanece en `GEOGRAPHY`, con `boundary_version` cuando hay polígono. Los CP son texto; la cobertura de King County no es un filtro municipal de Seattle ni cartografía postal histórica. Una licencia puede declarar un CP válido de formato sin polígono local.
 

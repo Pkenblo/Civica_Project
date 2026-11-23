@@ -20,8 +20,9 @@ renamed as (
         , {{ nullif_any("try_to_number(trim(B25077_001E::varchar))", -999999999, -888888888, -666666666, -555555555, -333333333, -222222222) }} as median_home_value
         , {{ nullif_any("try_to_number(trim(B25058_001E::varchar))", -999999999, -888888888, -666666666, -555555555, -333333333, -222222222) }} as median_monthly_rent
         -- Validar antes del cast evita truncar códigos o inventar ceros en códigos incompletos.
-        , case when regexp_like(trim(ZCTA), '^[0-9]{5}$')
-               then trim(ZCTA) end::varchar(5) as cp
+        , case
+            when regexp_like(trim(ZCTA), '^[0-9]{5}$') then trim(ZCTA)
+          end::varchar(5) as cp
         , INGESTED_AT as ingested_at
         , SOURCE_FILE as source_file
         , BATCH_ID as batch_id

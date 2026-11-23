@@ -36,7 +36,7 @@ unit_tests:
 
   - name: stg_arrests_normaliza_descripciones_y_marcadores_demograficos
     description: >
-      Conserva las descripciones originales y convierte el guion demográfico en NULL.
+      Conserva la descripción NIBRS original y convierte el guion demográfico en NULL.
       Convierte solo informes con formato YYYY0000NNNNNN a YYYY-NNNNNN sin perder ceros iniciales.
     model: stg_arrests
     given:
@@ -45,7 +45,6 @@ unit_tests:
           - ARREST_NUMBER: arrest-a
             REPORT_NUMBER: '20260000000001'
             NIBRS_DESCRIPTION: ' Simple Assault '
-            OFFENSE_TYPE: ' Assault '
             OFFICER_GENDER: ' Male '
             OFFICER_RACE: ' White '
             SUBJECT_AGE_RANGE: ' Adult '
@@ -60,25 +59,23 @@ unit_tests:
         - arrest_number: arrest-a
           report_number: '2026-000001'
           nibrs_description: SIMPLE ASSAULT
-          offense_type: ASSAULT
           nibrs_description_original: ' Simple Assault '
-          offense_type_original: ' Assault '
           officer_gender: MALE
           officer_race: WHITE
           subject_age_range: ADULT
           subject_gender: FEMALE
           subject_race: ASIAN
-        - {arrest_number: arrest-b, report_number: null, nibrs_description: null, offense_type: null,
-           nibrs_description_original: null, offense_type_original: null, officer_gender: null, officer_race: null,
+        - {arrest_number: arrest-b, report_number: null, nibrs_description: null,
+           nibrs_description_original: null, officer_gender: null, officer_race: null,
            subject_age_range: null, subject_gender: null, subject_race: null}
-        - {arrest_number: arrest-c, report_number: '2026-912738', nibrs_description: null, offense_type: null,
-           nibrs_description_original: null, offense_type_original: null, officer_gender: null, officer_race: null,
+        - {arrest_number: arrest-c, report_number: '2026-912738', nibrs_description: null,
+           nibrs_description_original: null, officer_gender: null, officer_race: null,
            subject_age_range: null, subject_gender: null, subject_race: null}
-        - {arrest_number: arrest-d, report_number: '2026-123456', nibrs_description: null, offense_type: null,
-           nibrs_description_original: null, offense_type_original: null, officer_gender: null, officer_race: null,
+        - {arrest_number: arrest-d, report_number: '2026-123456', nibrs_description: null,
+           nibrs_description_original: null, officer_gender: null, officer_race: null,
            subject_age_range: null, subject_gender: null, subject_race: null}
-        - {arrest_number: arrest-e, report_number: '20261234123456', nibrs_description: null, offense_type: null,
-           nibrs_description_original: null, offense_type_original: null, officer_gender: null, officer_race: null,
+        - {arrest_number: arrest-e, report_number: '20261234123456', nibrs_description: null,
+           nibrs_description_original: null, officer_gender: null, officer_race: null,
            subject_age_range: null, subject_gender: null, subject_race: null}
 
   - name: stg_crimes_conserva_formato_y_ceros_del_numero_de_informe

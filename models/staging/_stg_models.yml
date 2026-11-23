@@ -278,14 +278,6 @@ models:
         data_type: varchar
         description: Descripción NIBRS asociada a la infracción de esta fila.
 
-      - name: offense_type
-        data_type: varchar
-        description: Descripción de la infracción legal asociada a la detención.
-
-      - name: offense_type_original
-        data_type: varchar
-        description: Texto legal exacto de RAW. Se conservan caso, espacios y marcadores.
-
       - name: nibrs_description_original
         data_type: varchar
         description: Descripción NIBRS exacta de RAW. No se deduce del texto legal.

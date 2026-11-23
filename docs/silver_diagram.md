@@ -1,16 +1,18 @@
 # Modelo de Silver: diccionario y DBML
 
-El [diagrama SVG](silver_diagram.svg) y el diccionario DBML de esta página representan los mismos **18 modelos, 118 columnas y 19 referencias lógicas**, más una correspondencia parcial ZCTA–ZIP, de `models/silver/`. La referencia describe lo que publica el código dbt, no certifica un despliegue en Snowflake. La [guía de Silver](silver.md) amplía las decisiones de diseño y operación, aunque todavía contiene un inventario y decisiones anteriores a los últimos cambios del código.
+El [diagrama SVG](silver_diagram.svg) y el diccionario DBML de esta página representan los mismos **17 modelos y 17 referencias lógicas**, más una correspondencia parcial ZCTA–ZIP, de `models/silver/`. La referencia describe el diseño dbt, no certifica un despliegue en Snowflake. La [guía de Silver](silver.md) amplía las decisiones de diseño y operación.
+
+[![Diagrama de la capa Silver; pulsa para ampliar](silver_diagram.svg)](silver_diagram.svg)
 
 ## Cómo leer las relaciones
 
 - `PK` identifica una fila del modelo, `UK` una clave alternativa y `FK` una referencia lógica. En el SVG las flechas apuntan a la clave padre; en DBML `>` también representa muchos-a-uno. Las referencias admiten nulos salvo donde se indica `not null`. Las claves se verifican con pruebas de datos, no mediante restricciones físicas impuestas por el diagrama.
-- `reports` es padre de `crimes` y `arrest`; no hay una FK entre ambos hechos. `crime_shooting_types` usa `crime_id`, no `offense_id`. `arrest_offenses` referencia la detención, el texto legal de `offense_types` y, solo por coincidencia exacta y única de descripción, el catálogo `nibrs`. Las clasificaciones legal y NIBRS son independientes.
+- `reports` es padre de `crimes` y `arrest`; no hay una FK entre ambos hechos. `crime_shooting_types` usa `crime_id`, no `offense_id`. `arrest_offenses` tiene una fila por detención y descripción NIBRS no nula. Referencia la detención y, solo por coincidencia exacta y única de descripción, el catálogo `nibrs`.
 - `offense_categories` reúne categoría y subcategoría de Seattle en una sola fila y una sola FK desde `crimes`. La pareja es única; cada etiqueta puede ser nula por separado. Ya no existe `offense_subcategories`.
 - `full_address` y `police_add` sirven a ambos hechos policiales. La identidad de ubicación usa seis atributos geográficos, sin contexto de evento, CP ni indicadores de calidad. Las filas abstractas `UNKNOWN` y `REDACTED` existen siempre. El cruce punto–polígono calcula el CP; no es una relación adicional.
-- `postal_codes` contiene solo la cartografía activa con prefijo `981`, no incorpora los ZIP de licencias. `licenses.cp` conserva el ZIP declarado de cinco dígitos y no pasa por una ubicación policial. Su referencia a `postal_codes` está declarada en los tests, pero el SQL no garantiza cobertura para ZIP ajenos al catálogo; debe validarse con datos.
+- `postal_codes` contiene solo la cartografía activa con prefijo `981`, no incorpora los ZIP de licencias. `licenses.cp` conserva el ZIP declarado de cinco dígitos, no pasa por una ubicación policial y no tiene FK a `postal_codes`.
 - La línea discontinua entre `census_socioeconomic.cp` y `postal_codes.cp` representa una correspondencia analítica parcial por igualdad de código, no una FK total: ZCTA y ZIP no tienen necesariamente los mismos límites. Se conservan los ZCTA sin correspondencia. Esta asociación se documenta en una nota DBML, no con `Ref`.
-- `crimes`, `arrest`, `licenses` y `offense_types` son incrementales `delete+insert`. Los tres primeros aplican un corte global por ingesta; `offense_types` relee toda la evidencia e incorpora textos llegados tarde. Los otros 14 modelos son tablas; `postal_codes` y `census_socioeconomic` llevan la etiqueta `static_model`.
+- `crimes`, `arrest`, `arrest_offenses`, `licenses`, `reports` y `subject` son incrementales `delete+insert` con corte global de ingesta. `postal_codes` y `census_socioeconomic` llevan la etiqueta `static_model`.
 
 ## DBML para dbdiagram.io
 
@@ -26,6 +28,7 @@ Table reports {
   report_id varchar [pk]
   report_number varchar [not null, unique]
   report_date_time timestamp_ntz [note: 'Solo de delitos; nula en informes exclusivos de detenciones.']
+  ingested_at timestamp_ltz [not null, note: 'Última ingesta elegible entre delitos y detenciones.']
 }
 
 Table crimes {
@@ -48,7 +51,7 @@ Table crimes {
 Table nibrs {
   nibrs_key varchar [pk]
   offense_code varchar [not null, unique]
-  offense_description varchar [not null, unique]
+  offense_description varchar [note: 'Puede repetirse entre códigos o faltar.']
   group_ab varchar
   crime_against_category varchar [note: 'Categoría propia de NIBRS, independiente de la de Seattle.']
 }
@@ -106,31 +109,12 @@ Table arrest {
 Table arrest_offenses {
   arrest_offense_id varchar [pk]
   arrest_number varchar [not null]
-  offense_type_id varchar
-  nibrs_key varchar [note: 'Solo por coincidencia exacta y única de descripción; no se infiere desde el texto legal.']
-  nibrs_match_status varchar [not null, note: 'matched, missing, ambiguous o unmatched.']
+  nibrs_key varchar [note: 'Solo por coincidencia exacta y única de descripción.']
+  nibrs_match_status varchar [not null, note: 'matched, ambiguous o unmatched.']
   unresolved_nibrs_description varchar [note: 'Texto conservado solo en estados ambiguous o unmatched.']
+  ingested_at timestamp_ltz [not null]
 
-  indexes {
-    (arrest_number, offense_type_id, nibrs_key, unresolved_nibrs_description) [unique]
-  }
-  Note: 'Asociaciones históricas observadas. Conserva el hash de la combinación original de detención, texto legal y descripción NIBRS.'
-}
-
-Table offense_types {
-  offense_type_id varchar [pk, note: 'dbt_utils.generate_surrogate_key del texto legal completo normalizado, no del código ni de sus componentes.']
-  offense_type varchar [not null, unique]
-  offense_type_original_values array [note: 'Variantes exactas de RAW, distintas y ordenadas.']
-  legal_source varchar
-  legal_code varchar
-  secondary_legal_source varchar
-  secondary_legal_code varchar
-  external_code varchar
-  offense_description varchar
-  offense_category varchar [note: 'Familias explícitas ASSAULT, DRUGS, FIRE o KIDNAP/IMPRISON; independiente de Seattle y NIBRS.']
-  parse_status varchar [not null, note: 'parsed, administrative o review_required.']
-
-  Note: 'Incremental delete+insert sin corte global: relee toda la evidencia. Usa ingested_at solo internamente para seleccionar la última observación por texto. Extrae componentes sin validar la vigencia jurídica ni descartar textos no interpretables.'
+  Note: 'Incremental delete+insert. Una asociación histórica por detención y descripción NIBRS no nula; ambas forman la clave.'
 }
 
 Table arrest_types {
@@ -161,7 +145,7 @@ Table subject {
   sk_person varchar [not null, unique, note: 'subject_id en staging.']
   subject_gender varchar
   subject_race varchar
-  ingested_at timestamp_ltz
+  ingested_at timestamp_ltz [not null]
 
   Note: 'Último perfil observado por sk_person; sin vigencias históricas.'
 }
@@ -245,8 +229,6 @@ Ref: arrest.address_id > full_address.address_id
 Ref: arrest.police_area_id > police_add.police_area_id
 Ref: arrest.cad_profile_id > cad_profiles.cad_profile_id
 Ref: arrest_offenses.arrest_number > arrest.arrest_number
-Ref: arrest_offenses.offense_type_id > offense_types.offense_type_id
 Ref: arrest_offenses.nibrs_key > nibrs.nibrs_key
 Ref: full_address.cp > postal_codes.cp
-Ref: licenses.cp > postal_codes.cp
 ```

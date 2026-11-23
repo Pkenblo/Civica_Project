@@ -2,6 +2,8 @@
 
 ## Normalización legal y catálogo NIBRS compartido
 
+> Documento histórico. El catálogo legal y su dimensión Gold se retiraron de dbt. Los modelos de arrestos conservan únicamente la asociación por detención y descripción NIBRS no nula, como se describe en [la guía de Silver](../../../docs/silver.md). Los comandos y contratos de abajo corresponden a la versión anterior.
+
 ### Grano, claves y relaciones
 
 ```text

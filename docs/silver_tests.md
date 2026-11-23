@@ -1,6 +1,6 @@
 # Tests declarados en los YAML de Silver
 
-Los 18 modelos se documentan en siete archivos, uno por dominio:
+Los 17 modelos se documentan en siete archivos, uno por dominio:
 
 - [`arrests/_arrests.yml`](../models/silver/arrests/_arrests.yml)
 - [`crimes/_crimes.yml`](../models/silver/crimes/_crimes.yml)
@@ -10,9 +10,8 @@ Los 18 modelos se documentan en siete archivos, uno por dominio:
 - [`reports/_reports.yml`](../models/silver/reports/_reports.yml)
 - [`socioeconomic/_socioeconomic.yml`](../models/silver/socioeconomic/_socioeconomic.yml)
 
-Hay **79 tests de datos y ningún test unitario de Silver**. Este recuento corresponde
-solo a estos YAML: las pruebas singulares SQL, las integraciones y los tests de otras
-capas no se han eliminado ni se incluyen en el total.
+Hay **76 tests de datos** declarados en estos YAML. El recuento no incluye las pruebas
+singulares SQL, las integraciones ni el [test unitario de `arrest_offenses`](../tests/unit/_arrest_offenses_unit_tests.yml).
 
 ## Claves: 17 `unique` y 17 `not_null`
 
@@ -26,7 +25,6 @@ utilizable. Uno no sustituye al otro, porque `unique` no rechaza los nulos.
 | `arrest_offenses` | `arrest_offense_id` |
 | `arrest_types` | `arrest_type_id` |
 | `cad_profiles` | `cad_profile_id` |
-| `offense_types` | `offense_type_id` |
 | `crimes` | `crime_id` |
 | `nibrs` | `nibrs_key` |
 | `offense_categories` | `offense_category_id` |
@@ -38,17 +36,17 @@ utilizable. Uno no sustituye al otro, porque `unique` no rechaza los nulos.
 | `subject` | `subject_key` |
 | `licenses` | `license_number` |
 | `reports` | `report_id` |
+| `reports` | `report_number` (alternativa) |
 | `census_socioeconomic` | `cp` |
 
-## Otros campos obligatorios: 21 `not_null`
+## Otros campos obligatorios: 20 `not_null`
 
 | Modelo | Columnas | Motivo |
 | --- | --- | --- |
 | `arrest` | `ingested_at`, `address_id` | Cursor incremental y referencia obligatoria, con UNKNOWN o REDACTED si corresponde. |
-| `arrest_offenses` | `arrest_number`, `nibrs_match_status` | Todo cargo pertenece a una detención y declara cómo se resolvió NIBRS. |
+| `arrest_offenses` | `arrest_number`, `nibrs_match_status`, `ingested_at` | Detención asociada, resolución NIBRS y cursor incremental. |
 | `arrest_types` | `description` | Un hash no nulo no garantiza que exista el texto que identifica el tipo. |
-| `offense_types` | `offense_type`, `parse_status` | Conservación del texto legal que define la identidad y del resultado de parsing. |
-| `crimes` | `report_id`, `offense_id`, `ingested_at`, `address_id` | Identidad informe-delito, cursor incremental y ubicación obligatoria. |
+| `crimes` | `offense_id`, `ingested_at`, `address_id` | Identificador de origen, cursor incremental y ubicación obligatoria. |
 | `crime_shooting_types` | `crime_id`, `shooting_type_id` | Una asociación requiere ambos extremos. |
 | `nibrs` | `offense_code` | El código define la identidad; no basta con que exista su hash. |
 | `shooting_types` | `description` | La etiqueta define el tipo de tiroteo. |
@@ -56,9 +54,9 @@ utilizable. Uno no sustituye al otro, porque `unique` no rechaza los nulos.
 | `agents` | `officer_id` | No crear una identidad de agente a partir de un identificador ausente. |
 | `subject` | `sk_person`, `ingested_at` | Identificador de origen usado por el incremental y su cursor. |
 | `licenses` | `ingested_at` | Cursor necesario para seleccionar las siguientes ingestas. |
-| `reports` | `report_number` | El número de origen define la identidad del informe. |
+| `reports` | `ingested_at` | Cursor incremental del informe. |
 
-## Integridad referencial: 18 `relationships`
+## Integridad referencial: 17 `relationships`
 
 Cada referencia informada debe encontrar su destino. Estos tests evitan registros
 huérfanos y pérdidas al unir tablas. Admiten nulos en las relaciones opcionales;
@@ -74,7 +72,6 @@ las obligatorias tienen además su `not_null` en el apartado anterior.
 | `arrest.police_area_id` | `police_add.police_area_id` |
 | `arrest.cad_profile_id` | `cad_profiles.cad_profile_id` |
 | `arrest_offenses.arrest_number` | `arrest.arrest_number` |
-| `arrest_offenses.offense_type_id` | `offense_types.offense_type_id` |
 | `arrest_offenses.nibrs_key` | `nibrs.nibrs_key` |
 | `crimes.report_id` | `reports.report_id` |
 | `crimes.nibrs_key` | `nibrs.nibrs_key` |
@@ -85,15 +82,14 @@ las obligatorias tienen además su `not_null` en el apartado anterior.
 | `crime_shooting_types.shooting_type_id` | `shooting_types.shooting_type_id` |
 | `full_address.cp` | `postal_codes.cp` |
 
-## Estados: 3 `accepted_values`
+## Estados: 2 `accepted_values`
 
 Evitan estados desconocidos que los consumidores no puedan interpretar. Se combinan
 con `not_null`, porque la lista de valores aceptados no exige por sí sola un valor.
 
 | Columna | Valores permitidos |
 | --- | --- |
-| `arrest_offenses.nibrs_match_status` | `matched`, `missing`, `ambiguous`, `unmatched` |
-| `offense_types.parse_status` | `parsed`, `administrative`, `review_required` |
+| `arrest_offenses.nibrs_match_status` | `matched`, `ambiguous`, `unmatched` |
 | `full_address.cp_status` | `matched`, `redacted`, `missing_coordinates`, `invalid_coordinates`, `no_match`, `ambiguous`, `boundary` |
 
 ## Tres controles de grano y coherencia

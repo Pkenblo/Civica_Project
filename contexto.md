@@ -8,7 +8,7 @@ Proyecto dbt sobre Snowflake para delitos, detenciones, licencias de mascotas y 
 
 - Repositorio: [Pkenblo/Civica_Project](https://github.com/Pkenblo/Civica_Project). Consultar `git status` y `git log` al retomar: puede haber trabajo local sin commit. No descartarlo ni hacer commits o pushes sin petición.
 - **Bronze:** `CRIMES`, `ARRESTS`, `PET_LICENSES`, `ZIPCODE_AREAS`. dbt declara las fuentes; no carga RAW. **Staging:** `stg_crimes`, `stg_arrests`, `stg_pet_licenses`, `stg_zipcode_areas`, todos vistas. Las cuatro vistas existían en el entorno consultado anteriormente; no asumir que estén publicadas con el SQL actual.
-- **Silver:** 17 modelos, 96 columnas y 19 relaciones lógicas, recogidos en el [SVG definitivo](docs/silver_diagram.svg) y el [diccionario con DBML editable](docs/silver_diagram.md). Se retiró el SVG anterior. Se comprobaron los enlaces de la documentación y la coherencia entre el SVG, el DBML y los modelos y relaciones declarados en dbt.
+- **Silver:** 17 modelos y 17 referencias lógicas, recogidos en el [SVG de Silver](docs/silver_diagram.svg) y el [diccionario con DBML editable](docs/silver_diagram.md).
 - **Gold:** `models/gold/` publica hechos y dimensiones a partir de Silver. No hay snapshots ni vigencias en el alcance actual.
 - **Marts:** `models/marts/` agrega los datos de Gold por CP y año en `DBT_GOLD.MARTS`. Los tres indicadores son robos de vehículos (`240`), atracos y hurtos (`120`, `23A`, `23B`, `23H`) y delitos con etiqueta de tiroteo o código de homicidio (`09A`, `09B`, `09C`). Se comparan con licencias emitidas de perro, gato, cabra y cerdo.
 - **Qué no se ha comprobado:** el cierre documental no ejecutó dbt contra Snowflake. La [regresión histórica del `MERGE`](docs/arrest_incremental.md#validación-de-la-implementación-inicial-del-merge) se hizo en un esquema aislado y no valida el incremental vigente. El [runner sintético actual](tests/integration/arrest_delete_insert_check.py) y los datos reales son comprobaciones distintas.
@@ -28,7 +28,7 @@ Normalizar tipos, espacios, vacíos y marcadores en staging. Los textos descript
 
 - `arrest` usa `delete+insert` por `arrest_number`. Los nulos reemplazan los valores anteriores y una ubicación `REDACTED` no recupera atributos de otras versiones. No se propagan bajas de RAW.
 - `agents` y `subject` mantienen una fila por `officer_id` y `sk_person`, respectivamente. Las claves se derivan solo de esos IDs; un ID ausente en la detención deja la referencia nula. Las edades siguen en `arrest`: `officer_age` y `subject_age_range`.
-- `arrest_offenses` conserva los cargos por tipo y descripción NIBRS observados, sin inferir código. `cad_profiles` se construye desde staging y `arrest.cad_profile_id` es nulo si faltan los tres atributos CAD.
+- `arrest_offenses` conserva las descripciones NIBRS distintas observadas por detención; solo asigna su clave NIBRS si coincide de forma exacta y única. `cad_profiles` se construye desde staging y `arrest.cad_profile_id` es nulo si faltan los tres atributos CAD.
 
 ### Incrementales y reconstrucción de catálogos
 

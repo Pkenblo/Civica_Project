@@ -13,11 +13,11 @@ Los modelos comparan sus filas candidatas con las publicadas. Solo las claves nu
 | `arrest` | `arrest_number` |
 | `agents` | `officer_id` |
 | `subject` | `sk_person` |
-| `arrest_offenses` | `arrest_offense_id`, una asociación por detención, tipo y descripción NIBRS |
+| `arrest_offenses` | `arrest_offense_id`, una asociación por detención y descripción NIBRS no nula |
 | `arrest_types`, `cad_profiles` | `arrest_type_id`, `cad_profile_id` |
 | `reports`, `police_add`, `full_address` | `report_id`, `police_area_id`, `address_id` |
 
-`agent_key` y `subject_key` se derivan solo de sus identificadores de origen. Cambiar atributos de una persona no cambia su clave; si la última fila del arresto no identifica al agente o al sujeto, la referencia queda nula. Las edades siguen en la detención. `arrest_offenses` conserva cargos distintos del mismo arresto; si cambia la asignación NIBRS de un cargo, se reescribe esa asociación sin borrar las demás. `cad_profiles` se construye después de `arrest` y no identifica llamadas individuales.
+`agent_key` y `subject_key` se derivan solo de sus identificadores de origen. Cambiar atributos de una persona no cambia su clave; si la última fila del arresto no identifica al agente o al sujeto, la referencia queda nula. Las edades siguen en la detención. `arrest_offenses` conserva las descripciones NIBRS distintas observadas en un arresto. `cad_profiles` se construye después de `arrest` y no identifica llamadas individuales.
 
 ## Migración y prueba
 

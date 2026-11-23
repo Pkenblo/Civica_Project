@@ -100,21 +100,6 @@ Table dim_offense_classification {
   offense_sub_category varchar
 }
 
-Table dim_offense_types {
-  Note: 'Clasificación legal independiente de NIBRS. Una fila por texto legal completo normalizado, no por código. Incremental por filas nuevas o modificadas, sin cursor de ingesta.'
-  offense_type_id varchar [pk]
-  offense_type varchar [not null, unique]
-  offense_type_original_values array [note: 'Variantes textuales exactas observadas en RAW.']
-  legal_source varchar
-  legal_code varchar
-  secondary_legal_source varchar
-  secondary_legal_code varchar
-  external_code varchar
-  offense_description varchar
-  offense_category varchar [note: 'Categoría legal; no es la categoría Seattle de delitos.']
-  parse_status varchar [not null, note: 'parsed / administrative / review_required; no certifica validez jurídica.']
-}
-
 Table dim_shooting_type {
   shooting_type_id varchar [pk]
   description varchar
@@ -199,12 +184,11 @@ Table fact_arrests {
 }
 
 Table bridge_arrest_offenses {
-  Note: 'ephemeral: solo mediante ref() en dbt. Un cargo observado por detención, texto legal y descripción NIBRS de origen. Las referencias legales y NIBRS son independientes; solo una descripción con coincidencia exacta y única recibe nibrs_key.'
+  Note: 'Vista. Una asociación observada por detención y descripción NIBRS no nula. Solo una descripción con coincidencia exacta y única recibe nibrs_key.'
   arrest_offense_id varchar [pk]
   arrest_number varchar [not null]
-  offense_type_id varchar
   nibrs_key varchar
-  nibrs_match_status varchar [not null, note: 'matched / missing / ambiguous / unmatched']
+  nibrs_match_status varchar [not null, note: 'matched / ambiguous / unmatched']
   unresolved_nibrs_description varchar
 }
 
@@ -232,7 +216,6 @@ Ref: fact_arrests.arrest_reported_date_key > dim_date.date_key
 Ref: bridge_crime_shooting_types.crime_id > fact_crimes.crime_id
 Ref: bridge_crime_shooting_types.shooting_type_id > dim_shooting_type.shooting_type_id
 Ref: bridge_arrest_offenses.arrest_number > fact_arrests.arrest_number
-Ref: bridge_arrest_offenses.offense_type_id > dim_offense_types.offense_type_id
 Ref: bridge_arrest_offenses.nibrs_key > dim_nibrs.nibrs_key
 
 TableGroup compartidas {
@@ -262,6 +245,5 @@ TableGroup detenciones {
   dim_agent
   dim_subject
   dim_cad_profile
-  dim_offense_types
   bridge_arrest_offenses
 }
