@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: dim_arrest_type
+    description: Tipo de actuación registrado en las detenciones.
+    columns:
+      - {name: arrest_type_id, data_tests: [unique, not_null]}
+
+  - name: dim_cad_profile
+    description: Combinación de prioridad, tipo inicial y resultado CAD; no identifica llamadas individuales.
+    columns:
+      - {name: cad_profile_id, data_tests: [unique, not_null]}
+
+  - name: dim_offense_types
+    description: Clasificación legal de las detenciones, independiente de NIBRS. Conserva textos completos, variantes originales, componentes y estados de revisión de Silver.
+    columns:
+      - {name: offense_type_id, data_tests: [unique, not_null]}
+      - {name: offense_type_original_values, description: Todas las variantes textuales exactas observadas en RAW.}
+      - {name: ingested_at, description: Ingesta publicada por Silver.}
+      - {name: legal_source, description: Fuente legal publicada.}
+      - {name: legal_code, description: Código legal publicado.}
+      - {name: secondary_legal_source, description: Segunda fuente legal explícita.}
+      - {name: secondary_legal_code, description: Segundo código legal literal.}
+      - {name: external_code, description: Identificador externo; no implica una fuente legal.}
+      - {name: offense_description, description: Descripción completa conservada tras las referencias legales.}
+      - {name: offense_category, description: Categoría legal explícita; no es la categoría Seattle de delitos.}
+      - {name: parse_status, description: parsed / administrative / review_required; no mide completitud de categorías.}

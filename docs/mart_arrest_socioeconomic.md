@@ -32,7 +32,7 @@ preservaría su relación con cada detención y por eso se descarta esa alternat
 | `fact_arrests` | Una detención por `arrest_number`, con `arrest_count = 1`. |
 | `dim_address` | Una ubicación por `address_id`; todos sus atributos de dirección se conservan. |
 | `dim_postal_codes` | Una fila por CP; geometría y versión postales sin modificaciones. |
-| `dim_census_socioeconomic` | Una fila por CP ZCTA. Es ephemeral: lee el Silver existente sin reconstruirlo. |
+| `dim_census_socioeconomic` | Vista Gold con una fila por CP ZCTA. Lee el Silver existente sin reconstruirlo. |
 
 Se conservan `arrest_occurred_date_time` y `arrest_occurred_date`. El año procede
 de esta última, no del reporte. Si falta la fecha, el año queda NULL sin perder

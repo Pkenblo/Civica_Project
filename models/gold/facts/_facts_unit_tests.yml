@@ -1,0 +1,63 @@
+version: 2
+
+unit_tests:
+  - name: fact_crimes_actualiza_informes_sin_mover_el_cursor
+    model: fact_crimes
+    description: >-
+      Comprueba las filas que devuelve el incremental: una corrección solo del informe
+      alcanza a todos sus delitos, incluso al pasar de fecha a NULL y viceversa, sin
+      adelantar su ingesta. Una nueva versión del delito conserva los nulos recibidos;
+      una clave nueva con ingesta igual al corte no entra.
+    overrides:
+      macros:
+        is_incremental: true
+    given:
+      - input: ref('crimes')
+        format: sql
+        rows: |
+          select crime_id, report_id, crime_id as offense_id, nibrs_key,
+                 'A1' as address_id, 'P1' as police_area_id, 'OC1' as offense_category_id,
+                 '2026-01-01 08:00:00'::timestamp_ntz as offense_date,
+                 ingested_at::timestamp_tz::timestamp_ltz as ingested_at
+          from values
+              ('C1', 'R1', 'N1', '2026-01-01 12:00:00 +00:00'),
+              ('C2', 'R1', 'N1', '2026-01-01 12:00:00 +00:00'),
+              ('C3', 'R2', 'N1', '2026-01-02 12:00:00 +00:00'),
+              ('C4', 'R3', 'N1', '2026-01-01 12:00:00 +00:00'),
+              ('C5', 'R2', 'N1', '2026-01-02 12:00:00 +00:00'),
+              ('C6', 'R2', null, '2026-01-03 12:00:00 +00:00')
+          as v(crime_id, report_id, nibrs_key, ingested_at)
+      - input: ref('dim_report')
+        format: sql
+        rows: |
+          select report_id, report_date_time::timestamp_ntz as report_date_time,
+                 '2026-02-01 12:00:00 +00:00'::timestamp_tz::timestamp_ltz as ingested_at
+          from values
+              ('R1', null),
+              ('R2', '2026-01-05 09:00:00'),
+              ('R3', '2026-01-06 10:00:00')
+          as v(report_id, report_date_time)
+      - input: ref('dim_date')
+        format: sql
+        rows: |
+          select full_date::date as full_date, date_key
+          from values ('2026-01-01', 20260101), ('2026-01-05', 20260105), ('2026-01-06', 20260106)
+          as v(full_date, date_key)
+      - input: this
+        format: sql
+        rows: |
+          select crime_id, report_date_time::timestamp_ntz as report_date_time,
+                 ingested_at::timestamp_tz::timestamp_ltz as ingested_at, 'N1' as nibrs_key
+          from values
+              ('C1', '2026-01-04 09:00:00', '2026-01-01 12:00:00 +00:00'),
+              ('C2', '2026-01-04 09:00:00', '2026-01-01 12:00:00 +00:00'),
+              ('C3', '2026-01-05 09:00:00', '2026-01-02 12:00:00 +00:00'),
+              ('C4', null,                  '2026-01-01 12:00:00 +00:00'),
+              ('C6', '2026-01-05 09:00:00', '2026-01-01 12:00:00 +00:00')
+          as v(crime_id, report_date_time, ingested_at)
+    expect:
+      rows:
+        - {crime_id: C1, nibrs_key: N1, report_date_time: null, report_date: null, report_date_key: null, ingested_at: '2026-01-01 12:00:00 +00:00'}
+        - {crime_id: C2, nibrs_key: N1, report_date_time: null, report_date: null, report_date_key: null, ingested_at: '2026-01-01 12:00:00 +00:00'}
+        - {crime_id: C4, nibrs_key: N1, report_date_time: '2026-01-06 10:00:00', report_date: '2026-01-06', report_date_key: 20260106, ingested_at: '2026-01-01 12:00:00 +00:00'}
+        - {crime_id: C6, nibrs_key: null, report_date_time: '2026-01-05 09:00:00', report_date: '2026-01-05', report_date_key: 20260105, ingested_at: '2026-01-03 12:00:00 +00:00'}

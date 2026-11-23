@@ -1,0 +1,42 @@
+version: 2
+
+models:
+  - name: dim_census_socioeconomic
+    description: >
+      Contexto socioeconómico ACS 2024 5-year (2020–2024), una fila por cp ZCTA.
+      Proyección de Silver sin joins ni filtros adicionales: conserva los códigos del ámbito
+      981 seleccionado en Staging, las métricas, los indicadores de límites superiores y la trazabilidad.
+      Relación lógica por código con dim_postal_codes.cp, aceptada como aproximación:
+      ZCTA y ZIP no tienen necesariamente los mismos límites. Los consumidores deben
+      usar LEFT JOIN desde la geografía para conservar códigos sin datos económicos.
+      Los marcadores superiores no son importes exactos. No sumar ni promediar medianas
+      para obtener la mediana de otra zona; comprobar población nula o cero antes de calcular tasas.
+    columns:
+      - name: cp
+        data_type: varchar(5)
+        description: >
+          Clave ZCTA de cinco dígitos con ceros iniciales. La correspondencia con
+          dim_postal_codes.cp es parcial porque el catálogo postal del proyecto es local.
+        data_tests: [unique, not_null]
+      - {name: zcta_name, data_type: varchar, description: "Nombre descriptivo de la ZCTA; no es una clave."}
+      - name: median_household_income
+        data_type: number(38,0)
+        description: "Ingreso mediano anual por hogar, USD ajustados a 2024; 250001 es un marcador superior identificado por income_top_coded."
+      - name: income_margin_of_error
+        data_type: number(38,0)
+        description: "Margen de error al 90 % del ingreso mediano; puede ser NULL."
+      - name: population
+        data_type: number(38,0)
+        description: "Población total estimada; no utilizar NULL ni cero como denominador."
+      - name: median_home_value
+        data_type: number(38,0)
+        description: "Valor mediano de viviendas ocupadas por propietarios, USD; 2000001 es un marcador superior identificado por home_value_top_coded."
+      - name: median_monthly_rent
+        data_type: number(38,0)
+        description: "Alquiler contractual mediano mensual, USD; 3501 es un marcador superior identificado por rent_top_coded."
+      - {name: income_top_coded, data_type: boolean}
+      - {name: home_value_top_coded, data_type: boolean}
+      - {name: rent_top_coded, data_type: boolean}
+      - {name: ingested_at, data_type: timestamp_ntz, description: "Timestamp de ingesta conservado desde RAW."}
+      - {name: source_file, data_type: varchar, description: "Archivo de origen."}
+      - {name: batch_id, data_type: varchar, description: "Lote de ingesta."}

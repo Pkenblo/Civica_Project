@@ -1,0 +1,12 @@
+version: 2
+
+models:
+  - name: dim_agent
+    description: Último perfil de agente según Silver; no contiene su edad, unidad ni cargo en las detenciones, ni metadatos de ingesta.
+    columns:
+      - {name: agent_key, data_tests: [unique, not_null]}
+
+  - name: dim_subject
+    description: Último perfil del sujeto publicado por Silver. No contiene rangos de edad en eventos.
+    columns:
+      - {name: subject_key, data_tests: [unique, not_null]}

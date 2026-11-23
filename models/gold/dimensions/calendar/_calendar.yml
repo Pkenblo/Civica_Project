@@ -1,0 +1,8 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: Calendario diario continuo generado con dbt_date.get_date_dimension desde 1900-01-01 hasta 2101-01-01 (excluida), con semana y día ISO.
+    columns:
+      - {name: date_key, description: Entero YYYYMMDD, data_tests: [unique, not_null]}
+      - {name: iso_week_year, description: Año de la semana ISO; puede diferir del año natural.}
