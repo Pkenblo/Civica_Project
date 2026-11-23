@@ -25,6 +25,8 @@ renamed as (
         , try_to_boolean(trim(CRISIS_INVOLVED))                                                         as crisis_involved
         , try_to_boolean(trim(COMPLAINT_INVOLVED))                                                      as complaint_involved
         , try_to_boolean(trim(FORCE_INVOLVED))                                                          as force_involved
+        , NIBRS_DESCRIPTION                                                                            as nibrs_description_original
+        , OFFENSE_TYPE                                                                                 as offense_type_original
         , {{ nullif_any("upper(trim(NIBRS_DESCRIPTION))", "", "-") }}                                   as nibrs_description
         , {{ nullif_any("upper(trim(OFFENSE_TYPE))", "", "-") }}                                        as offense_type
         , nullif(try_to_number(trim(OFFICER_AGE)), -1)                                                  as officer_age

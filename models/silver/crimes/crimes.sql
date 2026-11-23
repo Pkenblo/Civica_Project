@@ -6,9 +6,7 @@
 ) }}
 
 with candidates as (
-    select s.*, r.report_id, md5(r.report_id || '|' || s.offense_id) as crime_id,
-           iff(is_location_redacted or has_missing_coordinates or has_invalid_coordinates,
-               'C:' || r.report_id || ':' || s.offense_id, null) as location_context
+    select s.*, r.report_id, {{ dbt_utils.generate_surrogate_key(['r.report_id', 's.offense_id']) }} as crime_id
     from {{ ref('stg_crimes') }} s
     left join {{ ref('reports') }} r on s.report_number = r.report_number
     where s.report_number is not null and s.offense_id is not null and s.ingested_at is not null
@@ -18,25 +16,21 @@ with candidates as (
 ),
 resolved as (
     select s.crime_id, s.report_id, s.offense_id, s.offense_date, s.ingested_at,
-           n.nibrs_key, c.offense_category_id, sub.offense_subcategory_id, d.address_id, z.police_area_id,
+           n.nibrs_key, c.offense_category_id, d.address_id, z.police_area_id,
            s.source_file, s.batch_id
     from candidates s
     left join {{ ref('nibrs') }} n on n.offense_code = s.nibrs_offense_code
-    left join {{ ref('offense_categories') }} c on c.offense_category = s.offense_category
-    left join {{ ref('offense_subcategories') }} sub on sub.offense_sub_category = s.offense_sub_category
-        and equal_null(sub.offense_category_id, c.offense_category_id)
+    left join {{ ref('offense_categories') }} c on equal_null(c.offense_category, s.offense_category)
+        and equal_null(c.offense_sub_category, s.offense_sub_category)
     left join {{ ref('police_add') }} z on equal_null(z.precinct, s.precinct)
         and equal_null(z.sector, s.sector) and equal_null(z.beat, s.beat)
-    left join {{ ref('full_address') }} d on equal_null(d.location_context, s.location_context)
-        {% for col in ['block_address', 'latitude', 'longitude', 'neighborhood', 'reporting_area', 'census_block_2020',
-                       'is_location_redacted', 'has_missing_coordinates', 'has_invalid_coordinates'] %}
-        and equal_null(d.{{ col }}, s.{{ col }})
-        {% endfor %}
+    left join {{ ref('full_address') }} d on d.address_id = {{ address_id('s') }}
 )
 select * exclude (source_file, batch_id)
 from resolved
 qualify row_number() over (
     partition by report_id, offense_id
     order by ingested_at desc, source_file desc nulls last, batch_id desc nulls last, offense_date desc nulls last,
-             to_json(array_construct(nibrs_key, offense_category_id, offense_subcategory_id, address_id, police_area_id)) desc
+             nibrs_key desc nulls last, offense_category_id desc nulls last,
+             address_id desc nulls last, police_area_id desc nulls last
 ) = 1

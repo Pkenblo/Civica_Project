@@ -2,7 +2,7 @@
 
 -- El delta RAW transmite filas observadas; no transmite bajas de etiquetas.
 with observations as (
-    select distinct md5(report_number) as report_id, offense_id, shooting_type_group
+    select distinct {{ dbt_utils.generate_surrogate_key(['report_number']) }} as report_id, offense_id, shooting_type_group
     from {{ ref('stg_crimes') }}
     where shooting_type_group is not null
 )

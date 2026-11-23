@@ -1,2 +1,3 @@
-select arrest_type_id, description
+select arrest_type_id, 
+       description
 from {{ ref('arrest_types') }}

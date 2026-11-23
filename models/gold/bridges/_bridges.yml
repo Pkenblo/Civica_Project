@@ -21,15 +21,21 @@ models:
           - relationships: {arguments: {to: "ref('dim_shooting_type')", field: shooting_type_id}}
 
   - name: bridge_arrest_offenses
-    description: Infracciones observadas en las detenciones; el texto NIBRS no identifica un código.
+    description: Infracciones observadas, con el mismo grano e ID de Silver y referencias independientes a dim_offense_types y dim_nibrs. Sigue siendo ephemeral.
     data_tests:
       - dbt_utils.equality:
           arguments:
             compare_model: "ref('arrest_offenses')"
-            compare_columns: [arrest_offense_id, arrest_number, offense_type, nibrs_description]
+            compare_columns: [arrest_offense_id, arrest_number, offense_type_id, nibrs_key, nibrs_match_status, unresolved_nibrs_description]
     columns:
       - {name: arrest_offense_id, data_tests: [unique, not_null]}
       - name: arrest_number
         data_tests:
           - not_null
           - relationships: {arguments: {to: "ref('fact_arrests')", field: arrest_number}}
+      - name: offense_type_id
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_offense_types')", field: offense_type_id}}
+      - name: nibrs_key
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_nibrs')", field: nibrs_key}}

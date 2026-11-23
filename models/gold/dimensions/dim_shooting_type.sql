@@ -1,2 +1,3 @@
-select shooting_type_id, description
+select shooting_type_id, 
+       description
 from {{ ref('shooting_types') }}

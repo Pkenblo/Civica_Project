@@ -86,7 +86,8 @@ def main():
                 dt = '01/01/2026 10:00:00 AM'
                 arrest = dict(ARREST_NUMBER='A1', REPORT_NUMBER='20260000000001', ARREST_TYPE='OLD',
                               ARREST_OCCURRED_DATE_TIME=dt, ARREST_REPORTED_DATE_TIME=dt, OFFICER_ID='O1',
-                              SK_PERSON='P1', LATITUDE='1', LONGITUDE='1', OFFICER_AGE='40')
+                              SK_PERSON='P1', LATITUDE='1', LONGITUDE='1', OFFICER_AGE='40',
+                              AS_ON_SQUAD_DESC='PATROL', INV_OFFICER_TITLE='OFFICER')
                 crime = dict(REPORT_NUMBER='2026-000001', OFFENSE_ID='C1', REPORT_DATE_TIME=dt,
                              OFFENSE_DATE=dt, OFFENSE_CATEGORY='CAT', OFFENSE_SUB_CATEGORY='SUB')
                 pet = dict(LICENSE_NUMBER='L1', LICENSE_ISSUE_DATE='January 01 2026', SPECIES='DOG', PRIMARY_BREED='B')
@@ -100,8 +101,10 @@ def main():
                 assert rows('select distinct report_id from arrest minus select report_id from crimes') == []
                 assert rows('select animal_name from licenses') == [('DOG A',)]
                 assert rows('select count(*) from crime_shooting_types') == [(2,)]
+                assert rows('select officer_squad_at_arrest, officer_title_at_arrest from arrest') == [('PATROL', 'OFFICER')]
                 # Una versión con ingesta más reciente sustituye la anterior, incluso con NULL.
                 add('ARRESTS', 3, **(arrest | dict(ARREST_TYPE='NEW', OFFICER_ID=None, OFFICER_AGE=None,
+                                                   AS_ON_SQUAD_DESC=None, INV_OFFICER_TITLE=None,
                                                    BLOCK_ADDRESS='REDACTED')), OFFENSE_TYPE='CHARGE C')
                 add('CRIMES', 3, **(crime | dict(OFFENSE_SUB_CATEGORY=None)), SHOOTING_TYPE_GROUP='TYPE C')
                 add('PET_LICENSES', 3, **pet, ANIMAL_S_NAME=None)
@@ -125,8 +128,11 @@ def main():
                     assert rows("select agent_key, officer_age, d.cp_status, t.description from arrest a "
                                 "join full_address d using (address_id) join arrest_types t using (arrest_type_id) "
                                 "where arrest_number='A1'") == [(None, None, 'redacted', 'NEW')]
+                    assert rows('select arrest_number, officer_squad_at_arrest, officer_title_at_arrest '
+                                'from arrest order by 1') == [('A1', None, None), ('A3', 'PATROL', 'OFFICER')]
                     assert rows('select count(*) from arrest_offenses') == [(3,)]
-                    assert rows('select offense_id, offense_subcategory_id is null from crimes order by 1') == [('C1', True), ('C3', False)]
+                    assert rows('select offense_id, o.offense_category, o.offense_sub_category from crimes c '
+                                'left join offense_categories o using (offense_category_id) order by 1') == [('C1', 'CAT', None), ('C3', 'CAT', 'SUB')]
                     assert rows('select count(*) from crime_shooting_types') == [(3,)]
                     assert rows('select license_number, animal_name, cp from licenses order by 1') == [('L1', None, None), ('L3', 'TIE', None)]
                 build('--full-refresh')

@@ -1,6 +1,6 @@
 Project seattle_gold {
   database_type: 'Snowflake'
-  Note: 'Modelo lógico de Gold. Los dos puentes son CTE de dbt, no objetos de Snowflake.'
+  Note: 'Modelo lógico de Gold: 15 dimensiones, 2 hechos y 2 puentes; marts excluidos. Los dos puentes y dim_census_socioeconomic son ephemeral: CTE de dbt, no objetos de Snowflake. Las referencias son lógicas. La relación ZIP-ZCTA por código es una aproximación analítica, no una equivalencia geográfica ni una FK total.'
 }
 
 Table dim_date {
@@ -23,6 +23,23 @@ Table dim_postal_codes {
   cp varchar [pk]
   geography geography
   boundary_version varchar
+}
+
+Table dim_census_socioeconomic {
+  Note: 'ephemeral: solo mediante ref() en dbt. ACS 2024 5-year (2020-2024), una fila por ZCTA. Relación aproximada por código con dim_postal_codes; puede haber códigos sin correspondencia. No sumar medianas ni repetir población al agregar eventos.'
+  cp varchar(5) [pk, note: 'Código ZCTA; no identifica un polígono ZIP equivalente.']
+  zcta_name varchar
+  median_household_income number(38,0)
+  income_margin_of_error number(38,0)
+  population number(38,0)
+  median_home_value number(38,0)
+  median_monthly_rent number(38,0)
+  income_top_coded boolean
+  home_value_top_coded boolean
+  rent_top_coded boolean
+  ingested_at timestamp_ntz
+  source_file varchar
+  batch_id varchar
 }
 
 Table dim_address {
@@ -68,6 +85,7 @@ Table dim_licenses {
 }
 
 Table dim_nibrs {
+  Note: 'Catálogo compartido por delitos y cargos de detenciones. No establece correspondencias entre eventos.'
   nibrs_key varchar [pk]
   offense_code varchar [not null, unique]
   offense_description varchar
@@ -76,11 +94,25 @@ Table dim_nibrs {
 }
 
 Table dim_offense_classification {
+  Note: 'Una combinación de categoría y subcategoría de Seattle, independiente de NIBRS. Admite un nivel ausente. La clave procede de offense_categories.offense_category_id en Silver.'
   offense_classification_id varchar [pk]
-  offense_category_id varchar
-  offense_subcategory_id varchar
   offense_category varchar
   offense_sub_category varchar
+}
+
+Table dim_offense_types {
+  Note: 'Clasificación legal independiente de NIBRS. Una fila por texto legal completo normalizado, no por código. Incremental por filas nuevas o modificadas, sin cursor de ingesta.'
+  offense_type_id varchar [pk]
+  offense_type varchar [not null, unique]
+  offense_type_original_values array [note: 'Variantes textuales exactas observadas en RAW.']
+  legal_source varchar
+  legal_code varchar
+  secondary_legal_source varchar
+  secondary_legal_code varchar
+  external_code varchar
+  offense_description varchar
+  offense_category varchar [note: 'Categoría legal; no es la categoría Seattle de delitos.']
+  parse_status varchar [not null, note: 'parsed / administrative / review_required; no certifica validez jurídica.']
 }
 
 Table dim_shooting_type {
@@ -89,6 +121,7 @@ Table dim_shooting_type {
 }
 
 Table fact_crimes {
+  Note: 'Una fila por delito lógico (report_id, offense_id), con crime_count = 1. No unir directamente a fact_arrests por informe: puede multiplicar filas.'
   crime_id varchar [pk]
   report_id varchar [not null]
   offense_id varchar [not null]
@@ -107,7 +140,7 @@ Table fact_crimes {
 }
 
 Table bridge_crime_shooting_types {
-  Note: 'ephemeral: solo mediante ref() en dbt.'
+  Note: 'ephemeral: solo mediante ref() en dbt. Asociaciones observadas, no necesariamente vigentes. Varias etiquetas no son varios delitos.'
   crime_id varchar [not null]
   shooting_type_id varchar [not null]
 
@@ -126,9 +159,6 @@ Table dim_agent {
   officer_id varchar
   officer_gender varchar
   officer_race varchar
-  squad_description varchar
-  officer_title varchar
-  ingested_at timestamp_ltz
 }
 
 Table dim_subject {
@@ -147,6 +177,7 @@ Table dim_cad_profile {
 }
 
 Table fact_arrests {
+  Note: 'Una fila por arrest_number, con arrest_count = 1. Edades, unidad y cargo del agente pertenecen al evento, no al perfil de la persona.'
   arrest_number varchar [pk]
   report_id varchar
   address_id varchar [not null]
@@ -163,6 +194,8 @@ Table fact_arrests {
   arrest_reported_date_key number(8,0)
   officer_age number
   subject_age_range varchar
+  officer_squad_at_arrest varchar
+  officer_title_at_arrest varchar
   crisis_involved boolean
   complaint_involved boolean
   force_involved boolean
@@ -173,13 +206,17 @@ Table fact_arrests {
 }
 
 Table bridge_arrest_offenses {
-  Note: 'ephemeral: solo mediante ref() en dbt.'
+  Note: 'ephemeral: solo mediante ref() en dbt. Un cargo observado por detención, texto legal y descripción NIBRS de origen. Las referencias legales y NIBRS son independientes; solo una descripción con coincidencia exacta y única recibe nibrs_key.'
   arrest_offense_id varchar [pk]
   arrest_number varchar [not null]
-  offense_type varchar
-  nibrs_description varchar
+  offense_type_id varchar
+  nibrs_key varchar
+  nibrs_match_status varchar [not null, note: 'matched / missing / ambiguous / unmatched']
+  unresolved_nibrs_description varchar
 }
 
+// Correspondencia analítica por código entre dos catálogos únicos; no FK total ni equivalencia de límites.
+Ref: dim_census_socioeconomic.cp - dim_postal_codes.cp
 Ref: dim_address.cp > dim_postal_codes.cp
 Ref: dim_licenses.cp > dim_postal_codes.cp
 Ref: dim_licenses.license_issue_date_key > dim_date.date_key
@@ -202,13 +239,17 @@ Ref: fact_arrests.arrest_reported_date_key > dim_date.date_key
 Ref: bridge_crime_shooting_types.crime_id > fact_crimes.crime_id
 Ref: bridge_crime_shooting_types.shooting_type_id > dim_shooting_type.shooting_type_id
 Ref: bridge_arrest_offenses.arrest_number > fact_arrests.arrest_number
+Ref: bridge_arrest_offenses.offense_type_id > dim_offense_types.offense_type_id
+Ref: bridge_arrest_offenses.nibrs_key > dim_nibrs.nibrs_key
 
 TableGroup compartidas {
   dim_date
   dim_postal_codes
+  dim_census_socioeconomic
   dim_address
   dim_police_area
   dim_report
+  dim_nibrs
 }
 
 TableGroup licencias {
@@ -217,7 +258,6 @@ TableGroup licencias {
 
 TableGroup delitos {
   fact_crimes
-  dim_nibrs
   dim_offense_classification
   dim_shooting_type
   bridge_crime_shooting_types
@@ -229,5 +269,6 @@ TableGroup detenciones {
   dim_agent
   dim_subject
   dim_cad_profile
+  dim_offense_types
   bridge_arrest_offenses
 }

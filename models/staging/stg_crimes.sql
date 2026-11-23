@@ -36,6 +36,8 @@ renamed as (
         , {{ nullif_any("upper(trim(NEIGHBORHOOD))", "", "-") }}                                        as neighborhood
         , {{ nullif_any("upper(trim(REPORTING_AREA))", "", "-", "REDACTED") }}                          as reporting_area
         , {{ nullif_any("upper(trim(OFFENSE_CATEGORY))", "", "-") }}                                    as offense_category
+        , NIBRS_OFFENSE_CODE_DESCRIPTION                                                                as nibrs_offense_code_description_original
+        , NIBRS_OFFENSE_CODE                                                                            as nibrs_offense_code_original
         , {{ nullif_any("upper(trim(NIBRS_OFFENSE_CODE_DESCRIPTION))", "", "-") }}                      as nibrs_offense_code_description
         , {{ nullif_any("upper(trim(NIBRS_OFFENSE_CODE))", "", "-") }}                                  as nibrs_offense_code
         , {{ nullif_any("upper(trim(CENSUS_BLOCK_2020))", "", "-", "REDACTED") }}                       as census_block_2020

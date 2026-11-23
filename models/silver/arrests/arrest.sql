@@ -6,9 +6,7 @@
 ) }}
 
 with candidates as (
-    select s.*,
-           iff(is_location_redacted or has_missing_coordinates or has_invalid_coordinates,
-               'A:' || s.arrest_number, null) as location_context
+    select s.*
     from {{ ref('stg_arrests') }} s
     where s.arrest_number is not null and s.ingested_at is not null
     {% if is_incremental() %}
@@ -18,6 +16,7 @@ with candidates as (
 resolved as (
     select s.arrest_number, s.ingested_at, s.arrest_occurred_date_time, s.arrest_reported_date_time,
            r.report_id, t.arrest_type_id, a.agent_key, p.subject_key, s.officer_age, s.subject_age_range,
+           s.officer_squad as officer_squad_at_arrest, s.officer_title as officer_title_at_arrest,
            d.address_id, z.police_area_id, c.cad_profile_id, s.crisis_involved, s.complaint_involved,
            s.force_involved, s.terry_stop, s.demonstration, s.source_file, s.batch_id
     from candidates s
@@ -29,11 +28,7 @@ resolved as (
         and equal_null(c.cad_initial_call_type, s.cad_initial_call_type) and equal_null(c.cad_priority, s.cad_priority)
     left join {{ ref('police_add') }} z on equal_null(z.precinct, s.precinct)
         and equal_null(z.sector, s.sector) and equal_null(z.beat, s.beat)
-    left join {{ ref('full_address') }} d on equal_null(d.location_context, s.location_context)
-        {% for col in ['block_address', 'latitude', 'longitude', 'neighborhood', 'reporting_area', 'census_block_2020',
-                       'is_location_redacted', 'has_missing_coordinates', 'has_invalid_coordinates'] %}
-        and equal_null(d.{{ col }}, s.{{ col }})
-        {% endfor %}
+    left join {{ ref('full_address') }} d on d.address_id = {{ address_id('s') }}
 )
 select * exclude (source_file, batch_id)
 from resolved
@@ -41,7 +36,11 @@ qualify row_number() over (
     partition by arrest_number
     order by ingested_at desc, source_file desc nulls last, batch_id desc nulls last,
              arrest_reported_date_time desc nulls last, arrest_occurred_date_time desc nulls last,
-             to_json(array_construct(report_id, arrest_type_id, agent_key, subject_key, officer_age, subject_age_range,
-                                     address_id, police_area_id, cad_profile_id, crisis_involved, complaint_involved,
-                                     force_involved, terry_stop, demonstration)) desc
+             report_id desc nulls last, arrest_type_id desc nulls last,
+             agent_key desc nulls last, subject_key desc nulls last,
+             officer_age desc nulls last, subject_age_range desc nulls last,
+             officer_squad_at_arrest desc nulls last, officer_title_at_arrest desc nulls last,
+             address_id desc nulls last, police_area_id desc nulls last, cad_profile_id desc nulls last,
+             crisis_involved desc nulls last, complaint_involved desc nulls last,
+             force_involved desc nulls last, terry_stop desc nulls last, demonstration desc nulls last
 ) = 1

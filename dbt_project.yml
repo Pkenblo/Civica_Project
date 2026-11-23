@@ -36,9 +36,25 @@ models:
       +materialized: table
       marts:
         +schema: MARTS
-      # Solo los modelos que conservan el grano de un incremental de Silver.
+      # Incrementales heredados de Silver y calendario por fechas pendientes.
       dimensions:
+        dim_date:
+          +materialized: incremental
+          +incremental_strategy: delete+insert
+          +on_schema_change: fail
         dim_licenses:
+          +materialized: incremental
+          +incremental_strategy: delete+insert
+          +on_schema_change: fail
+        dim_subject:
+          +materialized: incremental
+          +incremental_strategy: delete+insert
+          +on_schema_change: fail
+        dim_offense_types:
+          +materialized: incremental
+          +incremental_strategy: delete+insert
+          +on_schema_change: fail
+        dim_report:
           +materialized: incremental
           +incremental_strategy: delete+insert
           +on_schema_change: fail

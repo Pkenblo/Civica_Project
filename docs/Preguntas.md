@@ -11,3 +11,7 @@ Tengo la tabla de census, esta realmente no se relaciona con el resto, si que ti
 Mis datamarts no tienen agregaciones ya que me interesa sacarlos con el grano mas fino para poder luego poner filtros en la visualizacion esto esta bien?
 
 el mart_crimes_socioeconomic tarda mucho.
+
+si los consumidores solo van a poder consumir el mart no tiene
+sentido hacer dimensiones que son copias 1-1 de su tabla de silver. Entonces no podemos hacerlo una tabla ephimeral? 
+ 

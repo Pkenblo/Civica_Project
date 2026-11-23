@@ -1,0 +1,39 @@
+version: 2
+
+models:
+  - name: agents
+    description: >-
+      Último perfil observado por identificador de agente, sin histórico de vigencias.
+      La edad, la unidad y el cargo de cada detención permanecen en arrest.
+      Ingesta, archivo y lote se usan solo para seleccionar la observación; no se publican.
+    columns:
+      - name: agent_key
+        description: Clave estable generada sobre officer_id.
+        data_tests: [unique, not_null]
+      - name: officer_id
+        description: Identificador de agente informado por el origen.
+        data_tests: [not_null]
+      - name: officer_gender
+        description: Género publicado en la última observación seleccionada.
+      - name: officer_race
+        description: Clasificación racial publicada en la última observación seleccionada.
+
+  - name: subject
+    description: >-
+      Último perfil por identificador de sujeto informado, sin personas ficticias ni
+      histórico de vigencias. Incremental delete+insert por sk_person con corte global
+      de ingesta; la edad de cada detención permanece en arrest.
+    columns:
+      - name: subject_key
+        description: Clave estable generada sobre subject_id de staging.
+        data_tests: [unique, not_null]
+      - name: sk_person
+        description: Identificador subject_id de origen y clave del incremental; no es un hash.
+        data_tests: [not_null]
+      - name: subject_gender
+        description: Género publicado en la versión seleccionada.
+      - name: subject_race
+        description: Clasificación racial publicada en la versión seleccionada.
+      - name: ingested_at
+        description: Fecha de ingesta de la versión publicada y cursor incremental.
+        data_tests: [not_null]

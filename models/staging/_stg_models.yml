@@ -40,9 +40,7 @@ models:
 
       - name: species
         data_type: varchar
-        description: Especie de la mascota en mayúsculas, sin espacios exteriores.
-        data_tests:
-          - not_null
+        description: Especie de la mascota en mayúsculas, sin espacios exteriores; vacíos, UNKNOWN y guiones se convierten en NULL.
 
       - name: primary_breed
         data_type: varchar
@@ -171,6 +169,14 @@ models:
         data_type: varchar
         description: Descripción del código de delito NIBRS.
 
+      - name: nibrs_offense_code_description_original
+        data_type: varchar
+        description: Descripción NIBRS exacta de RAW, sin limpiar ni sustituir marcadores.
+
+      - name: nibrs_offense_code_original
+        data_type: varchar
+        description: Código NIBRS exacto de RAW, para trazabilidad.
+
       - name: nibrs_offense_code
         data_type: varchar
         description: Código del delito en la clasificación NIBRS.
@@ -275,6 +281,14 @@ models:
       - name: offense_type
         data_type: varchar
         description: Descripción de la infracción legal asociada a la detención.
+
+      - name: offense_type_original
+        data_type: varchar
+        description: Texto legal exacto de RAW. Se conservan caso, espacios y marcadores.
+
+      - name: nibrs_description_original
+        data_type: varchar
+        description: Descripción NIBRS exacta de RAW. No se deduce del texto legal.
 
       - name: officer_age
         data_type: number(38,0)

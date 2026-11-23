@@ -1,4 +1,5 @@
-select md5(md5(report_number) || '|' || offense_id) as crime_id, md5(shooting_type_group) as shooting_type_id
+select {{ dbt_utils.generate_surrogate_key([dbt_utils.generate_surrogate_key(['report_number']), 'offense_id']) }} as crime_id,
+       {{ dbt_utils.generate_surrogate_key(['shooting_type_group']) }} as shooting_type_id
 from {{ ref('stg_crimes') }}
 where shooting_type_group is not null
 minus

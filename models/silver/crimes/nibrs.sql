@@ -1,6 +1,6 @@
 {{ config(materialized='table') }}
 
-select md5(nibrs_offense_code) as nibrs_key, nibrs_offense_code as offense_code,
+select {{ dbt_utils.generate_surrogate_key(['nibrs_offense_code']) }} as nibrs_key, nibrs_offense_code as offense_code,
        nibrs_offense_code_description as offense_description, nibrs_group_a_b as group_ab,
        nibrs_crime_against_category as crime_against_category
 from {{ ref('stg_crimes') }}

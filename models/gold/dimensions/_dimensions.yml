@@ -2,24 +2,58 @@ version: 2
 
 models:
   - name: dim_date
-    description: Calendario diario continuo entre las fechas extremas de Silver; semana y día de la semana ISO.
+    description: Calendario diario continuo generado con dbt_date.get_date_dimension entre las fechas extremas de Silver (ambas incluidas); incorpora incrementalmente las fechas pendientes, con semana y día ISO.
     columns:
       - {name: date_key, description: Entero YYYYMMDD, data_tests: [unique, not_null]}
       - {name: full_date, data_tests: [unique, not_null]}
       - {name: iso_week_year, description: Año de la semana ISO; puede diferir del año natural.}
 
   - name: dim_nibrs
-    description: Catálogo de códigos NIBRS publicado en Silver.
+    description: Catálogo NIBRS común de delitos y cargos de detenciones, publicado en Silver. No relaciona eventos individuales entre sí.
+    data_tests:
+      - dbt_utils.equality:
+          arguments:
+            compare_model: "ref('nibrs')"
+            compare_columns: [nibrs_key, offense_code, offense_description, group_ab, crime_against_category]
     columns:
       - {name: nibrs_key, data_tests: [unique, not_null]}
       - {name: offense_code, data_tests: [unique, not_null]}
       - name: group_ab
         description: Grupo de reporte NIBRS.
 
+  - name: dim_offense_types
+    description: Clasificación legal de las detenciones, independiente de NIBRS. Incremental delete+insert con corte global por ingested_at, como Silver; conserva textos completos, variantes originales, componentes y estados de revisión.
+    data_tests:
+      - dbt_utils.equality:
+          arguments:
+            compare_model: "ref('offense_types')"
+            compare_columns: [offense_type_id, offense_type, legal_source, legal_code, secondary_legal_source, secondary_legal_code, external_code, offense_description, offense_category, parse_status, ingested_at]
+    columns:
+      - name: offense_type_id
+        data_tests:
+          - unique
+          - not_null
+          - relationships: {arguments: {to: "ref('offense_types')", field: offense_type_id}}
+      - {name: offense_type, data_tests: [unique, not_null]}
+      - {name: offense_type_original_values, description: Todas las variantes textuales exactas observadas en RAW.}
+      - {name: ingested_at, description: Ingesta publicada por Silver y cursor incremental., data_tests: [not_null]}
+      - {name: legal_source, description: Fuente legal publicada.}
+      - {name: legal_code, description: Código legal publicado.}
+      - {name: secondary_legal_source, description: Segunda fuente legal explícita.}
+      - {name: secondary_legal_code, description: Segundo código legal literal.}
+      - {name: external_code, description: Identificador externo; no implica una fuente legal.}
+      - {name: offense_description, description: Descripción completa conservada tras las referencias legales.}
+      - {name: offense_category, description: Categoría legal explícita; no es la categoría Seattle de delitos.}
+      - {name: parse_status, description: parsed / administrative / review_required; no mide completitud de categorías.}
+
   - name: dim_address
-    description: Ubicación publicada del evento; el CP solo se asigna con una coincidencia interior única.
+    description: Ubicación compartida de Silver, incluidas UNKNOWN y REDACTED sin atributos geográficos. El CP solo se asigna con una coincidencia interior única.
     data_tests:
       - dbt_utils.expression_is_true: {arguments: {expression: "(cp_status = 'matched') = (cp is not null)"}}
+      - dbt_utils.equality:
+          arguments:
+            compare_model: "ref('full_address')"
+            compare_columns: [address_id, block_address, latitude, longitude, neighborhood, reporting_area, census_block_2020, cp, cp_status, is_location_redacted, has_missing_coordinates, has_invalid_coordinates]
     columns:
       - {name: address_id, data_tests: [unique, not_null]}
       - {name: block_address, description: Dirección aproximada por bloque; puede estar censurada.}
@@ -35,7 +69,7 @@ models:
               arguments: {values: [matched, redacted, missing_coordinates, invalid_coordinates, no_match, ambiguous, boundary]}
 
   - name: dim_postal_codes
-    description: CP de cinco dígitos de la cartografía activa o de licencias; no equivale al límite municipal.
+    description: CP de cinco dígitos de la cartografía activa, filtrados por prefijo 981; no equivale al límite municipal.
     columns:
       - name: cp
         data_tests:
@@ -76,13 +110,11 @@ models:
     description: Una fila por combinación de categoría y subcategoría de Seattle, independiente de NIBRS. Admite que falte uno de los dos niveles.
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          arguments: {combination_of_columns: [offense_category_id, offense_subcategory_id]}
+          arguments: {combination_of_columns: [offense_category, offense_sub_category]}
       - dbt_utils.expression_is_true:
-          arguments: {expression: "offense_category_id is not null or offense_subcategory_id is not null"}
+          arguments: {expression: "offense_category is not null or offense_sub_category is not null"}
     columns:
-      - {name: offense_classification_id, data_tests: [unique, not_null]}
-      - {name: offense_category_id, description: Clave de categoría en Silver; nula si no se conoce.}
-      - {name: offense_subcategory_id, description: Clave de subcategoría en Silver; nula si no se conoce.}
+      - {name: offense_classification_id, description: Misma clave que offense_categories.offense_category_id en Silver., data_tests: [unique, not_null]}
       - {name: offense_category, description: Categoría publicada por Seattle.}
       - {name: offense_sub_category, description: Subcategoría publicada por Seattle.}
 
@@ -97,12 +129,12 @@ models:
       - {name: arrest_type_id, data_tests: [unique, not_null]}
 
   - name: dim_agent
-    description: Último perfil de agente según Silver; no contiene su edad en eventos.
+    description: Último perfil de agente según Silver; no contiene su edad, unidad ni cargo en las detenciones, ni metadatos de ingesta.
     columns:
       - {name: agent_key, data_tests: [unique, not_null]}
 
   - name: dim_subject
-    description: Último perfil observado del sujeto; no contiene rangos de edad en eventos.
+    description: Último perfil observado del sujeto; incremental con corte global por ingested_at, como Silver. No contiene rangos de edad en eventos.
     columns:
       - {name: subject_key, data_tests: [unique, not_null]}
 
@@ -112,7 +144,13 @@ models:
       - {name: cad_profile_id, data_tests: [unique, not_null]}
 
   - name: dim_report
-    description: Informe identificado en delitos o detenciones. La fecha del informe procede solo de delitos.
+    description: Informe identificado en delitos o detenciones. La fecha del informe procede solo de delitos. Incremental delete+insert con corte global por ingested_at, como Silver.
+    data_tests:
+      - dbt_utils.equality:
+          arguments:
+            compare_model: "ref('reports')"
+            compare_columns: [report_id, report_number, report_date_time, ingested_at]
     columns:
       - {name: report_id, data_tests: [unique, not_null]}
       - {name: report_number, data_tests: [unique, not_null]}
+      - {name: ingested_at, description: Ingesta publicada por Silver y cursor incremental., data_tests: [not_null]}

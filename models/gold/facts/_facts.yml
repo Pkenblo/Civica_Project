@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: fact_crimes
-    description: Un delito lógico por crime_id. No incluye filas de etiquetas de tiroteo.
+    description: Un delito lógico por crime_id. No incluye filas de etiquetas de tiroteo. El incremental incorpora nuevas ingestas de delitos y corrige fechas de informe modificadas, sin alterar la ingesta del delito.
     data_tests:
       - dbt_utils.equal_rowcount: {arguments: {compare_model: "ref('crimes')"}}
       - dbt_utils.equality:
@@ -48,13 +48,13 @@ models:
           - relationships: {arguments: {to: "ref('dim_date')", field: date_key}}
 
   - name: fact_arrests
-    description: Una detención por arrest_number. Las edades e indicadores pertenecen al evento, no al perfil.
+    description: Una detención por arrest_number. Las edades, la unidad, el cargo del agente y los indicadores pertenecen al evento, no al perfil.
     data_tests:
       - dbt_utils.equal_rowcount: {arguments: {compare_model: "ref('arrest')"}}
       - dbt_utils.equality:
           arguments:
             compare_model: "ref('arrest')"
-            compare_columns: [arrest_number, report_id, address_id, police_area_id, arrest_type_id, agent_key, subject_key, cad_profile_id, arrest_occurred_date_time, arrest_reported_date_time, officer_age, subject_age_range, crisis_involved, complaint_involved, force_involved, terry_stop, demonstration, ingested_at]
+            compare_columns: [arrest_number, report_id, address_id, police_area_id, arrest_type_id, agent_key, subject_key, cad_profile_id, arrest_occurred_date_time, arrest_reported_date_time, officer_age, subject_age_range, officer_squad_at_arrest, officer_title_at_arrest, crisis_involved, complaint_involved, force_involved, terry_stop, demonstration, ingested_at]
       - dbt_utils.expression_is_true:
           arguments:
             expression: >-
@@ -67,6 +67,8 @@ models:
       - {name: arrest_number, data_tests: [unique, not_null]}
       - {name: ingested_at, data_tests: [not_null]}
       - {name: arrest_count, data_tests: [not_null]}
+      - {name: officer_squad_at_arrest, description: Unidad del agente en la detención conservada desde Silver.}
+      - {name: officer_title_at_arrest, description: Cargo del agente en la detención conservado desde Silver.}
       - name: report_id
         data_tests:
           - relationships: {arguments: {to: "ref('dim_report')", field: report_id}}

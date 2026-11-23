@@ -20,7 +20,7 @@ with latest as (
                  s.primary_breed desc nulls last, s.secondary_breed desc nulls last, s.zip_code desc nulls last
     ) = 1
 )
-select md5(license_number || '|' || coalesce(animal_name, '')) as license_id,
+select {{ dbt_utils.generate_surrogate_key(['license_number', 'animal_name']) }} as license_id,
        license_number, license_issue_date, animal_name, species, primary_breed, secondary_breed,
        iff(regexp_like(zip_code, '^[0-9]{5}$'), zip_code, null) as cp, ingested_at
 from latest
