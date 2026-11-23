@@ -121,7 +121,7 @@ Table dim_shooting_type {
 }
 
 Table fact_crimes {
-  Note: 'Una fila por delito lógico (report_id, offense_id), con crime_count = 1. No unir directamente a fact_arrests por informe: puede multiplicar filas.'
+  Note: 'Una fila por delito lógico (report_id, offense_id). No unir directamente a fact_arrests por informe: puede multiplicar filas.'
   crime_id varchar [pk]
   report_id varchar [not null]
   offense_id varchar [not null]
@@ -130,13 +130,9 @@ Table fact_crimes {
   police_area_id varchar
   offense_classification_id varchar
   offense_date_time timestamp_ntz
-  offense_date date
   offense_date_key number(8,0)
-  report_date_time timestamp_ntz
-  report_date date
   report_date_key number(8,0)
   ingested_at timestamp_ltz [not null]
-  crime_count integer [not null]
 }
 
 Table bridge_crime_shooting_types {
@@ -177,7 +173,7 @@ Table dim_cad_profile {
 }
 
 Table fact_arrests {
-  Note: 'Una fila por arrest_number, con arrest_count = 1. Edades, unidad y cargo del agente pertenecen al evento, no al perfil de la persona.'
+  Note: 'Una fila por arrest_number. Edades, unidad y cargo del agente pertenecen al evento, no al perfil de la persona.'
   arrest_number varchar [pk]
   report_id varchar
   address_id varchar [not null]
@@ -187,10 +183,8 @@ Table fact_arrests {
   subject_key varchar
   cad_profile_id varchar
   arrest_occurred_date_time timestamp_ntz
-  arrest_occurred_date date
   arrest_occurred_date_key number(8,0)
   arrest_reported_date_time timestamp_ntz
-  arrest_reported_date date
   arrest_reported_date_key number(8,0)
   officer_age number
   subject_age_range varchar
@@ -202,7 +196,6 @@ Table fact_arrests {
   terry_stop boolean
   demonstration boolean
   ingested_at timestamp_ltz [not null]
-  arrest_count integer [not null]
 }
 
 Table bridge_arrest_offenses {

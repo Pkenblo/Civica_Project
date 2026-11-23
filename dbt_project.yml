@@ -36,6 +36,9 @@ models:
       +materialized: table
       marts:
         +schema: MARTS
+        +materialized: incremental
+        +incremental_strategy: delete+insert
+        +on_schema_change: fail
       dimensions:
         +materialized: view
       bridges:

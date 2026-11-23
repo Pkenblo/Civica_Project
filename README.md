@@ -10,7 +10,7 @@ Cívica prepara datos abiertos de Seattle con dbt y Snowflake: delitos, detencio
 | Staging | `DBT_BRONZE.STG` | Cuatro vistas que renombran, tipan y normalizan sin deduplicar ni eliminar asociaciones. |
 | Silver | `DBT_SILVER.SILVER` | 17 modelos: fijan los granos, seleccionan versiones, conservan asociaciones y calculan el CP policial. |
 | Gold | `DBT_GOLD.GOLD` | Publica las dimensiones y los dos puentes como vistas de Snowflake; los hechos siguen siendo incrementales. |
-| Marts | `DBT_GOLD.MARTS` | Tres tablas anuales por CP para comparar delitos y licencias de mascotas y una tabla por delito para el [mapa por calle](docs/marts.md#mapa-de-delitos-por-calle). |
+| Marts | `DBT_GOLD.MARTS` | Una vista anual por CP para comparar delitos y licencias de mascotas y dos tablas incrementales de detalle: delitos y detenciones. |
 
 ## Silver: diseño definitivo
 
@@ -30,7 +30,7 @@ La [guía de Gold](docs/gold.md) documenta las tablas, sus claves y cómo constr
 
 ## Casos de uso
 
-El primer mart cuenta robos de vehículos (NIBRS `240`); el segundo reúne atracos, carterismos, tirones de bolso y otros hurtos (`120`, `23A`, `23B`, `23H`). El tercero cuenta todos los homicidios (`09A`, `09B`, `09C`) y cualquier otro delito con etiqueta de tiroteo. Los tres conservan las zonas con cero casos registrados. La [guía de los marts](docs/marts.md) detalla los criterios y la ejecución pendiente en DEV.
+La vista por CP-año reúne tres indicadores: robos de vehículos (`240`); atracos, carterismos, tirones de bolso y otros hurtos (`120`, `23A`, `23B`, `23H`); y homicidios (`09A`, `09B`, `09C`) o delitos con etiqueta de tiroteo. Conserva las zonas con cero casos registrados. La [guía de los marts](docs/marts.md) detalla los criterios y el despliegue en DEV.
 
 Para abrir el [panel de Seattle](visualizacion/README.md), ejecuta `./abrir-panel.sh` desde la raíz. El lanzador usa el Python de `.venv` en lugar del Python del sistema.
 

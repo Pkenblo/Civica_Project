@@ -22,20 +22,23 @@ Se conservan todos los delitos que ya cumplían los requisitos del mapa, incluso
 
 `acs_year = 2024` y `acs_period = '2020–2024'` describen un contexto fijo, no la economía de cada año del delito. ZIP y ZCTA se corresponden por código como aproximación. La renta es la de la zona, no la de las personas implicadas; población y medianas se repiten por delito y no deben sumarse.
 
-Con las dependencias ya construidas y el perfil DEV configurado:
+Con las dependencias Gold ya construidas y el perfil DEV configurado, construye ambos
+marts socioeconómicos juntos si aún no están publicados:
 
 ```bash
 DBT_BRONZE=DEV_BRONZE DBT_SILVER=DEV_SILVER DBT_GOLD=DEV_GOLD \
-  dbt build --target dev --select mart_crimes_socioeconomic
+  dbt build --target dev --select mart_crimes_socioeconomic mart_arrest_socioeconomic
 ```
 
-La regresión local se ejecuta con `python3 tests/integration/mart_crimes_socioeconomic_check.py` (Jinja2, sqlglot y PyYAML). Comprueba conservación de puntos, contexto ACS, censura y coincidencia de quintiles con detenciones sobre datos sintéticos; no sustituye la validación en Snowflake.
-
-El test `mart_crimes_socioeconomic_context` deduplica los contextos antes de unirlos con las dimensiones y comprobar sus atributos. Compara los polígonos en binario (WKB), sin convertirlos a texto WKT. Sigue leyendo todo el mart y serializando sus geometrías, pero evita repetir los joins y las comparaciones por cada delito con idéntico contexto. No toma una muestra por CP: conserva y detecta cualquier variante incorrecta, incluidos los cambios entre NULL y no NULL. Cada fila devuelta representa un contexto incorrecto, no un delito; el test de reconciliación sigue comprobando el grano por `crime_id`. La mejora de tiempo debe medirse en Snowflake.
+Las [pruebas nativas de dbt](../models/gold/marts/_marts.yml) incluyen unicidad de `crime_id`
+y no nulos de los campos obligatorios. El [test SQL compartido](../tests/singular/gold/marts_socioeconomic_contract.sql)
+requiere ambos marts y valida la edición ACS, el rango de quintiles y que las estimaciones informadas no sean negativas.
 
 ## Delitos y licencias por código postal
 
-[`mart_crimes_pet_licenses`](../models/gold/marts/mart_crimes_pet_licenses.sql), en `DBT_GOLD.MARTS`, sustituye los tres marts separados de robos, robos de vehículos y tiroteos/homicidios. Tiene una fila por `(cp, year)` con los tres indicadores y una sola copia de las licencias, sus proporciones y la cartografía.
+[`mart_crimes_pet_licenses`](../models/gold/marts/mart_crimes_pet_licenses.sql), en `DBT_GOLD.MARTS`, es una vista con una fila por `(cp, year)`: reúne los tres indicadores y una sola copia de las licencias, sus proporciones y la cartografía.
+
+La vista calcula los totales a partir de las fuentes vigentes cada vez que se consulta. Si se corrige el año de un delito en `fact_crimes` de 2024 a 2025, deja de contar en 2024 y pasa a contar en 2025, sin volver a ejecutar el mart. Si 2024 deja de tener delitos o licencias, deja de aparecer. La versión incremental anterior se conserva [como referencia](mart_crimes_pet_licenses.txt).
 
 | Indicador | Delitos incluidos |
 |---|---|
@@ -49,7 +52,7 @@ Para el segundo caso se eligió **un solo total de los cuatro códigos** del [ca
 
 En `shooting_or_homicide_count` entran todos los asesinatos y homicidios no negligentes (`09A`), los homicidios negligentes (`09B`) y los justificados (`09C`), con o sin tiroteo. También entra cualquier otro delito con etiqueta en `bridge_crime_shooting_types`, incluso si falta el código NIBRS. Cada `crime_id` cuenta una sola vez en este indicador, aunque cumpla ambos criterios o tenga varias etiquetas. El puente se deduplica por `crime_id` antes de unirlo al hecho.
 
-1. Se toman los años naturales con al menos una `offense_date` en `fact_crimes` y una `license_issue_date` en `dim_licenses`. La coincidencia se calcula para el conjunto de las fuentes, antes de filtrar por delito o especie; un año parcial también entra.
+1. Se toman los años naturales con al menos una ocurrencia de `fact_crimes`, consultando `dim_date` por `offense_date_key`, y una `license_issue_date` en `dim_licenses`. La coincidencia se calcula para el conjunto de las fuentes, antes de filtrar por delito o especie; un año parcial también entra.
 2. Se cruzan esos años con todos los CP de `dim_postal_codes`. Los tres indicadores se calculan en una sola agregación de delitos por fecha del hecho y CP de `dim_address`. Las licencias se agregan aparte por fecha de emisión y CP declarado. Los registros sin fecha o sin CP no aportan a los recuentos. Unir los totales después de agrupar evita multiplicar delitos por licencias.
 3. Si un CP no tiene casos registrados en un año común, su recuento es **cero**. Esto permite comparar también las zonas con pocos casos. Un cero no garantiza cobertura policial en ese CP, y un año común no implica doce meses completos en ambas fuentes.
 
@@ -61,7 +64,7 @@ En `shooting_or_homicide_count` entran todos los asesinatos y homicidios no negl
 | `pet_license_count` | Suma de las cuatro especies. No hay columnas para otras especies o especies desconocidas. Se cuentan números de licencia, no animales únicos ni licencias vigentes. |
 | `cumulative_dog_license_count`, `cumulative_cat_license_count`, `cumulative_goat_license_count`, `cumulative_pig_license_count` | Emisiones de cada especie hasta el año de la fila inclusive, incluso en años anteriores sin delitos. Son saldos acumulados: no sumarlos entre años. |
 | `dog_license_share`, `cat_license_share`, `goat_license_share`, `pig_license_share` | Recuento de la especie dividido por `pet_license_count`: fracción de 0 a 1, o `NULL` si no se emitieron licencias. |
-| `geography`, `boundary_version` | Polígono y versión del mapa activo. Un CP sin polígono se conserva en la tabla, aunque no pueda dibujarse en el mapa. |
+| `geography`, `boundary_version` | Polígono y versión del mapa activo. Un CP sin polígono se conserva en la vista, aunque no pueda dibujarse en el mapa. |
 
 Los recuentos son absolutos, no tasas por habitante o vehículo. No se deben sumar los tres indicadores como si fueran excluyentes: un atraco con tiroteo suma en `theft_count` y `shooting_or_homicide_count`. Las licencias no se repiten por indicador. Una asociación entre zonas no vincula un animal con un delito concreto.
 
@@ -76,10 +79,20 @@ export DBT_BRONZE=DEV_BRONZE DBT_SILVER=DEV_SILVER DBT_GOLD=DEV_GOLD
 dbt build --target dev --select mart_crimes_pet_licenses
 ```
 
-Este comando solo materializa el nuevo mart y ejecuta las [pruebas declaradas](../models/gold/marts/_marts.yml) y la [reconciliación independiente](../tests/singular/gold/mart_crimes_pet_licenses_reconciliation.sql). No añadir `+`: no se necesita reconstruir las dependencias.
-
-La regresión sintética local se ejecuta con `python3 tests/integration/mart_crimes_pet_licenses_check.py` (requiere Jinja2, sqlglot y PyYAML). Comprueba también solapamientos, varias etiquetas por delito, tiroteos sin NIBRS, especies y años fuera de la selección, y controles negativos de recuentos y proporciones. No valida geometrías reales ni sustituye Snowflake.
+Este comando publica la vista y ejecuta las comprobaciones de columnas, el [test unitario de la corrección de año](../tests/unit/_marts_unit_tests.yml) y la [reconciliación independiente](../tests/singular/gold/mart_crimes_pet_licenses_reconciliation.sql), que comprueba una fila por CP-año, recuentos, acumulados y proporciones. No añadir `+` si las dependencias ya están actualizadas.
 
 ### Migración
 
-Los tres modelos SQL anteriores y sus declaraciones YAML se han retirado del repositorio. dbt **no borra las tablas antiguas de Snowflake** al eliminar sus archivos. Crear el nuevo mart, dar `SELECT` a los consumidores y actualizar sus consultas antes de retirar esas tablas con autorización. La primera pestaña de la visualización consulta exclusivamente `DEV_GOLD.MARTS.MART_CRIMES_PET_LICENSES`, incluidos los acumulados y la cartografía. Conserva los tres indicadores en el selector y el filtro de 50 licencias. El periodo visible es 2024–2026 y el año inicial es 2024; la casilla de licencias acumuladas incluye también las emisiones anteriores a 2024. El modelo mantiene todos sus años comunes, no solo esos tres. Ninguna tabla antigua se ha eliminado automáticamente.
+Si `MART_CRIMES_PET_LICENSES` ya existe como tabla en DEV, revisa el respaldo, los consumidores y sus permisos antes de sustituirla. Con autorización, ejecuta una vez `dbt build --target dev --full-refresh --select mart_crimes_pet_licenses`: el adaptador Snowflake retira la tabla homónima y crea la vista. Vuelve a dar `SELECT ON VIEW` a los roles de lectura. Si el objeto no existe o ya es una vista, no necesitas `--full-refresh`.
+
+La primera pestaña del panel mantiene el mismo nombre de objeto, los tres indicadores, la cartografía y el filtro de 50 licencias. El periodo visible es 2024–2026 y el año inicial es 2024. La vista conserva todos los años comunes y los acumulados incluyen emisiones anteriores a 2024.
+
+## Carga incremental
+
+Los dos marts socioeconómicos detectan ingestas nuevas con `after_max_ingested_at`. El de delitos reemplaza los delitos del lote; el de arrestos recalcula los grupos CP-año afectados con todos sus arrestos.
+
+Si los marts socioeconómicos ya existen con el esquema anterior, el primer despliegue requiere una reconstrucción. Usa también `--full-refresh` si hay borrados, cambios en dimensiones sin una nueva ingesta del hecho o ubicaciones que deban dejar de publicarse. El corte tampoco recupera ingestas con una marca igual o anterior a la última publicada.
+
+```bash
+dbt build --target dev --full-refresh --select mart_crimes_socioeconomic mart_arrest_socioeconomic
+```

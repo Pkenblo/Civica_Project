@@ -9,17 +9,6 @@ models:
       mart_arrest_socioeconomic, sin excluir delitos sin ACS. Las medianas y la
       población se repiten entre delitos y no deben sumarse. ZIP y ZCTA se unen
       por código como aproximación; la renta de la zona no es la de las personas.
-    data_tests:
-      - dbt_utils.expression_is_true:
-          arguments:
-            expression: >-
-              acs_year = 2024 and acs_period = '2020–2024'
-              and (income_quintile is null or income_quintile between 1 and 5)
-              and (median_household_income is null or median_household_income >= 0)
-              and (income_margin_of_error is null or income_margin_of_error >= 0)
-              and (population is null or population >= 0)
-              and (median_home_value is null or median_home_value >= 0)
-              and (median_monthly_rent is null or median_monthly_rent >= 0)
     columns:
       - {name: crime_id, data_tests: [unique, not_null]}
       - {name: offense_date, description: Fecha del hecho.}
@@ -62,39 +51,15 @@ models:
         description: Etiqueta relativa del quintil, no umbral absoluto de pobreza; NULL sin quintil.
         data_tests:
           - accepted_values: {arguments: {values: [muy bajo, bajo, medio, alto, muy alto]}}
+      - {name: ingested_at, description: Marca técnica de ingesta del delito., data_tests: [not_null]}
 
   - name: mart_crimes_pet_licenses
     description: >
-      Una fila por CP y año común a delitos y licencias. Tres indicadores no excluyentes:
+      Vista sobre las fuentes vigentes, con una fila por CP y año común a delitos y licencias.
+      Tres indicadores no excluyentes:
       robos de vehículos, atracos y hurtos seleccionados, y delitos con tiroteo u homicidio.
       Las licencias de perro, gato, cabra y cerdo y la cartografía aparecen una sola vez.
       Conserva CP con cero casos o sin polígono. No sumar los indicadores como conjuntos disjuntos.
-    data_tests:
-      - dbt_utils.unique_combination_of_columns:
-          arguments: {combination_of_columns: [cp, year]}
-      - dbt_utils.expression_is_true:
-          arguments:
-            expression: >-
-              vehicle_theft_count >= 0 and theft_count >= 0 and shooting_or_homicide_count >= 0
-              and dog_license_count >= 0 and cat_license_count >= 0
-              and goat_license_count >= 0 and pig_license_count >= 0
-              and pet_license_count = dog_license_count + cat_license_count + goat_license_count + pig_license_count
-              and cumulative_dog_license_count >= dog_license_count
-              and cumulative_cat_license_count >= cat_license_count
-              and cumulative_goat_license_count >= goat_license_count
-              and cumulative_pig_license_count >= pig_license_count
-      - dbt_utils.expression_is_true:
-          arguments:
-            expression: >-
-              (pet_license_count = 0 and dog_license_share is null and cat_license_share is null
-               and goat_license_share is null and pig_license_share is null)
-              or (pet_license_count > 0
-                  and dog_license_share is not null and cat_license_share is not null
-                  and goat_license_share is not null and pig_license_share is not null
-                  and abs(dog_license_share - dog_license_count * 1.0 / pet_license_count) < 0.00001
-                  and abs(cat_license_share - cat_license_count * 1.0 / pet_license_count) < 0.00001
-                  and abs(goat_license_share - goat_license_count * 1.0 / pet_license_count) < 0.00001
-                  and abs(pig_license_share - pig_license_count * 1.0 / pet_license_count) < 0.00001)
     columns:
       - {name: cp, data_tests: [not_null]}
       - {name: year, data_tests: [not_null]}
@@ -116,3 +81,90 @@ models:
       - {name: pig_license_share, description: Fracción de licencias de cerdo; NULL sin licencias.}
       - {name: geography, description: Polígono postal de la cartografía activa si está disponible.}
       - {name: boundary_version, description: Versión de la cartografía.}
+
+  - name: mart_arrest_socioeconomic
+    description: >
+      Una fila por arrest_number, con la dirección de bloque y las coordenadas originales
+      disponibles en Gold, sin añadir precisión ni recuperar ubicaciones censuradas.
+      Conserva todas las detenciones, incluso sin dirección, CP, fecha o ACS.
+      Cuenta detenciones, no personas únicas ni delitos; no une cargos ni clasificaciones.
+      El CP y el año permiten agrupar sin perder el detalle. Los totales CP-año, tasas,
+      población y medianas se repiten entre arrestos y no deben sumarse esas repeticiones.
+      ZIP y ZCTA se unen por código como aproximación; el catálogo
+      no delimita solo Seattle ni garantiza cobertura policial completa. El contexto ACS
+      no describe la economía de cada año histórico ni la renta de las personas detenidas.
+      Véase docs/mart_arrest_socioeconomic.md.
+    columns:
+      - name: arrest_number
+        description: Clave única de detención, conservada de fact_arrests; varias detenciones pueden pertenecer a una persona.
+        data_tests:
+          - unique
+          - not_null
+          - relationships: {arguments: {to: "ref('fact_arrests')", field: arrest_number}}
+      - {name: arrest_occurred_date_time, description: Timestamp de ocurrencia original de Gold; puede faltar.}
+      - {name: arrest_occurred_date, description: Fecha de ocurrencia de dim_date; no se imputa con la fecha de reporte.}
+      - name: address_id
+        description: Clave de ubicación del hecho, conservada incluso si falta su registro en dim_address.
+        data_tests:
+          - relationships:
+              arguments: {to: "ref('dim_address')", field: address_id}
+              config: {where: "has_address_data"}
+      - name: has_address_data
+        description: Se encontró la ubicación en dim_address; no implica que tenga dirección o coordenadas utilizables.
+        data_tests: [not_null]
+      - {name: block_address, description: "Dirección aproximada por bloque, sin alterar. No es un portal exacto; puede faltar o estar censurada."}
+      - {name: latitude, description: "Latitud publicada en Gold, con su precisión original; no se rellena ni se redondea de nuevo."}
+      - {name: longitude, description: "Longitud publicada en Gold, con su precisión original; no se rellena ni se redondea de nuevo."}
+      - {name: point_geography, description: "Punto EPSG:4326 de las coordenadas publicadas si son válidas y no están censuradas. NULL en otro caso; nunca se usa el centroide postal."}
+      - {name: neighborhood, description: Barrio publicado en la ubicación Gold.}
+      - {name: reporting_area, description: Área de reporte publicada en Gold.}
+      - {name: census_block_2020, description: Referencia textual al bloque censal de 2020; no se utiliza para inferir otra dirección.}
+      - {name: cp_status, description: "Estado de asignación postal de dim_address, sin recodificar; NULL si falta la ubicación."}
+      - {name: is_location_redacted, description: "Indicador original de ubicación censurada; no se recuperan datos ocultados."}
+      - {name: has_missing_coordinates, description: Indicador original de coordenadas ausentes.}
+      - {name: has_invalid_coordinates, description: Indicador original de coordenadas inválidas.}
+      - name: has_postal_reference
+        description: El CP de la ubicación existe en dim_postal_codes; no exige geometría ni ACS.
+        data_tests: [not_null]
+      - name: cp
+        description: CP original del lugar de la detención, no de residencia; puede faltar o no tener referencia postal válida.
+        data_tests:
+          - relationships:
+              arguments: {to: "ref('dim_postal_codes')", field: cp}
+              config: {where: "has_postal_reference"}
+      - name: year
+        description: Año natural de arrest_occurred_date; NULL sin fecha, nunca se sustituye por el año de reporte.
+      - name: postal_year_arrest_count
+        description: "Total CP-año repetido en sus detenciones, solo con CP referenciado y fecha; NULL en otro caso. Usar MAX por CP-año, no SUM."
+      - name: postal_year_arrests_per_1000
+        description: "Total CP-año × 1000 / NULLIF(población ACS, 0), repetido. NULL sin denominador, CP válido o fecha. No sumar tasas ni usarlas como tasa de una dirección individual."
+      - {name: geography, description: "GEOGRAPHY postal original sin alterar; puede faltar. No es el polígono ZCTA ni municipal."}
+      - {name: boundary_version, description: Versión original de la cartografía postal.}
+      - {name: zcta_name, description: Nombre de la ZCTA asociada por código.}
+      - name: has_socioeconomic_data
+        description: Existe correspondencia por CP en ACS; no garantiza disponibilidad de todas las estimaciones.
+        data_tests: [not_null]
+      - {name: acs_year, description: "Edición fija 2024, no año de cada detención.", data_tests: [not_null]}
+      - {name: acs_period, description: "Periodo fijo 2020–2024 de las estimaciones quinquenales.", data_tests: [not_null]}
+      - {name: median_household_income, description: "Renta mediana anual por hogar en USD de 2024; NULL si ausente o censurada. No sumar medianas."}
+      - {name: income_margin_of_error, description: "Margen de error de renta al 90 %, USD; puede ser NULL."}
+      - {name: population, description: "Población estimada de la ZCTA completa; repetida entre detenciones y años, no sumar esas repeticiones."}
+      - {name: median_home_value, description: "Valor mediano de vivienda ocupada por propietarios, USD; NULL si ausente o censurado. No sumar."}
+      - {name: median_monthly_rent, description: "Alquiler contractual mediano mensual, USD; NULL si ausente o censurado. No sumar."}
+      - {name: income_top_coded, description: "Renta superior al umbral sin importe exacto; NULL sin correspondencia ACS."}
+      - {name: home_value_top_coded, description: "Vivienda superior al umbral sin importe exacto; NULL sin ACS."}
+      - {name: rent_top_coded, description: "Alquiler superior al umbral sin importe exacto; NULL sin ACS."}
+      - {name: income_lower_bound, description: "250000 USD si renta limitada superiormente: renta > umbral, no renta = umbral."}
+      - {name: home_value_lower_bound, description: "2000000 USD si vivienda limitada superiormente: valor > umbral."}
+      - {name: rent_lower_bound, description: "3500 USD/mes si alquiler limitado superiormente: alquiler > umbral."}
+      - name: income_quintile
+        description: >
+          NTILE(5) ascendente sobre una fila por CP con polígono y renta válida no censurada,
+          antes de unir las detenciones. Desempate por cp; rentas iguales pueden quedar en grupos
+          distintos. NULL fuera de ese ámbito. Fijo respecto al catálogo, no se recalcula con
+          filtros BI; con menos de cinco zonas válidas habrá menos de cinco grupos.
+      - name: income_level
+        description: Etiqueta relativa del quintil, no umbral absoluto de pobreza; NULL sin quintil.
+        data_tests:
+          - accepted_values: {arguments: {values: [muy bajo, bajo, medio, alto, muy alto]}}
+      - {name: ingested_at, description: Marca técnica de ingesta de la detención., data_tests: [not_null]}

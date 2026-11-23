@@ -1,7 +1,8 @@
+-- La vista debe coincidir con las fuentes vigentes, incluidas altas y bajas de CP-año.
 with crime_years as (
-    select distinct year(offense_date) as year
-    from {{ ref('fact_crimes') }}
-    where offense_date is not null
+    select distinct d.year
+    from {{ ref('fact_crimes') }} c
+    join {{ ref('dim_date') }} d on d.date_key = c.offense_date_key
 ),
 
 license_years as (
@@ -17,18 +18,19 @@ common_years as (
 ),
 
 crime_totals as (
-    select a.cp, year(c.offense_date) as year,
+    select a.cp, d.year,
            count(distinct iff(n.offense_code = '240', c.crime_id, null)) as vehicle_theft_count,
            count(distinct iff(n.offense_code in ('120', '23A', '23B', '23H'), c.crime_id, null)) as theft_count,
            count(distinct iff(s.crime_id is not null or n.offense_code in ('09A', '09B', '09C'),
                               c.crime_id, null)) as shooting_or_homicide_count
     from {{ ref('fact_crimes') }} c
+    join {{ ref('dim_date') }} d on d.date_key = c.offense_date_key
     join {{ ref('dim_address') }} a on a.address_id = c.address_id
-    join common_years y on y.year = year(c.offense_date)
+    join common_years y on y.year = d.year
     left join {{ ref('dim_nibrs') }} n on n.nibrs_key = c.nibrs_key
     left join {{ ref('bridge_crime_shooting_types') }} s on s.crime_id = c.crime_id
     where a.cp is not null
-    group by a.cp, year(c.offense_date)
+    group by a.cp, d.year
 ),
 
 license_totals as (
@@ -71,7 +73,8 @@ expected as (
            l.dog_license_count + l.cat_license_count + l.goat_license_count + l.pig_license_count
                as pet_license_count,
            l.cumulative_dog_license_count, l.cumulative_cat_license_count,
-           l.cumulative_goat_license_count, l.cumulative_pig_license_count
+           l.cumulative_goat_license_count, l.cumulative_pig_license_count,
+           1 as rows_per_key, true as valid_license_shares
     from license_history l
     join common_years y on y.year = l.year
     left join crime_totals c on c.cp = l.cp and c.year = l.year
@@ -81,7 +84,19 @@ actual as (
     select cp, year, vehicle_theft_count, theft_count, shooting_or_homicide_count,
            dog_license_count, cat_license_count, goat_license_count, pig_license_count, pet_license_count,
            cumulative_dog_license_count, cumulative_cat_license_count,
-           cumulative_goat_license_count, cumulative_pig_license_count
+           cumulative_goat_license_count, cumulative_pig_license_count,
+           -- EXCEPT no detecta duplicados idénticos por sí solo.
+           count(*) over (partition by cp, year) as rows_per_key,
+           coalesce(
+               (pet_license_count = 0 and dog_license_share is null and cat_license_share is null
+                and goat_license_share is null and pig_license_share is null)
+               or (pet_license_count > 0
+                   and abs(dog_license_share - dog_license_count * 1.0 / nullif(pet_license_count, 0)) < 0.00001
+                   and abs(cat_license_share - cat_license_count * 1.0 / nullif(pet_license_count, 0)) < 0.00001
+                   and abs(goat_license_share - goat_license_count * 1.0 / nullif(pet_license_count, 0)) < 0.00001
+                   and abs(pig_license_share - pig_license_count * 1.0 / nullif(pet_license_count, 0)) < 0.00001),
+               false
+           ) as valid_license_shares
     from {{ ref('mart_crimes_pet_licenses') }}
 ),
 

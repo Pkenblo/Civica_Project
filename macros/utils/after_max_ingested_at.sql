@@ -1,3 +1,3 @@
-{% macro after_max_ingested_at(column) -%}
-    {{ column }} > (select max(t.ingested_at) from {{ this }} as t)
+{% macro after_max_ingested_at(column, target_column='ingested_at') -%}
+    {{ column }} > (select max(t.{{ target_column }}) from {{ this }} as t)
 {%- endmacro %}

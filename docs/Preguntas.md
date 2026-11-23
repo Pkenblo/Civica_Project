@@ -12,6 +12,4 @@ Mis datamarts no tienen agregaciones ya que me interesa sacarlos con el grano ma
 
 el mart_crimes_socioeconomic tarda mucho.
 
-si los consumidores solo van a poder consumir el mart no tiene
-sentido hacer dimensiones que son copias 1-1 de su tabla de silver. Entonces no podemos hacerlo una tabla ephimeral? 
- 
+tengo un mart incremental en Gold que cuenta delitos por código postal y año. Si corrigen la fecha de un delito y pasa de 2024 a 2025, mi modelo recalcula el total de 2025, pero el de 2024 se queda como estaba y sigue contando ese delito. ¿Cómo recomendarías recalcular ambos años sin dejar de usar un modelo incremental?

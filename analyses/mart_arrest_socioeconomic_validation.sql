@@ -1,10 +1,11 @@
 -- Diagnóstico de lectura: dbt show --select mart_arrest_socioeconomic_validation --limit 1
 with located as (
-    select r.arrest_number, r.arrest_occurred_date,
+    select r.arrest_number, d.full_date as arrest_occurred_date,
            a.address_id as matched_address_id, a.cp as address_cp, a.cp_status,
            p.cp as postal_cp, s.cp as socioeconomic_cp,
            s.median_household_income, s.income_top_coded
     from {{ ref('fact_arrests') }} r
+    left join {{ ref('dim_date') }} d on d.date_key = r.arrest_occurred_date_key
     left join {{ ref('dim_address') }} a on a.address_id = r.address_id
     left join {{ ref('dim_postal_codes') }} p on p.cp = a.cp
     left join {{ ref('dim_census_socioeconomic') }} s on s.cp = p.cp
@@ -46,10 +47,10 @@ postal_stats as (
 ),
 
 mart_stats as (
-    select coalesce(sum(arrest_count), 0) as represented_arrests,
+    select count(*) as represented_arrests,
            count(*) as mart_rows,
            count(distinct cp) as represented_postal_codes,
-           count(distinct case when arrest_count > 0 then cp end) as postal_codes_with_arrests,
+           count(distinct cp) as postal_codes_with_arrests,
            count(distinct case when not has_socioeconomic_data then cp end) as represented_postal_codes_without_socioeconomic_data,
            count(distinct case when income_quintile is not null then cp end) as represented_postal_codes_in_quintiles,
            coalesce(count_if(block_address is not null and not is_location_redacted), 0) as arrests_with_published_address,

@@ -29,13 +29,14 @@ preservaría su relación con cada detención y por eso se descarta esa alternat
 
 | Modelo Gold | Uso y cardinalidad necesaria |
 | --- | --- |
-| `fact_arrests` | Una detención por `arrest_number`, con `arrest_count = 1`. |
+| `fact_arrests` | Una detención por `arrest_number`. |
+| `dim_date` | Fecha y año de ocurrencia por `arrest_occurred_date_key`. |
 | `dim_address` | Una ubicación por `address_id`; todos sus atributos de dirección se conservan. |
 | `dim_postal_codes` | Una fila por CP; geometría y versión postales sin modificaciones. |
 | `dim_census_socioeconomic` | Vista Gold con una fila por CP ZCTA. Lee el Silver existente sin reconstruirlo. |
 
-Se conservan `arrest_occurred_date_time` y `arrest_occurred_date`. El año procede
-de esta última, no del reporte. Si falta la fecha, el año queda NULL sin perder
+Se conserva `arrest_occurred_date_time` del hecho y se obtienen `arrest_occurred_date`
+y `year` de `dim_date`, no del reporte. Si falta la fecha, el año queda NULL sin perder
 la detención ni su ubicación. Varias detenciones de una misma persona son
 eventos distintos: no se cuentan personas únicas, cargos, delitos o condenas.
 No se unen puentes, cargos ni delitos por compartir informe.
@@ -43,7 +44,7 @@ No se unen puentes, cargos ni delitos por compartir informe.
 ## Columnas finales
 
 El contrato completo está en
-[`_mart_arrest_socioeconomic.yml`](../models/gold/marts/_mart_arrest_socioeconomic.yml).
+[`_marts.yml`](../models/gold/marts/_marts.yml).
 
 | Columnas | Significado |
 | --- | --- |
@@ -56,7 +57,6 @@ El contrato completo está en
 | `neighborhood`, `reporting_area`, `census_block_2020` | Barrio, área de reporte y referencia textual al bloque censal de 2020. |
 | `cp`, `cp_status`, `has_postal_reference` | CP original, estado de su asignación y existencia de ese CP en el catálogo postal. No es la residencia de la persona detenida. |
 | `is_location_redacted`, `has_missing_coordinates`, `has_invalid_coordinates` | Indicadores originales de calidad/censura; NULL si no se encontró la ubicación. |
-| `arrest_count` | Constante 1 por detención. SUM permite contar por dirección, CP, año u otros filtros. |
 | `postal_year_arrest_count` | Total de detenciones del CP-año, repetido en sus detenciones. NULL sin CP referenciado o fecha. |
 | `postal_year_arrests_per_1000` | Total CP-año × 1000 / NULLIF(población ACS, 0); NULL sin denominador, CP válido o fecha. Repetido, no aditivo. |
 | `geography`, `boundary_version` | Geometría postal original y versión; pueden faltar. Distintas del punto de la detención. |
@@ -78,7 +78,7 @@ no a la dirección ni al arresto individual.
 Para obtener los recuentos por zona y año sin perder el detalle almacenado:
 
 ```sql
-select cp, year, sum(arrest_count) as arrest_count,
+select cp, year, count(*) as arrest_count,
        max(postal_year_arrests_per_1000) as postal_year_arrests_per_1000
 from {{ ref('mart_arrest_socioeconomic') }}
 where has_postal_reference and year is not null
@@ -95,7 +95,7 @@ tener un punto utilizable: no debe descartarse por eso. Para mapas zonales,
 agregar primero por CP-año y usar `geography`, sin confundirla con la ubicación
 precisa del evento.
 
-Solo `arrest_count` es aditivo entre todas las filas. Recuperar los totales y
+Para contar las detenciones de cualquier selección, usar `COUNT(*)`. Recuperar los totales y
 tasas anuales con MAX por CP-año, no sumarlos entre arrestos. Son indicadores del
 año completo disponible y no se recalculan al filtrar calles o meses en BI.
 Si se necesita la tasa de una selección, recalcular su recuento sobre la
@@ -137,15 +137,18 @@ absolutos de pobreza ni se recalculan al filtrar en BI.
 
 ## Construcción y validaciones
 
-Con perfil autenticado, permisos de escritura y dependencias ya construidas:
+Con perfil autenticado, permisos de escritura, dependencias ya construidas y el mart
+de delitos socioeconómico ya publicado:
 
 ```bash
 DBT_BRONZE=DEV_BRONZE DBT_SILVER=DEV_SILVER DBT_GOLD=DEV_GOLD \
   dbt build --target dev --select mart_arrest_socioeconomic
 ```
 
-No añadir `+`: la selección solo construye este mart y ejecuta sus pruebas.
-No hace falta full-refresh porque el mart es una tabla, no un incremental.
+No añadir `+`: la selección no reconstruye las dependencias. Si aún no está publicado
+`mart_crimes_socioeconomic`, añade ese modelo a `--select` para ejecutar la prueba compartida.
+Si la tabla ya existe con la columna `arrest_count`, añadir `--full-refresh`
+una vez para eliminarla del esquema.
 
 ```bash
 DBT_BRONZE=DEV_BRONZE DBT_SILVER=DEV_SILVER DBT_GOLD=DEV_GOLD \
@@ -158,40 +161,9 @@ de JOIN. Informa de los arrestos conservados sin ubicación postal, sin referenc
 postal y sin fecha: **no son exclusiones y estos grupos pueden solaparse**.
 `excluded_arrests` y la diferencia de reconciliación deben valer cero.
 
-Las pruebas YAML comprueban unicidad/no nulos de la clave, correspondencia con
-el hecho, valores válidos y relaciones postales/de dirección cuando existe su
-referencia. Los cinco tests singulares comprueban contratos de entrada,
-conservación exacta de todas las claves, fidelidad de cada atributo de ubicación
-y fecha, contexto económico/geográfico y totales/tasas anuales independientes.
-Las referencias que faltan se conservan y se informan con sus flags, no se
-ocultan mediante INNER JOIN.
-
-Regresión local:
-
-```bash
-python tests/integration/mart_arrest_socioeconomic_check.py
-```
-
-Ejecuta el SQL real traducido a SQLite con Jinja2, PyYAML y sqlglot; no valida el
-motor geoespacial de Snowflake. Fixture: **15 detenciones originales, 15 filas
-representadas**, ninguna excluida o duplicada. Conserva tres sin ubicación postal,
-una con CP ajeno al catálogo y una sin fecha. Coberturas **sintéticas**, no reales:
-dirección publicada 86,67 %, punto 80 %, CP 73,33 %, ACS 66,67 %. Comprueba dirección
-parcial sin coordenadas, censura, CP no asignado con punto válido, coordenadas
-inválidas, referencias de dirección ausentes, precisión conservada y año de
-ocurrencia frente a reporte. Los controles negativos detectan duplicados,
-coordenadas/contexto/tasas alterados y arrestos eliminados.
-
-En esta revisión se ejecutaron `dbt parse` y compilación acotada sin introspección
-del modelo, sus 18 tests y el diagnóstico sobre una copia temporal y un perfil
-ficticio: los 20 nodos compilan. La regresión sintética supera 13 comprobaciones
-YAML y cinco tests singulares, además de sus controles negativos. El contrato
-contiene 41 columnas, con clave única `arrest_number`.
-
-La compilación y las pruebas locales no equivalen a construir la tabla o medir
-los datos reales en Snowflake: sigue pendiente una conexión autenticada.
-
-El antiguo mart socioeconómico de delitos está retirado del proyecto. El panel
-de `visualizacion/` todavía consume el contrato de delitos y no se modifica en
-este cambio. Si existiera una tabla anterior en Snowflake, quitar archivos dbt
-no la elimina físicamente; no se ha ejecutado ningún DROP en Snowflake.
+Las pruebas YAML comprueban unicidad y no nulos de la clave, correspondencia con
+el hecho, etiquetas de renta y relaciones postales y de dirección cuando existe su
+referencia. El [test SQL compartido](../tests/singular/gold/marts_socioeconomic_contract.sql)
+comprueba la edición ACS, el rango de quintiles, las estimaciones no negativas y
+los rangos de los recuentos y tasas de detenciones. Las referencias que faltan
+se conservan y se informan con sus flags, no se ocultan mediante INNER JOIN.

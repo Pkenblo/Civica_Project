@@ -2,21 +2,16 @@ version: 2
 
 models:
   - name: fact_crimes
-    description: Un delito lógico por crime_id. No incluye filas de etiquetas de tiroteo. El incremental incorpora nuevas ingestas de delitos y corrige fechas de informe modificadas, sin alterar la ingesta del delito.
+    description: Un delito lógico por crime_id. No incluye filas de etiquetas de tiroteo. En incremental solo incorpora delitos cuya ingesta supere el corte del hecho; para esas filas obtiene la clave de fecha de reporte a partir de dim_report.
     data_tests:
       - dbt_utils.expression_is_true:
           arguments:
             expression: >-
-              crime_count = 1
-              and equal_null(offense_date, offense_date_time::date)
-              and equal_null(report_date, report_date_time::date)
-              and equal_null(offense_date_key, to_char(offense_date, 'YYYYMMDD')::number)
-              and equal_null(report_date_key, to_char(report_date, 'YYYYMMDD')::number)
+              equal_null(offense_date_key, to_char(offense_date_time::date, 'YYYYMMDD')::number)
     columns:
       - {name: crime_id, data_tests: [unique, not_null]}
-      - {name: offense_id, data_tests: [not_null]}
+      - {name: offense_id, description: Identificador de origen del delito; no es una FK., data_tests: [not_null]}
       - {name: ingested_at, data_tests: [not_null]}
-      - {name: crime_count, data_tests: [not_null]}
       - name: report_id
         data_tests:
           - not_null
@@ -39,6 +34,7 @@ models:
         data_tests:
           - relationships: {arguments: {to: "ref('dim_date')", field: date_key}}
       - name: report_date_key
+        description: Clave del calendario obtenida de la fecha del informe al cargar el delito.
         data_tests:
           - relationships: {arguments: {to: "ref('dim_date')", field: date_key}}
 
@@ -48,15 +44,11 @@ models:
       - dbt_utils.expression_is_true:
           arguments:
             expression: >-
-              arrest_count = 1
-              and equal_null(arrest_occurred_date, arrest_occurred_date_time::date)
-              and equal_null(arrest_reported_date, arrest_reported_date_time::date)
-              and equal_null(arrest_occurred_date_key, to_char(arrest_occurred_date, 'YYYYMMDD')::number)
-              and equal_null(arrest_reported_date_key, to_char(arrest_reported_date, 'YYYYMMDD')::number)
+              equal_null(arrest_occurred_date_key, to_char(arrest_occurred_date_time::date, 'YYYYMMDD')::number)
+              and equal_null(arrest_reported_date_key, to_char(arrest_reported_date_time::date, 'YYYYMMDD')::number)
     columns:
       - {name: arrest_number, data_tests: [unique, not_null]}
       - {name: ingested_at, data_tests: [not_null]}
-      - {name: arrest_count, data_tests: [not_null]}
       - {name: officer_squad_at_arrest, description: Unidad del agente en la detención conservada desde Silver.}
       - {name: officer_title_at_arrest, description: Cargo del agente en la detención conservado desde Silver.}
       - name: report_id

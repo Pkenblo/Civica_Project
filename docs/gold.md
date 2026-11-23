@@ -2,7 +2,7 @@
 
 Gold publica 15 dimensiones y dos puentes como vistas, y dos hechos incrementales. Consume los modelos [Silver](silver.md) vía `ref()`; no lee Bronze ni los CSV. [Importar el diagrama lógico DBML](../gold_diagram.dbml) en dbdiagram.io.
 
-Los [marts de delitos y licencias](marts.md) consumen `fact_crimes`, `dim_nibrs`, `dim_address`, `dim_postal_codes` y `dim_licenses`. El de tiroteos y homicidios también usa `bridge_crime_shooting_types`. Se construyen en el esquema `MARTS` de la misma base; el comando que selecciona solo `path:models/gold` no los materializa.
+La [vista de delitos y licencias por CP-año](marts.md#delitos-y-licencias-por-código-postal) consume `fact_crimes`, `dim_date`, `dim_nibrs`, `dim_address`, `dim_postal_codes`, `dim_licenses` y `bridge_crime_shooting_types`. Se publica en el esquema `MARTS` de la misma base, junto con los dos marts socioeconómicos. `path:models/gold` incluye los tres.
 
 ## Inventario
 
@@ -34,19 +34,21 @@ Los YAML de dimensiones comprueban que cada clave lógica sea única y no nula, 
 
 ### Granos y relaciones
 
-- `fact_crimes` tiene **una fila por delito lógico**, con `crime_id` generado en Silver mediante `dbt_utils.generate_surrogate_key(['report_id', 'offense_id'])` y `crime_count = 1`. Conserva las referencias a informe, dirección, área policial, NIBRS y clasificación de Seattle (categoría y subcategoría en una sola dimensión). La fecha de ocurrencia proviene de `crimes`; la de reporte, de `reports`. Son dos papeles de `dim_date`, con fecha, clave y timestamp de origen separados. La subcategoría mantiene su categoría padre solo si Silver la conoce.
-- `fact_arrests` tiene **una fila por `arrest_number`** con `arrest_count = 1`, fecha de ocurrencia y de registro, y las referencias de Silver a dirección, área, tipo de detención, agente, sujeto, perfil CAD e informe. Edades e indicadores se mantienen en el evento. El dataset incluye más modalidades que detenciones físicas bajo custodia; consultar [la fuente SPD](https://data.seattle.gov/d/9bjs-7a7w).
+- `fact_crimes` tiene **una fila por delito lógico**, con `crime_id` generado en Silver mediante `dbt_utils.generate_surrogate_key(['report_id', 'offense_id'])`. Conserva las referencias a informe, dirección, área policial, NIBRS y clasificación de Seattle (categoría y subcategoría en una sola dimensión). Conserva el identificador de origen y el timestamp de ocurrencia; para las fechas de ocurrencia y reporte publica las claves de `dim_date`. El timestamp de reporte pertenece a `dim_report`. La subcategoría mantiene su categoría padre solo si Silver la conoce.
+- `fact_arrests` tiene **una fila por `arrest_number`**, con los timestamps propios de ocurrencia y de registro, sus claves de `dim_date` y las referencias de Silver a dirección, área, tipo de detención, agente, sujeto, perfil CAD e informe. Edades, unidad, cargo e indicadores se mantienen en el evento. El dataset incluye más modalidades que detenciones físicas bajo custodia; consultar [la fuente SPD](https://data.seattle.gov/d/9bjs-7a7w).
 - No unir directamente los dos hechos por `report_id`: un informe puede tener varios delitos y varias detenciones. Para usar una etiqueta como filtro, usar `EXISTS` contra el puente o contar claves de evento distintas. Los puentes describen asociaciones **observadas**, no necesariamente vigentes; no son hechos adicionales. No existe un catálogo Silver `offense_types`: el puente de arrestos conserva texto legal y descripción publicada, sin inferir el código NIBRS.
 - El calendario se genera con `dbt_date.get_date_dimension` desde `1900-01-01` hasta `2101-01-01` (fecha final excluida). `year` es el año natural; `iso_week` y `iso_week_year` deben usarse juntos; `day_of_week` es lunes = 1. Los nombres de mes y día siguen abreviados.
 - `dim_address` conserva `cp_status`: `matched` (interior de un único CP), `redacted`, `missing_coordinates`, `invalid_coordinates`, `no_match`, `ambiguous` o `boundary`. Solo `matched` tiene CP. La cartografía de `dim_postal_codes` permanece en `GEOGRAPHY`, con `boundary_version` cuando hay polígono. Los CP son texto; la cobertura de King County no es un filtro municipal de Seattle ni cartografía postal histórica. Una licencia puede declarar un CP válido de formato sin polígono local.
 
 ### Incrementalidad
 
-`fact_crimes` y `fact_arrests` siguen siendo incrementales: usan `delete+insert` por clave, `on_schema_change: fail` y un bloque `is_incremental()`. Los marts se siguen reconstruyendo como tablas. Las dimensiones y los puentes son vistas consultables en Gold: no almacenan filas ni aplican un corte incremental propio, aunque sus fuentes Silver sean incrementales.
+`fact_crimes`, `fact_arrests` y los [dos marts socioeconómicos](marts.md#carga-incremental) usan `delete+insert` por clave, `on_schema_change: fail` y un bloque `is_incremental()`. Las dimensiones, los puentes y `mart_crimes_pet_licenses` son vistas: no almacenan filas ni aplican un corte incremental propio.
 
 Los dos hechos usan `after_max_ingested_at`: el corte global exige una ingesta estrictamente mayor que el máximo de su propia tabla Gold. La primera carga y `--full-refresh` no tienen ese corte. Una tabla existente vacía necesita un `--full-refresh` para volver a poblarse.
 
-`fact_crimes` incorpora además las filas ya existentes cuya `report_date_time` difiera de la fecha actual de `dim_report`, incluidos cambios a nulo. Así corrige todos los delitos de un informe actualizado aunque solo uno haya recibido una nueva ingesta. Recalcula el timestamp, la fecha y la clave de reporte, pero conserva `crimes.ingested_at`: no usa la ingesta del informe para adelantar artificialmente el cursor del delito. Los demás cambios derivados que queden fuera del corte siguen requiriendo `--full-refresh`.
+`fact_crimes` usa el timestamp de `dim_report` para obtener `report_date_key` solo para los delitos del lote. Una corrección del informe no actualiza esa clave en un delito ya cargado hasta que su ingesta supere el corte o se ejecute `--full-refresh`.
+
+Si los hechos ya están materializados con las columnas antiguas de fecha o recuento, hay que reconstruirlos una vez con `--full-refresh` porque `on_schema_change: fail` impide quitarlas en una carga incremental. Los marts conservan sus fechas de salida leyéndolas de `dim_date`.
 
 Por defecto, los modelos incrementales no comprueban si han desaparecido claves de Silver. Los post-hooks de `fact_crimes` y `fact_arrests` permiten retirar las claves que Silver ya no publica, si está completa. Actívalos solo para esa ejecución y para el modelo afectado. Por ejemplo:
 
