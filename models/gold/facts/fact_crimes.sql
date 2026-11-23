@@ -22,11 +22,8 @@ left join {{ ref('dim_date') }} reported on reported.full_date = r.report_date_t
 )
 select c.* from current_rows c
 {% if is_incremental() %}
+left join {{ this }} t on t.crime_id = c.crime_id
 where {{ after_max_ingested_at('c.ingested_at') }}
    -- La fecha del informe puede cambiar sin una nueva versión de este delito.
-   or exists (
-       select 1 from {{ this }} t
-       where t.crime_id = c.crime_id
-         and not equal_null(t.report_date_time, c.report_date_time)
-   )
+   or (t.crime_id is not null and not equal_null(t.report_date_time, c.report_date_time))
 {% endif %}
