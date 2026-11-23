@@ -34,6 +34,8 @@ El primer mart cuenta robos de vehículos (NIBRS `240`); el segundo reúne atrac
 
 ## Desarrollo y validación
 
+Los [tests unitarios de Staging](tests/unit/_stg_unit_tests.yml) verifican que delitos y detenciones usen el mismo número de informe sin perder ceros (`20260000000001` → `2026-000001`), para que Silver no los trate como informes distintos.
+
 Configurar `DBT_BRONZE` y `DBT_SILVER` para DEV (`DEV_BRONZE` y `DEV_SILVER` en el entorno documentado). `--target` no modifica esas variables. En dbt Core, usar el perfil `default` externo; en Studio, usar las variables del entorno. Consultar la [ejecución de Silver en DEV](docs/silver.md#ejecución-en-dev) para el comando, los permisos y la cartografía necesarios.
 
 **El diseño está cerrado, pero no consta un `dbt build` integral de la versión actual con datos reales en Snowflake DEV.** La [regresión sintética](tests/integration/arrest_delete_insert_check.py) usa un esquema DEV aislado. Si existe un Silver anterior, comprobar el histórico de RAW y coordinar la migración y el respaldo antes de usar `--full-refresh`: `on_schema_change='fail'` no migra columnas ni claves.
