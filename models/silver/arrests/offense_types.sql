@@ -18,10 +18,7 @@ with import as (
       and s.ingested_at is not null
 
     {% if is_incremental() %}
-      and s.ingested_at >= (
-          select coalesce(max(ingested_at), '1900-01-01')
-          from {{ this }}
-      )
+      and {{ after_max_ingested_at('s.ingested_at') }}
     {% endif %}
 ),
 
