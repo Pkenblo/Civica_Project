@@ -184,7 +184,7 @@ Table fact_arrests {
   cad_profile_id varchar
   arrest_occurred_date_time timestamp_ntz
   arrest_occurred_date_key number(8,0)
-  arrest_reported_date_time timestamp_ntz
+  arrest_registered_at timestamp_ntz
   arrest_reported_date_key number(8,0)
   officer_age number
   subject_age_range varchar

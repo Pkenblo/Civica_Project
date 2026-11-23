@@ -16,7 +16,7 @@ renamed as (
     select
           nullif(trim(ARREST_NUMBER), '')                                                               as arrest_number
         , to_timestamp_ntz(trim(ARREST_OCCURRED_DATE_TIME), 'MM/DD/YYYY HH12:MI:SS AM')                 as arrest_occurred_date_time
-        , to_timestamp_ntz(trim(ARREST_REPORTED_DATE_TIME), 'MM/DD/YYYY HH12:MI:SS AM')                 as arrest_reported_date_time
+        , to_timestamp_ntz(trim(ARREST_REPORTED_DATE_TIME), 'MM/DD/YYYY HH12:MI:SS AM')                 as arrest_registered_at
         , {{ nullif_any("upper(trim(regexp_replace(ARREST_TYPE, '[[:space:]]+', ' ')))", "", "-") }}     as arrest_type
         , {{ nullif_any("upper(trim(BEAT))", "", "-") }}                                                as beat
         , {{ nullif_any("upper(trim(CAD_CLEARANCE))", "", "-") }}                                       as cad_clearance

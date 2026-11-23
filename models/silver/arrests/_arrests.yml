@@ -15,7 +15,7 @@ models:
         data_tests: [not_null]
       - name: arrest_occurred_date_time
         description: Fecha y hora de la detención publicadas por el origen.
-      - name: arrest_reported_date_time
+      - name: arrest_registered_at
         description: Fecha y hora de registro de la detención.
       - name: report_id
         description: Informe asociado, si se informa su número.

@@ -14,7 +14,7 @@ with candidates as (
     {% endif %}
 ),
 resolved as (
-    select s.arrest_number, s.ingested_at, s.arrest_occurred_date_time, s.arrest_reported_date_time,
+    select s.arrest_number, s.ingested_at, s.arrest_occurred_date_time, s.arrest_registered_at,
            r.report_id, t.arrest_type_id, a.agent_key, p.subject_key, s.officer_age, s.subject_age_range,
            s.officer_squad as officer_squad_at_arrest, s.officer_title as officer_title_at_arrest,
            d.address_id, z.police_area_id, c.cad_profile_id, s.crisis_involved, s.complaint_involved,
@@ -35,7 +35,7 @@ from resolved
 qualify row_number() over (
     partition by arrest_number
     order by ingested_at desc, source_file desc nulls last, batch_id desc nulls last,
-             arrest_reported_date_time desc nulls last, arrest_occurred_date_time desc nulls last,
+             arrest_registered_at desc nulls last, arrest_occurred_date_time desc nulls last,
              report_id desc nulls last, arrest_type_id desc nulls last,
              agent_key desc nulls last, subject_key desc nulls last,
              officer_age desc nulls last, subject_age_range desc nulls last,

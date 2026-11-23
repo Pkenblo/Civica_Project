@@ -82,7 +82,7 @@ Table arrest {
   arrest_number varchar [pk]
   ingested_at timestamp_ltz [not null]
   arrest_occurred_date_time timestamp_ntz
-  arrest_reported_date_time timestamp_ntz
+  arrest_registered_at timestamp_ntz
   report_id varchar
   arrest_type_id varchar
   agent_key varchar

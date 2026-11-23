@@ -31,7 +31,7 @@ arrest as (
         ,a.cad_profile_id
         ,a.arrest_occurred_date_time
         ,occurred.date_key as arrest_occurred_date_key
-        ,a.arrest_reported_date_time
+        ,a.arrest_registered_at
         ,reported.date_key as arrest_reported_date_key
         ,a.officer_age
         ,a.subject_age_range
@@ -47,7 +47,7 @@ arrest as (
     left join dim_date occurred
         on occurred.full_date = a.arrest_occurred_date_time::date
     left join dim_date reported
-        on reported.full_date = a.arrest_reported_date_time::date
+        on reported.full_date = a.arrest_registered_at::date
 )
 
 -- Salida final
