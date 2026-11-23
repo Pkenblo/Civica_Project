@@ -32,6 +32,8 @@ La [guía de Gold](docs/gold.md) documenta las tablas, sus claves y cómo constr
 
 El primer mart cuenta robos de vehículos (NIBRS `240`); el segundo reúne atracos, carterismos, tirones de bolso y otros hurtos (`120`, `23A`, `23B`, `23H`). El tercero cuenta todos los homicidios (`09A`, `09B`, `09C`) y cualquier otro delito con etiqueta de tiroteo. Los tres conservan las zonas con cero casos registrados. La [guía de los marts](docs/marts.md) detalla los criterios y la ejecución pendiente en DEV.
 
+Para abrir el [panel de Seattle](visualizacion/README.md), ejecuta `./abrir-panel.sh` desde la raíz. El lanzador usa el Python de `.venv` en lugar del Python del sistema.
+
 ## Desarrollo y validación
 
 Los [tests unitarios de Staging](tests/unit/_stg_unit_tests.yml) verifican que delitos y detenciones usen el mismo número de informe sin perder ceros (`20260000000001` → `2026-000001`), para que Silver no los trate como informes distintos.
