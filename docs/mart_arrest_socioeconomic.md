@@ -163,7 +163,7 @@ postal y sin fecha: **no son exclusiones y estos grupos pueden solaparse**.
 
 Las pruebas YAML comprueban unicidad y no nulos de la clave, correspondencia con
 el hecho, etiquetas de renta y relaciones postales y de dirección cuando existe su
-referencia. El [test SQL compartido](../tests/singular/gold/marts_socioeconomic_contract.sql)
-comprueba la edición ACS, el rango de quintiles, las estimaciones no negativas y
-los rangos de los recuentos y tasas de detenciones. Las referencias que faltan
-se conservan y se informan con sus flags, no se ocultan mediante INNER JOIN.
+referencia. El [test de cobertura](../tests/singular/gold/gold_marts_coverage.sql)
+comprueba que las detenciones de Gold estén en el mart con su fecha de ingesta.
+Las referencias que faltan se conservan y se informan con sus flags, no se
+ocultan mediante INNER JOIN.

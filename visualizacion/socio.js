@@ -104,7 +104,7 @@ const SocioData={
       L.geoJSON({type:'MultiPolygon',coordinates:poly},{style:{color:i===undefined?'#89938d':colors[i],weight:1.5,fillColor:i===undefined?'#bfc5c0':colors[i],fillOpacity:Number(id('opacity').value)/100}}).bindPopup(()=>zonePopup(z)).addTo(areas);
     }
     id('legend').replaceChildren();
-    for(const [i,label] of labels.entries()){const item=element(id('legend'),'span','■ '+label+'  ');item.style.color=colors[i]}
+    for(const [i,label] of labels.entries()){const item=element(id('legend'),'span');item.className='economy-level';const swatch=element(item,'i');swatch.style.background=colors[i];swatch.setAttribute('aria-hidden','true');item.append(label)}
     element(id('legend'),'span',`· ${m.label}. Gris: sin valor comparable. Azul: detenciones, siempre en sus coordenadas publicadas.`);
     id('selection').textContent=`${drawn} polígonos; ${grouping.assignments.size} con valor comparable. Pulsa un punto o una zona para consultar su detalle.`;
   }
@@ -128,18 +128,18 @@ const SocioData={
   function drawComparisons(){
     const container=id('comparisons');container.replaceChildren();
     for(const m of SocioData.metrics){
-      const section=element(container,'section');section.style.marginTop='18px';element(section,'h3',m.label+' · detenciones por zona');
+      const section=element(container,'section');section.className='comparison-card';element(section,'h3',m.label).className='comparison-title';
       const grouping=groups.get(m.key),summary=SocioData.summary(grouping,counts.get(snapshot.anio));
-      element(section,'p',grouping.low===null?'No hay zonas con valor económico comparable.':`Bajo: hasta ${money(grouping.low)}. Medio: más de ${money(grouping.low)} y hasta ${money(grouping.high)}. Alto: más de ${money(grouping.high)}. Cortes fijos para todos los años.`);
-      const wrap=element(section,'div');wrap.style.overflowX='auto';const table=element(wrap,'table'),head=element(element(table,'thead'),'tr');
+      const grid=element(section,'div');grid.className='comparison-grid';
+      const wrap=element(grid,'div');wrap.className='table-wrap';const table=element(wrap,'table'),head=element(element(table,'thead'),'tr');
       ['Nivel de la zona',`CP comparables`, `Detenciones ${snapshot.anio}`,'Media de detenciones por zona'].forEach(h=>element(head,'th',h));
       const body=element(table,'tbody'),max=Math.max(1,...summary.map(g=>g.mean??0));
       summary.forEach((g,i)=>{const tr=element(body,'tr');element(tr,'th',labels[i]).scope='row';element(tr,'td',number(g.zones));element(tr,'td',number(g.total));
         const cell=element(tr,'td',number(g.mean));if(g.mean===null)return;const track=element(cell,'div');track.className='bar';track.style.background='#eef1ed';const fill=element(track,'i');fill.style.background=colors[i];fill.style.width=100*g.mean/max+'%';
       });
-      element(section,'h3','Evolución anual · media de detenciones por zona');
-      element(section,'p','Cada año usa únicamente sus detenciones. La muestra y los grupos económicos son fijos: también cuentan los CP con cero eventos ese año. Un guion indica que el grupo no tiene zonas comparables.');
-      const chart=element(section,'div');chart.className='years-chart';
+      const annual=element(grid,'div');annual.className='annual-block';element(annual,'h4','Media de detenciones por zona · evolución anual');
+      const legend=element(annual,'div');legend.className='chart-legend';labels.forEach((label,i)=>{const item=element(legend,'span');element(item,'i').style.background=colors[i];item.append(label)});
+      const chart=element(annual,'div');chart.className='years-chart';
       const series=VIEW_YEARS.map(y=>[y,snapshot.anios.includes(y)?SocioData.summary(grouping,counts.get(y)):[0,1,2].map(()=>({zones:0,total:0,mean:null}))]);
       const cap=Math.max(1,...series.flatMap(([,gs])=>gs.map(g=>g.mean??0)));
       for(const [y,gs] of series){const col=element(chart,'div');col.className='year-column';col.style.flexBasis='106px';if(y===snapshot.anio)col.style.background='#edf3ed';
@@ -148,12 +148,15 @@ const SocioData={
           bar.title=`${y} · ${labels[i]} · ${g.zones} CP · ${g.total} detenciones · media: ${number(g.mean)}`;bar.setAttribute('aria-label',bar.title);bar.setAttribute('role','img');
         });element(col,'strong',y);
       }
-      element(section,'p',`${grouping.assignments.size} CP con polígono y valor no censurado; ${snapshot.zonas.length-grouping.assignments.size} CP fuera de esta comparación por falta de polígono o valor económico comparable. La media normaliza el número de zonas, no la población.`).className='note';
+      const details=element(section,'details');details.className='methodology';element(details,'summary','Muestra y cálculo');
+      element(details,'p',grouping.low===null?'No hay zonas con valor económico comparable.':`Bajo: hasta ${money(grouping.low)}. Medio: más de ${money(grouping.low)} y hasta ${money(grouping.high)}. Alto: más de ${money(grouping.high)}. Cortes fijos para todos los años.`);
+      element(details,'p','Cada año usa únicamente sus detenciones. La muestra y los grupos económicos son fijos: también cuentan los CP con cero eventos ese año. Un guion indica que el grupo no tiene zonas comparables.');
+      element(details,'p',`${grouping.assignments.size} CP con polígono y valor no censurado; ${snapshot.zonas.length-grouping.assignments.size} CP fuera de esta comparación por falta de polígono o valor económico comparable. La media normaliza el número de zonas, no la población.`).className='note';
     }
   }
 
   $('open-socio').onclick=()=>{
-    for(const name of ['zones','points','socio']){$(name+'-view').hidden=name!=='socio';$('open-'+name).setAttribute('aria-pressed',name==='socio')}
+    activateView('socio');
     if(!map)init();map.invalidateSize();if(!snapshot&&!loading)load(String(DEFAULT_YEAR));
   };
 })();

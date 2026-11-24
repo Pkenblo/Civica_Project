@@ -31,8 +31,8 @@ DBT_BRONZE=DEV_BRONZE DBT_SILVER=DEV_SILVER DBT_GOLD=DEV_GOLD \
 ```
 
 Las [pruebas nativas de dbt](../models/gold/marts/_marts.yml) incluyen unicidad de `crime_id`
-y no nulos de los campos obligatorios. El [test SQL compartido](../tests/singular/gold/marts_socioeconomic_contract.sql)
-requiere ambos marts y valida la edición ACS, el rango de quintiles y que las estimaciones informadas no sean negativas.
+y no nulos de los campos obligatorios. El [test de cobertura](../tests/singular/gold/gold_marts_coverage.sql)
+comprueba que ambos marts socioeconómicos conserven los identificadores y las fechas de ingesta de los hechos de Gold que les corresponden.
 
 ## Delitos y licencias por código postal
 
@@ -79,7 +79,9 @@ export DBT_BRONZE=DEV_BRONZE DBT_SILVER=DEV_SILVER DBT_GOLD=DEV_GOLD
 dbt build --target dev --select mart_crimes_pet_licenses
 ```
 
-Este comando publica la vista y ejecuta las comprobaciones de columnas, el [test unitario de la corrección de año](../tests/unit/_marts_unit_tests.yml) y la [reconciliación independiente](../tests/singular/gold/mart_crimes_pet_licenses_reconciliation.sql), que comprueba una fila por CP-año, recuentos, acumulados y proporciones. No añadir `+` si las dependencias ya están actualizadas.
+Este comando publica la vista y ejecuta las comprobaciones de columnas. No añadir `+` si las dependencias ya están actualizadas.
+
+Con los tres marts publicados, `dbt test --target dev --select gold_marts_coverage` ejecuta el test de cobertura de Gold a los marts. Para la vista comprueba una fila por CP y año común, y contrasta los recuentos anuales de delitos y licencias con Gold. No vuelve a validar los acumulados ni las proporciones.
 
 ### Migración
 

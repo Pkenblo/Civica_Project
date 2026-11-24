@@ -4,13 +4,26 @@ En Linux, haz doble clic en **Abrir panel.desktop** (si el escritorio lo pide, p
 
 Cada apertura de la página y cada recarga del navegador ejecutan `panel.sql` únicamente contra **DEV_GOLD.MARTS.MART_CRIMES_PET_LICENSES**. Cambiar de gráfico, especie o periodo usa los datos ya cargados. Si la consulta falla, se muestra la última lectura completa de ese perfil con un aviso y su fecha UTC. Sin una primera lectura correcta no se muestran gráficos. Abrir `index.html` directamente no inicia el servicio.
 
-El mapa superpone los polígonos del mart sobre calles de OpenStreetMap (las calles requieren Internet). **Vista** contiene solo robos de vehículos, robos y hurtos seleccionados y tiroteos/homicidios. El verde representa el indicador elegido y los marcadores crecen según el cociente licencias/casos. Con **Gatos+Perros** aparecen juntos gatos morados y perros naranjas, con la misma escala. Sin casos no hay cociente ni marcador. La casilla **Licencias acumuladas hasta el año elegido**, activada por defecto, usa las columnas `cumulative_*_license_count` del mart, incluidas las emisiones anteriores a 2024 y los años sin delitos. Desmarcarla usa solo las emisiones del año elegido. El panel no consulta `DIM_LICENSES` directamente. Véase la [definición del mart y su migración de tabla a vista](../docs/marts.md#migración).
+El mapa superpone los polígonos del mart sobre calles de OpenStreetMap (las calles requieren Internet). **Vista** contiene solo robos de vehículos, robos y hurtos seleccionados y tiroteos/homicidios. El verde representa el indicador elegido y los marcadores crecen según el cociente licencias/casos. Con **Gatos+Perros** aparecen juntos gatos morados y perros naranjas, con la misma escala. Sin casos no hay cociente ni marcador. La casilla **Licencias acumuladas hasta el año elegido**, activada por defecto, usa las columnas `cumulative_*_license_count` del mart, incluidas las emisiones anteriores a 2024 y los años sin delitos. Desmarcarla usa solo las emisiones del año elegido. Este mapa no consulta `DIM_LICENSES` directamente. Véase la [definición del mart y su migración de tabla a vista](../docs/marts.md#migración).
 
 En las selecciones **Gatos**, **Perros** y **Gatos+Perros**, los círculos se sustituyen por iconos SVG locales de gato morado y perro naranja. Mantienen el mismo cálculo de tamaño: lado = `52 × sqrt(cociente / máximo)`, de modo que duplicar el cociente duplica el área del recuadro del icono. En la vista conjunta usan el mismo máximo y se dibujan lado a lado. Los otros grupos de especies mantienen sus círculos.
 
 Todos los controles de fecha y gráficos se limitan a **2024–2026**, con **2024 por defecto** (enero de 2024 en la pestaña mensual). La opción «Todos (2024–2026)» de las tablas suma solo esos tres años y no sus saldos acumulados. Las gráficas de evolución usan siempre recuentos anuales. Los otros dos mapas siguen leyendo sus respectivos marts de detalle; no pueden obtener ubicaciones individuales del mart CP-año. Leaflet 1.9.4 se sirve localmente; su licencia está en `leaflet/LICENSE`.
 
 ## Antes del primer uso
+
+### Datos curiosos
+
+La cuarta pestaña (bombilla) consulta seis agregados directamente en `DEV_GOLD.GOLD`, sin crear un mart. Usa 2024 por defecto y permite 2025, 2026 o todo 2024–2026. Consulta cada periodo al seleccionarlo por primera vez y lo conserva en memoria; **Actualizar datos** repite la lectura. No reutiliza la copia postal como si contuviera estos datos. Cada tarjeta muestra sus fuentes, exclusiones y empates; un fallo de lectura deja esa tarjeta como no disponible, sin sustituirlo por un cero.
+
+- Nombres de perros y gatos por separado: licencias emitidas, no animales únicos.
+- Hora con más delitos: `offense_date_time`, sin asumir una zona horaria no verificada.
+- Robos de vehículos NIBRS 240: ranking por bloque publicado, no por calle completa; excluye ubicaciones ocultadas.
+- Detenciones: comparación de total lunes–viernes / 5 frente a total sábado–domingo / 2. No es una media diaria del periodo.
+- Tiroteos: delitos cuyo informe también tiene alguna detención en todo el histórico. No prueba relación con ese delito ni posterioridad y no es una tasa de resolución.
+- Agente con más detenciones: `officer_id`, ya que Gold no publica el nombre.
+
+El rol necesita `SELECT` sobre `DIM_LICENSES`, `FACT_CRIMES`, `DIM_NIBRS`, `DIM_ADDRESS`, `FACT_ARRESTS`, `DIM_DATE`, `BRIDGE_CRIME_SHOOTING_TYPES`, `DIM_SHOOTING_TYPE` y `DIM_AGENT`, además de `USAGE` sobre la base y el esquema. Las consultas están en `curiosidades/*.sql`. Pruebas de los agregados: `python3 -m unittest discover -s visualizacion/tests -v` y `node visualizacion/tests/curiosidades.test.cjs`. Son comprobaciones locales con fixtures, no una validación contra Snowflake desplegado.
 
 ### Detenciones y contexto económico
 
@@ -21,6 +34,8 @@ Las zonas se colorean por nivel bajo, medio y alto de la variable elegida, con c
 Para conservar zonas con cero detenciones anuales se usa `DIM_POSTAL_CODES` como catálogo y se recupera el contexto ACS de cada CP desde cualquier año del mart. Un CP sin eventos en todo el histórico no tiene contexto económico recuperable en este mart: queda gris y fuera de las comparativas, sin imputación. Las consultas cuentan detenciones con `COUNT(*)`, sin sumar `postal_year_arrest_count` ni sus tasas repetidas. La población y las medianas no se suman. Los valores censurados se muestran como «Más de…» y no se usan para formar los grupos. El contexto ACS 2020–2024 es fijo, no una serie económica histórica; ver [contrato del mart](../docs/mart_arrest_socioeconomic.md). Esta pestaña no usa el filtro de 50 licencias de mascotas.
 
 Pruebas locales con datos sintéticos desde la raíz: `python3 -m unittest discover -s visualizacion/tests -v` y `node visualizacion/tests/socio.test.cjs`. No sustituyen la validación del mart desplegado en Snowflake.
+
+La interfaz comparte estilos locales en `panel.css`; no descarga fuentes ni librerías de diseño. Las fuentes de datos y las notas metodológicas están en desplegables bajo cada mapa o comparativa. Para comprobar los tres mapas, filtros y correlaciones en cuatro tamaños de pantalla, con el panel iniciado y Playwright/Chromium instalados: `python3 visualizacion/tests/ui_smoke.py http://127.0.0.1:PUERTO`. La prueba intercepta las consultas con datos sintéticos, no accede a Snowflake y guarda capturas en `/tmp/opencode/civica-ui` (configurable con `--screenshots`).
 
 Si tu rol todavía no tiene acceso, un administrador puede ejecutar:
 

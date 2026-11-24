@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="2800" height="1690" viewBox="0 0 2800 1690" role="img" aria-labelledby="title description">
   <title id="title">Cívica · Diagrama de la capa Silver</title>
-  <desc id="description">17 modelos, 17 referencias lógicas y una correspondencia parcial ZCTA–ZIP. Las flechas continuas apuntan de la clave foránea a la clave padre. La línea discontinua del censo no es una FK total. El ZIP de licencias no tiene FK al catálogo postal. Esquema basado en los modelos SQL y las pruebas YAML locales; no certifica un despliegue en Snowflake.</desc>
+  <desc id="description">17 modelos, 17 referencias lógicas y dos correspondencias parciales con postal_codes.cp: el ZCTA del censo y el ZIP declarado en las licencias. Las flechas continuas apuntan de la clave foránea a la clave padre. Las líneas discontinuas indican coincidencias por código, no claves foráneas. Esquema basado en los modelos SQL y las pruebas YAML locales; no certifica un despliegue en Snowflake.</desc>
   <style>text{font-family:"DejaVu Sans",sans-serif;fill:#192e4a}.mono{font-family:"DejaVu Sans Mono",monospace}.muted{fill:#4d627d}.white{fill:#fff}.light{fill:#d3e2f6}.label{font-weight:700;letter-spacing:1.1px}.bold{font-weight:700}</style>
   <defs>
     <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
@@ -16,7 +16,7 @@
   <rect x="0" y="146" width="2800" height="4" rx="0" fill="#50c3a6" />
   <text x="50" y="35" font-size="13" class="label light" text-anchor="start">CÍVICA PROJECT  /  SEATTLE</text>
   <text x="48" y="82" font-size="40" class="bold white" text-anchor="start">Diagrama de la capa Silver</text>
-  <text x="50" y="119" font-size="17" class="light" text-anchor="start">Modelos dbt sobre Snowflake  ·  17 modelos  /  17 referencias lógicas  +  1 correspondencia parcial</text>
+  <text x="50" y="119" font-size="17" class="light" text-anchor="start">Modelos dbt sobre Snowflake  ·  17 modelos  /  17 referencias lógicas  +  2 correspondencias parciales</text>
   <text x="2750" y="39" font-size="12" class="label light" text-anchor="end">ESQUEMA SEGÚN EL CÓDIGO LOCAL</text>
   <text x="2750" y="68" font-size="15" class="white" text-anchor="end">No certifica un despliegue en Snowflake</text>
   <text x="50" y="181" font-size="11" class="label muted" text-anchor="start">CONTEXTO SOCIOECONÓMICO Y LICENCIAS</text>
@@ -108,9 +108,13 @@
     <path d="M560 786 C525 786 525 1142 490 1142" fill="none" stroke="#f3f6fb" stroke-width="6" stroke-linejoin="round" />
     <path d="M560 786 C525 786 525 1142 490 1142" fill="none" stroke="#078168" stroke-width="2" stroke-linejoin="round" marker-end="url(#fk)" />
   </g>
-  <g class="correspondence">
+  <g data-from="census_socioeconomic.cp" data-to="postal_codes.cp" class="correspondence">
     <title>census_socioeconomic.cp = postal_codes.cp: correspondencia parcial ZCTA–ZIP, no FK total; conserva códigos sin correspondencia.</title>
     <path d="M490 272 L510 272 L510 1142 L490 1142" fill="none" stroke="#8966b5" stroke-width="2.2" stroke-dasharray="8 6" />
+  </g>
+  <g data-from="licenses.cp" data-to="postal_codes.cp" class="correspondence">
+    <title>licenses.cp = postal_codes.cp: coincidencia por ZIP declarado; el catálogo no cubre todos los códigos de licencias.</title>
+    <path d="M50 892 H32 V1142 H50" fill="none" stroke="#8966b5" stroke-width="2.2" stroke-dasharray="8 6" />
   </g>
   <g id="reports" class="model">
     <title>reports: Incremental · informe común a delitos y detenciones</title>
@@ -1027,7 +1031,7 @@
   <text x="70" y="1401" font-size="12" class="label" text-anchor="start">CLAVES Y REGLAS DE LECTURA</text>
   <text x="70" y="1434" font-size="12" class="muted" text-anchor="start">PK: clave lógica · UK: clave alternativa · FK: referencia lógica · NN: no nulo (PK lo implica).</text>
   <text x="70" y="1460" font-size="12" class="muted" text-anchor="start">Flecha continua: N:1 hacia la clave padre; las FK pueden ser nulas salvo indicación NN.</text>
-  <text x="70" y="1486" font-size="12" class="muted" text-anchor="start">Línea violeta discontinua: correspondencia parcial por código ZCTA–ZIP, no FK total.</text>
+  <text x="70" y="1486" font-size="12" class="muted" text-anchor="start">Línea violeta discontinua: coincidencia parcial por código con postal_codes.cp, no FK.</text>
   <text x="70" y="1512" font-size="12" class="muted" text-anchor="start">crimes: una pareja (report_id, offense_id). No hay una FK directa entre delitos y detenciones.</text>
   <text x="70" y="1538" font-size="12" class="muted" text-anchor="start">crime_shooting_types: PK compuesta (crime_id, shooting_type_id).</text>
   <text x="70" y="1564" font-size="12" class="muted" text-anchor="start">Las claves y referencias son lógicas y se comprueban con tests; el SVG no impone restricciones.</text>
@@ -1038,5 +1042,5 @@
   <text x="1420" y="1538" font-size="12" class="muted" text-anchor="start">Censo: ACS 2024 5-year; las medianas no son sumables y los flags top_coded marcan umbrales.</text>
   <text x="1420" y="1564" font-size="12" class="muted" text-anchor="start">full_address: CP solo con interior único. ZCTA no equivale a ZIP.</text>
   <text x="50" y="1651" font-size="13" class="muted" text-anchor="start">Fuente: models/silver/**/*.sql y YAML de tests · Diccionario editable: docs/silver_diagram.md</text>
-  <text x="2750" y="1651" font-size="13" class="muted" text-anchor="end">17 modelos · 17 referencias + 1 correspondencia parcial</text>
+  <text x="2750" y="1651" font-size="13" class="muted" text-anchor="end">17 modelos · 17 referencias + 2 correspondencias parciales</text>
 </svg>

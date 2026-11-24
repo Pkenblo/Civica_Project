@@ -1,6 +1,6 @@
 # Modelo de Silver: diccionario y DBML
 
-El [diagrama SVG](silver_diagram.svg) y el diccionario DBML de esta página representan los mismos **17 modelos y 17 referencias lógicas**, más una correspondencia parcial ZCTA–ZIP, de `models/silver/`. La referencia describe el diseño dbt, no certifica un despliegue en Snowflake. La [guía de Silver](silver.md) amplía las decisiones de diseño y operación.
+El [diagrama SVG](silver_diagram.svg) y el diccionario DBML de esta página describen **17 modelos, 17 referencias lógicas y dos correspondencias parciales** por código postal en `models/silver/`. Documentan el diseño dbt, no certifican un despliegue en Snowflake. La [guía de Silver](silver.md) amplía las decisiones de diseño y operación.
 
 [![Diagrama de la capa Silver; pulsa para ampliar](silver_diagram.svg)](silver_diagram.svg)
 
@@ -10,8 +10,8 @@ El [diagrama SVG](silver_diagram.svg) y el diccionario DBML de esta página repr
 - `reports` es padre de `crimes` y `arrest`; no hay una FK entre ambos hechos. `crime_shooting_types` usa `crime_id`, no `offense_id`. `arrest_offenses` tiene una fila por detención y descripción NIBRS no nula. Referencia la detención y, solo por coincidencia exacta y única de descripción, el catálogo `nibrs`.
 - `offense_categories` reúne categoría y subcategoría de Seattle en una sola fila y una sola FK desde `crimes`. La pareja es única; cada etiqueta puede ser nula por separado. Ya no existe `offense_subcategories`.
 - `full_address` y `police_add` sirven a ambos hechos policiales. La identidad de ubicación usa seis atributos geográficos, sin contexto de evento, CP ni indicadores de calidad. Las filas abstractas `UNKNOWN` y `REDACTED` existen siempre. El cruce punto–polígono calcula el CP; no es una relación adicional.
-- `postal_codes` contiene solo la cartografía activa con prefijo `981`, no incorpora los ZIP de licencias. `licenses.cp` conserva el ZIP declarado de cinco dígitos, no pasa por una ubicación policial y no tiene FK a `postal_codes`.
-- La línea discontinua entre `census_socioeconomic.cp` y `postal_codes.cp` representa una correspondencia analítica parcial por igualdad de código, no una FK total: ZCTA y ZIP no tienen necesariamente los mismos límites. Se conservan los ZCTA sin correspondencia. Esta asociación se documenta en una nota DBML, no con `Ref`.
+- `postal_codes` contiene solo la cartografía activa con prefijo `981`. `licenses.cp` conserva el ZIP declarado de cinco dígitos, sin inferirlo a partir de una ubicación policial. Coincide con `postal_codes.cp` cuando el código está en el catálogo; si no, la licencia se conserva igualmente.
+- Las líneas violetas discontinuas representan coincidencias parciales de `licenses.cp` y `census_socioeconomic.cp` con `postal_codes.cp`. ZCTA y ZIP no tienen necesariamente los mismos límites y se conservan los ZCTA sin correspondencia. Ambas asociaciones se documentan en notas DBML, no con `Ref`.
 - `crimes`, `arrest`, `arrest_offenses`, `licenses`, `reports` y `subject` son incrementales `delete+insert` con corte global de ingesta. `postal_codes` y `census_socioeconomic` llevan la etiqueta `static_model`.
 
 ## DBML para dbdiagram.io
@@ -190,7 +190,7 @@ Table licenses {
   species varchar
   primary_breed varchar
   secondary_breed varchar
-  cp varchar [note: 'ZIP de origen si tiene cinco dígitos; nunca inferido por cruce espacial. La cobertura en postal_codes no está garantizada por el SQL.']
+  cp varchar [note: 'ZIP de origen si tiene cinco dígitos; nunca inferido por cruce espacial. Coincidencia parcial con postal_codes.cp, sin FK.']
   ingested_at timestamp_ltz [not null]
 
   Note: 'Incremental delete+insert: última versión por número de licencia.'

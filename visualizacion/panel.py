@@ -102,6 +102,24 @@ def registros(cur, filename, args=None):
     return [dict(zip(columnas, (float(v) if isinstance(v, Decimal) else v for v in r))) for r in cur]
 
 
+def curiosidades(anio):
+    """Seis agregados de Gold; un fallo de permisos no oculta los demás resultados."""
+    if anio != 'todos' and anio not in {str(y) for y in VIEW_YEARS}:
+        raise ValueError('Solo se admiten los años 2024, 2025 y 2026')
+    inicio = f'{VIEW_YEARS[0] if anio == "todos" else anio}-01-01'
+    fin = f'{VIEW_YEARS[-1] + 1 if anio == "todos" else int(anio) + 1}-01-01'
+    datos, avisos = {}, {}
+    with closing(conectar()) as conn, closing(conn.cursor()) as cur:
+        for clave in ('nombres', 'horas', 'vehiculos', 'semana', 'tiroteos', 'agentes'):
+            try:
+                datos[clave] = registros(cur, f'curiosidades/{clave}.sql', (inicio, fin))
+            except Exception as exc:
+                print(f'Error en curiosidades/{clave}: {type(exc).__name__} ({getattr(exc, "errno", "—")})', flush=True)
+                avisos[clave] = 'No se pudo consultar este dato. Revisa las fuentes y sus permisos SELECT en Gold.'
+    return {'anio': anio, 'inicio': inicio, 'fin_exclusivo': fin, 'datos': datos, 'avisos': avisos,
+            'fecha': datetime.now(timezone.utc).isoformat(timespec='seconds')}
+
+
 def socio(anio):
     """Puntos exactos publicados, contexto único por CP y recuentos anuales de detenciones."""
     with closing(conectar()) as conn, closing(conn.cursor()) as cur:
@@ -165,9 +183,11 @@ class Panel(BaseHTTPRequestHandler):
     def do_GET(self):
         assets = {'/': ('index.html', 'text/html; charset=utf-8'),
                   '/index.html': ('index.html', 'text/html; charset=utf-8'),
+                  '/panel.css': ('panel.css', 'text/css; charset=utf-8'),
                   '/mapa.js': ('mapa.js', 'application/javascript'),
                   '/delitos.js': ('delitos.js', 'application/javascript'),
                   '/socio.js': ('socio.js', 'application/javascript'),
+                  '/curiosidades.js': ('curiosidades.js', 'application/javascript'),
                   '/correlaciones.html': ('correlaciones.html', 'text/html; charset=utf-8'),
                   '/marts-datos.js': ('marts-datos.js', 'application/javascript'),
                   '/leaflet/leaflet.js': ('leaflet/leaflet.js', 'application/javascript'),
@@ -183,8 +203,17 @@ class Panel(BaseHTTPRequestHandler):
         with LOCK:
             mes = re.fullmatch(r'/puntos/(ultimo|[1-9][0-9]{3}-(?:0[1-9]|1[0-2]))', self.path)
             economico = re.fullmatch(r'/socio/(ultimo|[1-9][0-9]{3})', self.path)
+            curiosos = re.fullmatch(r'/curiosidades/(todos|[1-9][0-9]{3})', self.path)
             if self.path == '/datos':
                 code, payload = cargar()
+            elif curiosos:
+                if curiosos[1] != 'todos' and int(curiosos[1]) not in VIEW_YEARS:
+                    return self.responder(400, 'application/json', b'{"aviso":"Solo se admiten 2024, 2025 y 2026."}')
+                try:
+                    code, payload = 200, curiosidades(curiosos[1])
+                except Exception as exc:
+                    print(f'Error de curiosidades: {type(exc).__name__} ({getattr(exc, "errno", "—")})', flush=True)
+                    code, payload = 503, {'aviso': 'No se pudieron cargar los datos curiosos. Comprueba la conexión y los permisos de lectura en DEV_GOLD.GOLD.'}
             elif mes:
                 if mes[1] != 'ultimo' and int(mes[1][:4]) not in VIEW_YEARS:
                     return self.responder(400, 'application/json', b'{"aviso":"Solo se admiten meses de 2024 a 2026."}')

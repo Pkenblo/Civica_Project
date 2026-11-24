@@ -117,7 +117,7 @@ function renderGroups(){
   const out=$('comparativas'),y=$('group-year').value,all=y==='todos',year=all?allYearsByCP():years.get(+y);out.replaceChildren();
   for(const mart of Object.values(marts)){
     const block=$('comparativa').content.firstElementChild.cloneNode(true);out.append(block);
-    block.querySelector('h2').textContent=mart.label+' por zona: gatos frente a perros';
+    block.querySelector('.comparison-title').textContent=mart.label;
     if(!year||!Number.isInteger(year.values().next().value?.[mart.index])){block.querySelector('.definition').textContent='Sin datos del indicador. Recarga con conexión.';continue}
     block.querySelector('.definition').textContent=mart.definition;
     const {groups,ties,empty,below}=summarize(year,mart,all);drawTable(block.querySelector('tbody'),groups);
@@ -159,7 +159,7 @@ function renderMap(){
   }
   const byCP=new Map(points.map(p=>[p.cp,p])),maxRatio=Math.max(0,...points.flatMap(p=>p.ratios));
   const max=Math.max(0,...Array.from(shown,cp=>totals.get(cp)||0));bubbles.clearLayers();
-  const key=$('border-key');key.replaceChildren();element(key,'strong',`Bordes según las licencias${year?' '+licensePeriod($('anio').value):''}: `);
+  const key=$('border-key');key.replaceChildren();key.setAttribute('aria-label',`Bordes según las licencias${year?' '+licensePeriod($('anio').value):''}`);
   for(const [kind,edge] of Object.entries(edges)){const item=element(key,'span');item.style.cssText='display:inline-block;margin-right:1em';
     const line=element(item,'span');line.style.cssText=`display:inline-block;width:1.5em;vertical-align:middle;margin-right:.3em;border-top:3px ${kind==='neutral'?'dashed':'solid'} ${edge.color}`;item.append(edge.name)}
   for(const [cp,area] of areas){
@@ -180,6 +180,6 @@ function renderMap(){
   $('legend').textContent='0 casos';$('max').textContent=fmt(max);
   $('place').textContent='Selecciona un código postal para consultar sus cifras.';
   const iconLabel=dual?'Gatos morados y perros naranjas':species==='5'?'Gatos morados':species==='4'?'Perros naranjas':null;
-  $('counts').textContent=year?'Verde: '+martLabel().toLowerCase()+'. '+(iconLabel?iconLabel+': crecen según el cociente licencias/casos, con la misma escala que los círculos anteriores.':'Área naranja: licencias por caso.')+' Sin casos no hay cociente; con cero licencias no se dibuja marcador.':`Esta lectura no contiene datos para ${$('anio').value}.`;
-  if(filter)$('counts').textContent+=` Filtro: ${shown.size} de ${areas.size} zonas visibles.`;
+  $('counts').textContent=year?(iconLabel?iconLabel: 'Círculos naranjas')+': tamaño según licencias por caso. Sin casos no hay cociente; sin licencias no hay marcador.':`Esta lectura no contiene datos para ${$('anio').value}.`;
+  if(filter)element($('counts'),'p',`${shown.size} de ${areas.size} zonas visibles · mínimo 50 licencias.`);
 }

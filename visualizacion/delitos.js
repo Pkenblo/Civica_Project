@@ -49,9 +49,7 @@ const CrimeEconomy={
   }
 
   function show(points){
-    $('socio-view').hidden=true;$('open-socio').setAttribute('aria-pressed',false);
-    $('zones-view').hidden=points;$('points-view').hidden=!points;
-    $('open-zones').setAttribute('aria-pressed',!points);$('open-points').setAttribute('aria-pressed',points);
+    activateView(points?'points':'zones');
     if(!points){if(streetMap)streetMap.invalidateSize();return}
     if(!map){
       map=L.map('points-map',{maxZoom:19,preferCanvas:true}).setView([47.61,-122.33],12);
@@ -117,7 +115,7 @@ const CrimeEconomy={
       }).addTo(areas);
     }
     const legend=$('points-economy-key');legend.replaceChildren();
-    for(const [i,label] of levels.entries()){const span=element(legend,'span','■ '+label+'  ');span.style.color=economyColors[i]}
+    for(const [i,label] of levels.entries()){const span=element(legend,'span');span.className='economy-level';const swatch=element(span,'i');swatch.style.background=economyColors[i];swatch.setAttribute('aria-hidden','true');span.append(label)}
     element(legend,'span',`· ${m.label}. Gris: sin valor comparable. `+(grouping.low===null?'Sin importes comparables.':`Bajo ≤ ${money(grouping.low)}; medio ≤ ${money(grouping.high)}; alto > ${money(grouping.high)}.`));
   }
 
@@ -127,7 +125,7 @@ const CrimeEconomy={
     const categories=new Set(),types=new Map(),available=new Set(snapshot.recuentos.map(r=>r.year));
     for(const r of snapshot.recuentos){categories.add(r.nibrs_category);types.set(JSON.stringify(['type',r.nibrs_code,r.nibrs_description]),`${r.nibrs_code??'Sin código'} · ${r.nibrs_description??'Sin descripción'}`)}
     for(const m of SocioData.metrics){
-      const section=element(container,'section');section.style.marginTop='18px';element(section,'h3',m.label+' · delitos por zona');
+      const section=element(container,'section');section.className='comparison-card';element(section,'h3',m.label).className='comparison-title';
       const label=element(section,'label','Tipo de delito '),select=element(label,'select');select.className='crime-chart-type';
       select.setAttribute('aria-label',`Tipo de delito para ${m.label.toLowerCase()}`);select.add(new Option('Todos los tipos',''));
       const categoryGroup=element(select,'optgroup');categoryGroup.label='Categorías del proyecto';
@@ -141,22 +139,25 @@ const CrimeEconomy={
         const counts=CrimeEconomy.annualCounts(snapshot.recuentos,select.value),grouping=groups.get(m.key),year=Number(snapshot.mes.slice(0,4));
         const summary=y=>SocioData.summary(grouping,counts.get(y)).map(g=>available.has(y)?g:{...g,total:null,mean:null});
         const yearGroups=summary(year),number=n=>n===null?'—':n.toLocaleString('es-ES',{maximumFractionDigits:2});
-        element(content,'p',grouping.low===null?'Sin zonas con valor económico comparable.':`Bajo: hasta ${money(grouping.low)}. Medio: más de ${money(grouping.low)} y hasta ${money(grouping.high)}. Alto: más de ${money(grouping.high)}.`);
-        const wrap=element(content,'div');wrap.style.overflowX='auto';const table=element(wrap,'table'),head=element(element(table,'thead'),'tr');
+        const grid=element(content,'div');grid.className='comparison-grid';
+        const wrap=element(grid,'div');wrap.className='table-wrap';const table=element(wrap,'table'),head=element(element(table,'thead'),'tr');
         ['Nivel de zona','CP comparables',`Delitos ${year}`,'Media de delitos por zona'].forEach(text=>element(head,'th',text));
         const body=element(table,'tbody'),max=Math.max(1,...yearGroups.map(g=>g.mean??0));
         yearGroups.forEach((g,i)=>{const tr=element(body,'tr');element(tr,'th',levels[i]).scope='row';element(tr,'td',number(g.zones));element(tr,'td',number(g.total));
           const cell=element(tr,'td',number(g.mean));if(g.mean===null)return;
           const track=element(cell,'div');track.className='bar';track.style.background='#eef1ed';const fill=element(track,'i');fill.style.background=economyColors[i];fill.style.width=100*g.mean/max+'%';
         });
-        element(content,'h3','Evolución anual · media de delitos por zona');
-        const chart=element(content,'div');chart.className='years-chart';const series=VIEW_YEARS.map(y=>[y,summary(y)]),cap=Math.max(1,...series.flatMap(([,gs])=>gs.map(g=>g.mean??0)));
+        const annual=element(grid,'div');annual.className='annual-block';element(annual,'h4','Media de delitos por zona · evolución anual');
+        const legend=element(annual,'div');legend.className='chart-legend';levels.forEach((label,i)=>{const item=element(legend,'span');element(item,'i').style.background=economyColors[i];item.append(label)});
+        const chart=element(annual,'div');chart.className='years-chart';const series=VIEW_YEARS.map(y=>[y,summary(y)]),cap=Math.max(1,...series.flatMap(([,gs])=>gs.map(g=>g.mean??0)));
         for(const [y,gs] of series){const col=element(chart,'div');col.className='year-column';col.style.flexBasis='106px';if(y===year)col.style.background='#edf3ed';const bars=element(col,'div');bars.className='columns';
           gs.forEach((g,i)=>{const bar=element(bars,'span');bar.style.width='25px';bar.style.height=130*(g.mean??0)/cap+'px';bar.style.background=economyColors[i];element(bar,'b',number(g.mean));
             bar.title=`${y} · ${levels[i]} · ${g.zones} CP · ${number(g.total)} delitos · media: ${number(g.mean)}`;bar.setAttribute('aria-label',bar.title);bar.setAttribute('role','img');
           });element(col,'strong',y);
         }
-        element(content,'p',`${grouping.assignments.size} CP con polígono y valor comparable, con grupos fijos entre años. Selección: ${select.selectedOptions[0].textContent}. Un cero indica ausencia de registros del tipo en esas zonas; un guion, año sin registros en el mart o grupo sin zonas. La media normaliza el número de zonas, no su población. Se excluyen los delitos sin CP referenciado y las zonas sin contexto comparable.`).className='note';
+        const details=element(content,'details');details.className='methodology';element(details,'summary','Muestra y cálculo');
+        element(details,'p',grouping.low===null?'Sin zonas con valor económico comparable.':`Bajo: hasta ${money(grouping.low)}. Medio: más de ${money(grouping.low)} y hasta ${money(grouping.high)}. Alto: más de ${money(grouping.high)}.`);
+        element(details,'p',`${grouping.assignments.size} CP con polígono y valor comparable, con grupos fijos entre años. Selección: ${select.selectedOptions[0].textContent}. Un cero indica ausencia de registros del tipo en esas zonas; un guion, año sin registros en el mart o grupo sin zonas. La media normaliza el número de zonas, no su población. Se excluyen los delitos sin CP referenciado y las zonas sin contexto comparable.`).className='note';
       }
       select.onchange=draw;draw();
     }
