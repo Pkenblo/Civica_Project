@@ -1,8 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Abrir panel de Seattle
-Comment=Consultar DEV_GOLD.GOLD y abrir las tres visualizaciones
-Icon=web-browser
-Terminal=true
-Exec=python3 -c "import os,sys; from pathlib import Path; root=Path(sys.argv[1]).resolve().parent; py=root/'.venv/bin/python'; os.execl(py if py.is_file() else sys.executable,'python3',str(root/'panel.py'))" %k
