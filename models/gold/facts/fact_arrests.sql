@@ -1,7 +1,4 @@
-{{ config(
-    unique_key='arrest_number',
-    post_hook="{{ gold_prune(ref('arrest'), 'arrest_number') }}"
-) }}
+{{ config(unique_key='arrest_number') }}
 
 with
 

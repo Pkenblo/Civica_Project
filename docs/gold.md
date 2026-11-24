@@ -18,7 +18,7 @@ Los YAML de dimensiones comprueban que cada clave lógica sea única y no nula, 
 | `dim_postal_codes` | view | `cp` | `postal_codes` |
 | `dim_licenses` | view | `license_number` | `licenses`, `dim_date` |
 | `dim_police_area` | view | `police_area_id` | `police_add` |
-| `dim_offense_classification` | view | `offense_classification_id` | `offense_categories` |
+| `dim_offense_categories` | view | `offense_classification_id` | `offense_categories` |
 | `dim_shooting_type` | view | `shooting_type_id` | `shooting_types` |
 | `dim_arrest_type` | view | `arrest_type_id` | `arrest_types` |
 | `dim_agent` | view | `agent_key` | `agents` |
@@ -49,13 +49,7 @@ Los dos hechos usan `after_max_ingested_at`: el corte global exige una ingesta e
 
 Si los hechos ya están materializados con las columnas antiguas de fecha o recuento, hay que reconstruirlos una vez con `--full-refresh` porque `on_schema_change: fail` impide quitarlas en una carga incremental. Los marts conservan sus fechas de salida leyéndolas de `dim_date`.
 
-Por defecto, los modelos incrementales no comprueban si han desaparecido claves de Silver. Los post-hooks de `fact_crimes` y `fact_arrests` permiten retirar las claves que Silver ya no publica, si está completa. Actívalos solo para esa ejecución y para el modelo afectado. Por ejemplo:
-
-```bash
-DBT_GOLD_PRUNE_MISSING_KEYS=1 dbt build --target dev --select fact_crimes
-```
-
-Solo el valor `1` activa el borrado. El hook compara contra toda la tabla Silver, no contra el último lote; no recupera altas ni correcciones históricas que queden fuera del corte por `ingested_at`. Las ejecuciones deben ser seriales contra el mismo destino. La limpieza y el `delete+insert` no se publican como una única transacción; si falla el hook, corregir y repetir con la opción activa antes de consumir los resultados.
+Los hechos incrementales no eliminan filas cuando sus claves desaparecen de Silver. Para propagar esas bajas, comprueba que Silver esté completa y reconstruye con `--full-refresh` el hecho y el mart socioeconómico afectados.
 
 El CP no se copia en el hecho policial: `dim_address` refleja el mapa que publica Silver sin reescribir los hechos por ese motivo. Antes de desplegar la conversión de tablas a vistas, revisar los permisos de reemplazo de los objetos existentes y los permisos de `SELECT` de sus consumidores.
 

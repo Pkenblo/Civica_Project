@@ -18,9 +18,9 @@ fact_crimes as (
     select *
     from {{ ref('dim_date') }}
 )
-, dim_offense_classification as (
+, dim_offense_categories as (
     select *
-    from {{ ref('dim_offense_classification') }}
+    from {{ ref('dim_offense_categories') }}
 )
 , dim_nibrs as (
     select *
@@ -149,7 +149,7 @@ fact_crimes as (
         on a.address_id = c.address_id
     left join dim_date d
         on d.date_key = c.offense_date_key
-    left join dim_offense_classification o
+    left join dim_offense_categories o
         on o.offense_classification_id = c.offense_classification_id
     left join dim_nibrs n
         on n.nibrs_key = c.nibrs_key

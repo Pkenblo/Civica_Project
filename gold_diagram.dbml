@@ -93,7 +93,7 @@ Table dim_nibrs {
   crime_against_category varchar
 }
 
-Table dim_offense_classification {
+Table dim_offense_categories {
   Note: 'Una combinación de categoría y subcategoría de Seattle, independiente de NIBRS. Admite un nivel ausente. La clave procede de offense_categories.offense_category_id en Silver.'
   offense_classification_id varchar [pk]
   offense_category varchar
@@ -201,7 +201,7 @@ Ref: fact_crimes.report_id > dim_report.report_id
 Ref: fact_crimes.nibrs_key > dim_nibrs.nibrs_key
 Ref: fact_crimes.address_id > dim_address.address_id
 Ref: fact_crimes.police_area_id > dim_police_area.police_area_id
-Ref: fact_crimes.offense_classification_id > dim_offense_classification.offense_classification_id
+Ref: fact_crimes.offense_classification_id > dim_offense_categories.offense_classification_id
 Ref: fact_crimes.offense_date_key > dim_date.date_key
 Ref: fact_crimes.report_date_key > dim_date.date_key
 Ref: fact_arrests.report_id > dim_report.report_id
@@ -234,7 +234,7 @@ TableGroup licencias {
 
 TableGroup delitos {
   fact_crimes
-  dim_offense_classification
+  dim_offense_categories
   dim_shooting_type
   bridge_crime_shooting_types
 }

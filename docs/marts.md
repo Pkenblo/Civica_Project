@@ -93,7 +93,7 @@ La primera pestaña del panel mantiene el mismo nombre de objeto, los tres indic
 
 Los dos marts socioeconómicos detectan ingestas nuevas con `after_max_ingested_at`. El de delitos reemplaza los delitos del lote; el de arrestos recalcula los grupos CP-año afectados con todos sus arrestos.
 
-Si los marts socioeconómicos ya existen con el esquema anterior, el primer despliegue requiere una reconstrucción. Usa también `--full-refresh` si hay borrados, cambios en dimensiones sin una nueva ingesta del hecho o ubicaciones que deban dejar de publicarse. El corte tampoco recupera ingestas con una marca igual o anterior a la última publicada.
+Si los marts socioeconómicos ya existen con el esquema anterior, el primer despliegue requiere una reconstrucción. Usa también `--full-refresh` para retirar filas que ya no publica el hecho de Gold, aplicar cambios de dimensiones sin una nueva ingesta del hecho o recuperar ingestas con una marca igual o anterior a la última publicada. Si la baja se origina en Silver, [reconstruye primero el hecho afectado](gold.md#incrementalidad).
 
 ```bash
 dbt build --target dev --full-refresh --select mart_crimes_socioeconomic mart_arrest_socioeconomic

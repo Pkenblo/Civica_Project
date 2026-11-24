@@ -29,7 +29,7 @@ models:
       - name: offense_classification_id
         description: Referencia a la clasificación de Seattle; nula si faltan ambos niveles.
         data_tests:
-          - relationships: {arguments: {to: "ref('dim_offense_classification')", field: offense_classification_id}}
+          - relationships: {arguments: {to: "ref('dim_offense_categories')", field: offense_classification_id}}
       - name: offense_date_key
         data_tests:
           - relationships: {arguments: {to: "ref('dim_date')", field: date_key}}
