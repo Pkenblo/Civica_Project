@@ -43,3 +43,7 @@ Configurar `DBT_BRONZE` y `DBT_SILVER` para DEV (`DEV_BRONZE` y `DEV_SILVER` en 
 **El diseño está cerrado, pero no consta un `dbt build` integral de la versión actual con datos reales en Snowflake DEV.** La [regresión sintética](tests/integration/arrest_delete_insert_check.py) usa un esquema DEV aislado. Si existe un Silver anterior, comprobar el histórico de RAW y coordinar la migración y el respaldo antes de usar `--full-refresh`: `on_schema_change='fail'` no migra columnas ni claves.
 
 La ingesta es externa a dbt. Sus scripts no están versionados en Git y no se presupone que su programación ni la task de Snowflake estén activas. Véase el [contexto de ingesta](contexto.md#ingesta-y-datos-locales). `Datos_ejemplo/` está ignorada por Git y no se usa como fuente dbt.
+
+### Frescura de las fuentes
+
+`dbt source freshness --target dev` comprueba cuánto tiempo ha pasado desde la última ingesta en `RAW.CRIMES` y `RAW.ARRESTS`, según `_INGESTED_AT`. Emite un aviso (`WARN`) al superar un día sin nuevos datos y devuelve un error al superar cuatro días. Licencias, cartografía postal y censo quedan fuera de este control porque no tienen una carga diaria documentada.
