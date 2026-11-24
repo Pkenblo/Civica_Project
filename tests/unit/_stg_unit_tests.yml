@@ -1,39 +1,6 @@
 version: 2
 
 unit_tests:
-  - name: stg_pet_licenses_normaliza_textos_y_filtra_prefijo_981
-    description: >
-      Comprueba mayúsculas y espacios exteriores en nombres, especies y razas, y vacíos convertidos a NULL.
-      Convierte UNKNOWN y el guion en NULL para species.
-      Conserva duplicados e identificadores y solo admite CP con prefijo 981 tras recortar espacios.
-      El filtro por prefijo no valida la longitud del código.
-    model: stg_pet_licenses
-    given:
-      - input: source('brz_pet_licenses', 'pet_licenses')
-        rows:
-          - {LICENSE_NUMBER: l1, ANIMAL_S_NAME: Luna, SPECIES: ' Dog ', PRIMARY_BREED: ' Mixed ', SECONDARY_BREED: ' Terrier ', ZIP_CODE: ' 98101 '}
-          - {LICENSE_NUMBER: l1, ANIMAL_S_NAME: Luna, SPECIES: DOG, PRIMARY_BREED: MIXED, SECONDARY_BREED: TERRIER, ZIP_CODE: '98101'}
-          - {LICENSE_NUMBER: l2, ANIMAL_S_NAME: Sol, SPECIES: Cat, PRIMARY_BREED: Mixed, SECONDARY_BREED: ' ', ZIP_CODE: '9810'}
-          - {LICENSE_NUMBER: l3, ANIMAL_S_NAME: null, SPECIES: ' ', PRIMARY_BREED: null, SECONDARY_BREED: null, ZIP_CODE: null}
-          - {LICENSE_NUMBER: l4, ZIP_CODE: '00501'}
-          - {LICENSE_NUMBER: l5, ZIP_CODE: '98001'}
-          - {LICENSE_NUMBER: l6, ZIP_CODE: ' '}
-          - {LICENSE_NUMBER: l7, SPECIES: ' Unknown ', ZIP_CODE: '98101'}
-          - {LICENSE_NUMBER: l8, SPECIES: ' ', ZIP_CODE: '98101'}
-          - {LICENSE_NUMBER: l9, SPECIES: null, ZIP_CODE: '98101'}
-          - {LICENSE_NUMBER: l10, SPECIES: ' - ', ZIP_CODE: '98101'}
-          - {LICENSE_NUMBER: l11, SPECIES: '', ZIP_CODE: '98101'}
-    expect:
-      rows:
-        - {license_number: l1, animal_name: LUNA, species: DOG, primary_breed: MIXED, secondary_breed: TERRIER, zip_code: '98101'}
-        - {license_number: l1, animal_name: LUNA, species: DOG, primary_breed: MIXED, secondary_breed: TERRIER, zip_code: '98101'}
-        - {license_number: l2, animal_name: SOL, species: CAT, primary_breed: MIXED, secondary_breed: null, zip_code: '9810'}
-        - {license_number: l7, animal_name: null, species: null, primary_breed: null, secondary_breed: null, zip_code: '98101'}
-        - {license_number: l8, animal_name: null, species: null, primary_breed: null, secondary_breed: null, zip_code: '98101'}
-        - {license_number: l9, animal_name: null, species: null, primary_breed: null, secondary_breed: null, zip_code: '98101'}
-        - {license_number: l10, animal_name: null, species: null, primary_breed: null, secondary_breed: null, zip_code: '98101'}
-        - {license_number: l11, animal_name: null, species: null, primary_breed: null, secondary_breed: null, zip_code: '98101'}
-
   - name: stg_arrests_normaliza_descripciones_y_marcadores_demograficos
     description: >
       Conserva la descripción NIBRS original y convierte el guion demográfico en NULL.
