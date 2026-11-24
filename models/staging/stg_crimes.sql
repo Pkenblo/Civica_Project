@@ -78,5 +78,13 @@ renamed as (
 
 )
 
-select *
+-- Una versión ocultada no aporta ubicación.
+select * replace (
+      iff(is_location_redacted, null, block_address) as block_address
+    , iff(is_location_redacted, null, latitude) as latitude
+    , iff(is_location_redacted, null, longitude) as longitude
+    , iff(is_location_redacted, null, neighborhood) as neighborhood
+    , iff(is_location_redacted, null, reporting_area) as reporting_area
+    , iff(is_location_redacted, null, census_block_2020) as census_block_2020
+)
 from renamed
