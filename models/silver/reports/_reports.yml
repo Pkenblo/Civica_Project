@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: reports
+    description: >-
+      Un informe identificable desde delitos o detenciones. La fecha procede de la
+      última observación en delitos; no se imputa con la fecha de detención.
+      Compartir informe no establece una correspondencia individual entre delito y detención.
+      Incremental delete+insert por report_id, con corte global de ingesta en ambas
+      fuentes mediante after_max_ingested_at. No propaga bajas por omisión.
+    columns:
+      - name: report_id
+        description: Clave generada sobre report_number normalizado.
+        data_tests: [unique, not_null]
+      - name: report_number
+        description: Número de informe normalizado en staging; conserva formatos no reconocidos para revisión.
+        data_tests: [unique, not_null]
+      - name: report_date_time
+        description: Fecha y hora de reporte procedentes de delitos; nulas si solo hay detenciones.
+      - name: ingested_at
+        description: Mayor fecha de ingesta del informe entre delitos y detenciones del lote elegible; cursor incremental.
+        data_tests: [not_null]

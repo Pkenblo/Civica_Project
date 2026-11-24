@@ -1,0 +1,25 @@
+version: 2
+
+models:
+  - name: dim_address
+    description: Ubicación compartida de Silver, incluidas UNKNOWN y REDACTED sin atributos geográficos. El CP solo se asigna con una coincidencia interior única.
+    columns:
+      - {name: address_id, data_tests: [unique, not_null]}
+      - {name: block_address, description: Dirección aproximada por bloque; puede estar censurada.}
+      - {name: reporting_area, description: Área geográfica de reporte de Seattle.}
+      - {name: census_block_2020, description: Referencia textual al bloque censal de 2020.}
+      - name: cp
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_postal_codes')", field: cp}}
+
+  - name: dim_police_area
+    description: Combinación de distrito policial, sector y beat; admite atributos parciales.
+    columns:
+      - {name: police_area_id, data_tests: [unique, not_null]}
+
+  - name: dim_postal_codes
+    description: CP de cinco dígitos de la cartografía activa, filtrados por prefijo 981; no equivale al límite municipal.
+    columns:
+      - {name: cp, data_tests: [unique, not_null]}
+      - {name: geography, description: GEOGRAPHY de Snowflake; nula si no hay polígono en el mapa activo.}
+      - {name: boundary_version, description: Identificador de la descarga activa cuando hay polígono.}

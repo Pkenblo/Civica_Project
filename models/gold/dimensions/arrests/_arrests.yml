@@ -1,0 +1,12 @@
+version: 2
+
+models:
+  - name: dim_arrest_type
+    description: Tipo de actuación registrado en las detenciones.
+    columns:
+      - {name: arrest_type_id, data_tests: [unique, not_null]}
+
+  - name: dim_cad_profile
+    description: Combinación de prioridad, tipo inicial y resultado CAD; no identifica llamadas individuales.
+    columns:
+      - {name: cad_profile_id, data_tests: [unique, not_null]}

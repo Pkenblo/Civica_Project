@@ -1,0 +1,53 @@
+version: 2
+
+models:
+  - name: census_socioeconomic
+    description: >-
+      ACS 2024 5-year (2020–2024), una fila por ZCTA con prefijo 981 seleccionado
+      en staging. Elige la última observación por cp y desempata por archivo, lote y
+      atributos de negocio. Tabla estática, excluible con tag:static_model.
+      Conserva los marcadores superiores con indicadores, no como importes exactos.
+      La igualdad con postal_codes.cp es una aproximación analítica entre ZCTA y ZIP,
+      no una FK total; no se eliminan los códigos sin correspondencia cartográfica.
+      No sumar medianas ni calcular tasas sin comprobar población nula o cero.
+    columns:
+      - name: cp
+        data_type: varchar(5)
+        description: Código ZCTA textual de cinco dígitos y clave del modelo.
+        data_tests: [unique, not_null]
+      - name: zcta_name
+        data_type: varchar
+        description: Nombre normalizado de la ZCTA, no una clave.
+      - name: median_household_income
+        data_type: number(38,0)
+        description: Ingreso mediano anual por hogar en USD ajustados a 2024; interpretar junto a income_top_coded.
+      - name: income_margin_of_error
+        data_type: number(38,0)
+        description: Margen de error al 90 % del ingreso mediano.
+      - name: population
+        data_type: number(38,0)
+        description: Población estimada; NULL y cero no sirven como denominadores.
+      - name: median_home_value
+        data_type: number(38,0)
+        description: Valor mediano de viviendas ocupadas por propietarios en USD; interpretar junto a home_value_top_coded.
+      - name: median_monthly_rent
+        data_type: number(38,0)
+        description: Alquiler contractual mediano mensual en USD; interpretar junto a rent_top_coded.
+      - name: income_top_coded
+        data_type: boolean
+        description: Indica que el ingreso es el marcador superior 250001, no un importe exacto.
+      - name: home_value_top_coded
+        data_type: boolean
+        description: Indica que el valor de vivienda es el marcador superior 2000001, no un importe exacto.
+      - name: rent_top_coded
+        data_type: boolean
+        description: Indica que el alquiler es el marcador superior 3501, no un importe exacto.
+      - name: ingested_at
+        data_type: timestamp_ntz
+        description: Fecha nativa de ingesta de RAW conservada en la fila seleccionada.
+      - name: source_file
+        data_type: varchar
+        description: Archivo de procedencia utilizado también para desempatar versiones.
+      - name: batch_id
+        data_type: varchar
+        description: Lote de procedencia utilizado también para desempatar versiones.

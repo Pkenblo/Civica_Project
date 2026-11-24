@@ -1,0 +1,38 @@
+version: 2
+
+models:
+  - name: bridge_crime_shooting_types
+    description: Una asociación observada por pareja de delito y etiqueta de tiroteo.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [crime_id, shooting_type_id]}
+      - dbt_utils.equality:
+          arguments:
+            compare_model: "ref('crime_shooting_types')"
+            compare_columns: [crime_id, shooting_type_id]
+    columns:
+      - name: crime_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: "ref('fact_crimes')", field: crime_id}}
+      - name: shooting_type_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: "ref('dim_shooting_type')", field: shooting_type_id}}
+
+  - name: bridge_arrest_offenses
+    description: Descripciones NIBRS observadas por detención, con el mismo grano e ID de Silver y referencia a dim_nibrs cuando la coincidencia es única.
+    data_tests:
+      - dbt_utils.equality:
+          arguments:
+            compare_model: "ref('arrest_offenses')"
+            compare_columns: [arrest_offense_id, arrest_number, nibrs_key, nibrs_match_status, unresolved_nibrs_description]
+    columns:
+      - {name: arrest_offense_id, data_tests: [unique, not_null]}
+      - name: arrest_number
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: "ref('fact_arrests')", field: arrest_number}}
+      - name: nibrs_key
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_nibrs')", field: nibrs_key}}

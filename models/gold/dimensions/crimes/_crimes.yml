@@ -1,0 +1,21 @@
+version: 2
+
+models:
+  - name: dim_nibrs
+    description: Catálogo NIBRS común de delitos y cargos de detenciones, publicado en Silver. No relaciona eventos individuales entre sí.
+    columns:
+      - {name: nibrs_key, data_tests: [unique, not_null]}
+      - name: group_ab
+        description: Grupo de reporte NIBRS.
+
+  - name: dim_offense_categories
+    description: Una fila por combinación de categoría y subcategoría de Seattle, independiente de NIBRS. Admite que falte uno de los dos niveles.
+    columns:
+      - {name: offense_classification_id, description: Misma clave que offense_categories.offense_category_id en Silver., data_tests: [unique, not_null]}
+      - {name: offense_category, description: Categoría publicada por Seattle.}
+      - {name: offense_sub_category, description: Subcategoría publicada por Seattle.}
+
+  - name: dim_shooting_type
+    description: Etiqueta de tiroteo observada, vinculada al delito únicamente mediante el puente.
+    columns:
+      - {name: shooting_type_id, data_tests: [unique, not_null]}

@@ -1,0 +1,28 @@
+version: 2
+
+sources:
+  - name: brz_census_socioeconomic
+    description: "U.S. Census Bureau, ACS 2024 5-year (estimaciones 2020–2024), datos nacionales por ZIP Code Tabulation Area (ZCTA)."
+    database: "{{ env_var('DBT_BRONZE') }}"
+    schema: RAW
+
+    tables:
+      - name: census_socioeconomic
+        identifier: BRZ_CENSUS_SOCIOECONOMIC
+        description: >
+          Tabla RAW sustituida y cargada desde rentas_by_zip_code.json, con 33.772 ZCTA esperados.
+          dbt no repite la ingesta ni transforma Bronze. Nombres y tipos declarados según
+          el esquema del script de carga facilitado por el usuario: ZCTA es VARCHAR(5),
+          las métricas son NUMBER(18,0) e INGESTED_AT es TIMESTAMP_NTZ.
+          No se presupone un nombre de lote para la carga de sustitución.
+        columns:
+          - {name: NAME, data_type: varchar, description: "Nombre descriptivo de la ZCTA; no se utiliza como clave."}
+          - {name: B19013_001E, data_type: "number(18,0)", description: "Ingreso mediano anual por hogar, USD ajustados a 2024; incluye códigos ACS."}
+          - {name: B19013_001M, data_type: "number(18,0)", description: "Margen de error al 90 % del ingreso mediano; incluye códigos ACS."}
+          - {name: B01003_001E, data_type: "number(18,0)", description: "Población total estimada."}
+          - {name: B25077_001E, data_type: "number(18,0)", description: "Valor mediano de viviendas ocupadas por sus propietarios, USD; incluye códigos ACS."}
+          - {name: B25058_001E, data_type: "number(18,0)", description: "Alquiler contractual mediano mensual, USD; incluye códigos ACS."}
+          - {name: ZCTA, data_type: varchar(5), description: "Código ZCTA de cinco dígitos como texto; conservar ceros iniciales."}
+          - {name: SOURCE_FILE, data_type: varchar, description: "Archivo de origen; sin prefijo de guion bajo en esta fuente."}
+          - {name: BATCH_ID, data_type: varchar, description: "Identificador del lote de ingesta."}
+          - {name: INGESTED_AT, data_type: timestamp_ntz, description: "Timestamp de ingesta conservado para trazabilidad y desempate de versiones."}

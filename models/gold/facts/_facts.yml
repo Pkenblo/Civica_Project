@@ -1,0 +1,81 @@
+version: 2
+
+models:
+  - name: fact_crimes
+    description: Un delito lógico por crime_id. No incluye filas de etiquetas de tiroteo. En incremental solo incorpora delitos cuya ingesta supere el corte del hecho; para esas filas obtiene la clave de fecha de reporte a partir de dim_report.
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: >-
+              equal_null(offense_date_key, to_char(offense_date_time::date, 'YYYYMMDD')::number)
+    columns:
+      - {name: crime_id, data_tests: [unique, not_null]}
+      - {name: offense_id, description: Identificador de origen del delito; no es una FK., data_tests: [not_null]}
+      - {name: ingested_at, data_tests: [not_null]}
+      - name: report_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: "ref('dim_report')", field: report_id}}
+      - name: address_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: "ref('dim_address')", field: address_id}}
+      - name: police_area_id
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_police_area')", field: police_area_id}}
+      - name: nibrs_key
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_nibrs')", field: nibrs_key}}
+      - name: offense_classification_id
+        description: Referencia a la clasificación de Seattle; nula si faltan ambos niveles.
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_offense_categories')", field: offense_classification_id}}
+      - name: offense_date_key
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_date')", field: date_key}}
+      - name: report_date_key
+        description: Clave del calendario obtenida de la fecha del informe al cargar el delito.
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_date')", field: date_key}}
+
+  - name: fact_arrests
+    description: Una detención por arrest_number. Las edades, la unidad, el cargo del agente y los indicadores pertenecen al evento, no al perfil.
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: >-
+              equal_null(arrest_occurred_date_key, to_char(arrest_occurred_date_time::date, 'YYYYMMDD')::number)
+              and equal_null(arrest_reported_date_key, to_char(arrest_registered_at::date, 'YYYYMMDD')::number)
+    columns:
+      - {name: arrest_number, data_tests: [unique, not_null]}
+      - {name: ingested_at, data_tests: [not_null]}
+      - {name: officer_squad_at_arrest, description: Unidad del agente en la detención conservada desde Silver.}
+      - {name: officer_title_at_arrest, description: Cargo del agente en la detención conservado desde Silver.}
+      - name: report_id
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_report')", field: report_id}}
+      - name: address_id
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: "ref('dim_address')", field: address_id}}
+      - name: police_area_id
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_police_area')", field: police_area_id}}
+      - name: arrest_type_id
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_arrest_type')", field: arrest_type_id}}
+      - name: agent_key
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_agent')", field: agent_key}}
+      - name: subject_key
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_subject')", field: subject_key}}
+      - name: cad_profile_id
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_cad_profile')", field: cad_profile_id}}
+      - name: arrest_occurred_date_key
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_date')", field: date_key}}
+      - name: arrest_reported_date_key
+        data_tests:
+          - relationships: {arguments: {to: "ref('dim_date')", field: date_key}}

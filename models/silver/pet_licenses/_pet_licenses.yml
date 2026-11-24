@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: licenses
+    description: >-
+      Última versión por número de licencia, no por animal. Incremental delete+insert
+      con corte global de ingesta. No permite deducir mascotas únicas, renovaciones ni
+      vigencia. El CP procede del origen y puede quedar fuera de la cartografía local;
+      por eso no se exige una relación total con postal_codes.
+    columns:
+      - name: license_number
+        description: Número de licencia y clave del incremental.
+        data_tests: [unique, not_null]
+      - name: license_id
+        description: Identificador alternativo generado sobre license_number y animal_name; cambia si cambia el nombre.
+      - name: license_issue_date
+        description: Fecha de expedición informada por el origen.
+      - name: animal_name
+        description: Nombre normalizado del animal, si se publica.
+      - name: species
+        description: Especie normalizada en staging, en mayúsculas y sin espacios exteriores; vacíos, UNKNOWN y guiones se convierten en NULL.
+      - name: primary_breed
+        description: Raza principal publicada.
+      - name: secondary_breed
+        description: Raza secundaria publicada.
+      - name: cp
+        description: ZIP de origen si contiene cinco dígitos; nulo si falta o tiene un formato inválido.
+      - name: ingested_at
+        description: Fecha de ingesta de la versión publicada y cursor incremental.
+        data_tests: [not_null]

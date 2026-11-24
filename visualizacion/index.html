@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#17364b">
+<title>Cívica · Seattle por código postal</title>
+<link rel="stylesheet" href="leaflet/leaflet.css"><script src="leaflet/leaflet.js"></script>
+<link rel="stylesheet" href="panel.css">
+</head>
+<body>
+<a class="skip-link" href="#workspace">Ir a la visualización</a>
+<div class="brandbar"><div class="brandbar-inner">
+  <a class="brand" href="index.html" aria-label="Cívica, inicio"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3v5M6 12h20M9 12l7-4 7 4-7 4-7-4Zm7 4v12M11 28l3-12m7 12-3-12M5 28h22"/></svg>Cívica<span>Observatorio de Seattle</span></a>
+  <span class="date-badge">Datos 2024–2026</span>
+</div></div>
+<main>
+<header class="page-header">
+  <div><h1>Seattle, zona a zona</h1><p>Delitos, mascotas y contexto económico en el mapa.</p></div>
+  <a class="report-link" href="correlaciones.html" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16h16M8 14l4-4 4 2 4-7M16 5h4v4"/></svg>Explorar correlaciones <span aria-hidden="true">↗</span><span class="sr-only"> (se abre en otra pestaña)</span></a>
+</header>
+<p id="source" class="stamp" role="status">Consultando MART_CRIMES_PET_LICENSES…</p>
+<nav class="view-nav" aria-label="Mapas del panel">
+  <button id="open-zones" aria-label="Zonas y licencias" title="Zonas y licencias" aria-controls="zones-view" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2V5Zm6-2v16m6-14v16"/></svg></button>
+  <button id="open-points" aria-label="Delitos por ubicación" title="Delitos por ubicación" aria-controls="points-view" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></button>
+  <button id="open-socio" aria-label="Detenciones y economía" title="Detenciones y economía" aria-controls="socio-view" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V10h5v11m4 0V3h5v18M7 7V4m9 3h1m-1 4h1m-1 4h1"/></svg></button>
+  <button id="open-facts" aria-label="Datos curiosos" title="Datos curiosos" aria-controls="facts-view" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6m-5 3h4M8 13a6 6 0 1 1 8 0c-1 1-1 2-1 3H9c0-1 0-2-1-3ZM12 1v1M3 5l1 1m16-1-1 1M1 11h2m18 0h2"/></svg></button>
+</nav>
+<div id="workspace" tabindex="-1">
+<div id="zones-view"><div id="panel" hidden>
+<section id="mapa" class="map-panel">
+  <div class="section-heading"><h2 id="map-title">Robos de vehículos y licencias de mascotas</h2><span class="location-tag">King County, WA</span></div>
+  <div class="filterbar">
+    <label>Indicador<select id="serie"><option value="vehiculos">Robos de vehículos</option><option value="hurtos">Robos y hurtos seleccionados</option><option value="homicidios">Tiroteos u homicidios</option></select></label>
+    <span id="pair-controls"><label>Año<select id="anio"></select></label><label>Licencias<select id="animal"><option value="0">Todas las especies</option><option value="ambos">Gatos + perros</option><option value="4">Perros</option><option value="5">Gatos</option><option value="6">Cabras</option><option value="7">Cerdos</option></select></label></span>
+    <label class="check-label"><input id="modo" type="checkbox" checked> Licencias acumuladas</label>
+  </div>
+  <p id="mart-status" class="notice" role="status" hidden></p>
+  <div class="maptools" role="group" aria-label="Controles del mapa"><button id="seattle">Centrar en Seattle</button><button id="extent">Ver todo</button><span class="tool-divider" aria-hidden="true"></span><label><input id="calles" type="checkbox" checked> Calles</label><label><input id="map-min-licenses" type="checkbox" checked> Mínimo 50 licencias</label></div>
+  <div class="mapgrid">
+    <div class="mapbox"><div id="map" aria-label="Mapa por código postal"></div><div id="tile-note" class="tile-note" role="status"></div></div>
+    <aside class="map-insights" aria-label="Leyenda y detalle del mapa">
+      <div class="legend-block"><h3>Cómo leer el mapa</h3><p class="legend-label">Casos por código postal</p><div class="key"></div><div class="ends"><span id="legend">0 casos</span><span id="max"></span></div><div id="counts" class="note"></div></div>
+      <div class="legend-block"><h3>Especie mayoritaria</h3><div id="border-key" aria-label="Leyenda de los bordes"></div></div>
+      <div class="selection-block"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 3 14 10-7 1-3 7L5 3Z"/></svg><h3>Explora una zona</h3><output id="place" aria-live="polite"></output></div>
+    </aside>
+  </div>
+  <details class="methodology"><summary>Sobre los datos y el mapa</summary><p class="note" id="mart-note"></p><p class="note" id="period-note"></p><p id="map-help" class="note">Amplía con la rueda y arrastra para desplazarte. Con el mapa seleccionado, usa +, − y las flechas.</p><p class="note">La cartografía postal cubre King County. Los datos corresponden al código postal completo, no a una calle. Compartir CP no vincula una licencia con un hecho policial.</p></details>
+</section>
+<div class="comparison-heading"><div><h2>Gatos frente a perros</h2><p class="note">Casos por zona según la especie con más licencias.</p></div><div class="inline-filters"><label>Año de las tablas<select id="group-year"></select></label><label class="check-label"><input type="checkbox" id="min-licenses" checked> Mínimo 50 licencias</label></div></div>
+<div id="comparativas"></div>
+<template id="comparativa"><section class="comparison-card"><h3 class="comparison-title"></h3>
+  <div class="comparison-grid"><div class="table-wrap"><table><thead><tr><th scope="col">Licencias en el CP</th><th scope="col">Zonas</th><th scope="col">Casos</th><th scope="col">Media por zona</th></tr></thead><tbody></tbody></table></div>
+  <div class="annual-block"><h4>Media por zona · evolución anual</h4><div class="chart-legend"><span><i class="cat-swatch"></i>Más gatos</span><span><i class="dog-swatch"></i>Más perros</span></div><div class="years-chart"></div></div></div>
+  <details class="methodology"><summary>Muestra y cálculo</summary><p class="definition"></p><p class="scope note"></p><p>Las barras usan solo las licencias y los casos de cada año. Un guion indica que no hubo zonas en ese grupo. El mínimo de 50 licencias suma perros, gatos, cabras y cerdos, y se comprueba por separado cada año.</p></details>
+</section></template>
+</div></div>
+<section id="points-view" class="map-panel" hidden>
+  <div class="section-heading"><div><h2>Delitos por ubicación</h2><p class="note">Coordenadas publicadas, a veces aproximadas a una manzana.</p></div><span class="location-tag">Seattle, WA</span></div>
+  <div class="filterbar">
+    <label>Mes del hecho<input type="month" id="points-month" min="2024-01" max="2026-12" value="2024-01"></label><button id="points-load" class="primary-button">Cargar mes</button>
+    <label>Categoría<select id="points-category"><option value="">Todas las categorías</option></select></label>
+    <label>Tipo NIBRS<select id="points-type"><option value="">Todos los tipos</option></select></label>
+  </div>
+  <div class="filterbar secondary-filters">
+    <label>Indicador económico<select id="points-economy"><option value="median_household_income">Renta mediana del hogar</option><option value="median_monthly_rent">Alquiler mensual mediano</option><option value="median_home_value">Precio mediano de vivienda</option></select></label>
+    <label>Nivel de la zona<select id="points-level"><option value="">Todos</option><option value="0">Bajo</option><option value="1">Medio</option><option value="2">Alto</option><option value="sin">Sin valor comparable</option></select></label>
+    <label>Mínimo (USD)<input type="number" id="points-min" min="0" step="any" placeholder="Sin mínimo"></label><label>Máximo (USD)<input type="number" id="points-max" min="0" step="any" placeholder="Sin máximo"></label>
+    <button id="points-reset">Quitar filtros</button>
+  </div>
+  <div class="maptools"><button id="points-center">Centrar en Seattle</button><label><input type="checkbox" id="points-areas" checked> Zonas económicas</label><label>Opacidad<input type="range" id="points-opacity" min="0" max="80" value="30"></label></div>
+  <p id="points-status" class="data-status" role="status"></p><div id="points-map" class="full-map" aria-label="Ubicaciones publicadas de delitos"></div>
+  <p id="points-economy-key" class="economy-key"></p><p id="points-tiles" class="tile-note" role="status"></p>
+  <details class="category-key" open><summary>Categorías de la selección</summary><div id="points-key"></div></details>
+  <details class="methodology"><summary>Fuentes y límites del mapa</summary><p>Los colores representan las categorías del mart; los sectores indican su proporción cuando coinciden varias. Los puntos pueden corresponder a una manzana, no al lugar exacto del hecho.</p><p class="note">Fuente: DEV_GOLD.MARTS.MART_CRIMES_SOCIOECONOMIC. Contexto ACS fijo de 2020–2024. Los niveles bajo, medio y alto usan cortes P33/P67 sobre CP únicos con polígono y valor no censurado recuperado del mart, fijos entre meses y categorías. No son umbrales oficiales de pobreza ni los quintiles publicados. Los importes superiores al límite no se tratan como valores exactos. Sin filtro económico se conservan los puntos sin CP o contexto; al filtrar por nivel o importe no se les imputa una renta. La cartografía no delimita solo Seattle. No se aplica el filtro de licencias de mascotas.</p></details>
+  <div class="comparison-heading"><div><h2>Delitos y nivel económico</h2><p class="note">Comparativas anuales, independientes de los filtros del mapa.</p></div></div>
+  <details class="methodology"><summary>Cómo leer las comparativas</summary><p>Las tablas usan el año completo disponible del mes elegido; las gráficas muestran 2024–2026. Cada bloque tiene su selector de delito. La media divide el total de casos entre el número de CP del grupo, incluidos los que tienen cero casos del tipo seleccionado. Los años pueden estar incompletos.</p></details>
+  <div id="points-comparisons"></div>
+</section>
+<section id="socio-view" class="map-panel" hidden>
+  <div class="section-heading"><div><h2>Detenciones y contexto económico</h2><p class="note">Detenciones en azul y zonas según su contexto ACS 2020–2024.</p></div><span class="location-tag">Seattle, WA</span></div>
+  <div class="filterbar"><label>Año de la detención<select id="socio-year"></select></label><button id="socio-load" class="primary-button">Consultar año</button><label>Color de las zonas<select id="socio-color"><option value="median_household_income">Renta mediana del hogar</option><option value="median_monthly_rent">Alquiler mensual mediano</option><option value="median_home_value">Precio mediano de vivienda</option></select></label></div>
+  <p id="socio-status" class="data-status" role="status"></p>
+  <div class="maptools"><button id="socio-center">Centrar en Seattle</button><button id="socio-fit">Ver todas las zonas</button><label><input type="checkbox" id="socio-roads" checked> Calles</label><label><input type="checkbox" id="socio-points" checked> Detenciones</label><label>Opacidad<input type="range" id="socio-opacity" min="0" max="80" value="30"></label></div>
+  <div id="socio-map" class="full-map" aria-label="Detenciones en sus coordenadas y zonas económicas"></div>
+  <p id="socio-legend" class="economy-key"></p><p id="socio-selection" class="note" role="status"></p>
+  <div class="comparison-heading"><div><h2>Detenciones por zona</h2><p class="note">Renta, alquiler y vivienda. Medias por código postal, no por habitante.</p></div></div>
+  <div id="socio-comparisons"></div>
+  <details class="methodology"><summary>Fuentes, zonas y cálculo de las medias</summary>
+  <p>Los puntos azules conservan las coordenadas publicadas, a veces aproximadas a una manzana; no se desplazan al centro del CP.</p>
+  <p>Para cada indicador se forman tres grupos —bajo, medio y alto— con cortes P33 y P67 sobre códigos postales únicos con polígono y valor económico conocido. Los cortes son fijos para todos los años. Las zonas con valores iguales permanecen en el mismo grupo, por lo que los tamaños pueden diferir. Los gráficos dividen el total de detenciones entre el número de zonas del grupo, incluidas las que tuvieron cero detenciones ese año.</p>
+  <p>El mart contiene eventos, no todas las zonas con su contexto económico. Para conservar ceros se parte del catálogo postal y se recupera el contexto de cada CP desde cualquier año del mart. Las zonas sin detenciones en todo el histórico no tienen contexto recuperable aquí: aparecen en gris y no se inventa su nivel económico. Los importes limitados superiormente se muestran como «Más de…», pero no se les asigna un grupo porque se desconoce el valor exacto.</p>
+  <p>Se cuentan detenciones, no delitos, personas únicas ni condenas. El CP corresponde a la ubicación de la detención, no al domicilio de la persona. Las medias corrigen el distinto número de zonas, no su población ni las prácticas o cobertura policiales. Un cero no garantiza ausencia real de detenciones.</p>
+  <p>Fuente: DEV_GOLD.MARTS.MART_ARREST_SOCIOECONOMIC y DEV_GOLD.GOLD.DIM_POSTAL_CODES. Contexto ACS fijo 2020–2024, renta en USD de 2024; no es la economía histórica de cada año. ZIP y ZCTA se enlazan de forma aproximada. La cartografía no delimita solo Seattle. No se deduce la renta de las personas detenidas ni causalidad. No se aplica el filtro de 50 licencias de la primera vista.</p></details>
+</section>
+<section id="facts-view" class="facts-panel" hidden>
+  <div class="section-heading"><div><h2>Datos curiosos</h2><p class="note">Seis preguntas a los datos de Seattle.</p></div><div class="inline-filters"><label>Periodo<select id="facts-year"><option value="2024" selected>2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="todos">2024–2026</option></select></label><button id="facts-reload">Actualizar datos</button></div></div>
+  <p id="facts-status" class="data-status" role="status"></p>
+  <div id="facts-grid" class="facts-grid" aria-busy="false"></div>
+  <details class="methodology"><summary>Periodo y límites de estos datos</summary><p>El periodo se aplica a la fecha de emisión de la licencia, de ocurrencia del delito o de la detención, según el indicador. Los años pueden estar incompletos. Las horas conservan la referencia del origen: no se ha verificado su zona horaria. Las licencias no son animales únicos y las detenciones no son personas únicas ni condenas.</p><p>Los empates se muestran completos. Las exclusiones sin fecha se refieren a todo Gold: no se pueden asignar al periodo seleccionado. Las cifras se consultan directamente en Gold; no se crea otro mart.</p></details>
+</section>
+</div>
+<noscript>Activa JavaScript en el navegador para dibujar los gráficos locales.</noscript>
+<footer class="page-footer"><span>Cívica · Observatorio de Seattle</span><span>Las asociaciones entre zonas no implican causalidad.</span></footer>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const VIEW_YEARS=[2024,2025,2026],DEFAULT_YEAR=2024;
+const fmt=n=>n.toLocaleString('es-ES',{useGrouping:'always'});
+function element(parent,tag,text){const e=document.createElement(tag); parent.append(e);if(text!=null)e.textContent=text;return e}
+function activateView(name){
+  for(const view of ['zones','points','socio','facts']){$(view+'-view').hidden=view!==name;$('open-'+view).setAttribute('aria-pressed',view===name)}
+}
+function polygons(g){
+  if(g?.type==='Polygon')return [g.coordinates];
+  if(g?.type==='MultiPolygon')return g.coordinates;
+  if(g?.type==='GeometryCollection')return g.geometries.flatMap(polygons);
+  return []; // Una línea o un punto no delimitan una superficie postal.
+}
+let data;
+async function cargar(){
+  const tag=$('source');
+  if(location.protocol==='file:'){tag.textContent='Abre el lanzador «Abrir panel» para consultar DEV_GOLD.GOLD.';return}
+  try{
+    const response=await fetch('/datos',{method:'POST',cache:'no-store',headers:{'X-Civica':'panel'}});
+    const result=await response.json();
+    if(!response.ok)throw Error(result.aviso);
+    data=result.datos;$('panel').hidden=false;initMap();
+    tag.classList.toggle('demo',!!result.aviso);
+    tag.textContent=(result.aviso?result.aviso+' · ':'')+'MART_CRIMES_PET_LICENSES · Lectura: '+data.date.replace('T',' ').replace('Z',' UTC');
+  }catch(error){tag.classList.add('demo');tag.textContent=error.message||'No se pudo cargar el panel. Vuelve a abrir el lanzador.'}
+}
+</script>
+<script src="mapa.js"></script><script src="delitos.js"></script><script src="socio.js"></script><script src="curiosidades.js"></script><script>cargar()</script>
+</body></html>

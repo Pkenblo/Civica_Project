@@ -31,6 +31,8 @@ models:
         description: Identificador de la licencia.
         data_tests:
           - not_null
+          - dbt_utils.expression_is_true:
+              arguments: {expression: "not like '%|%' and license_number <> '-'"}
 
       - name: animal_name
         data_type: varchar
@@ -38,9 +40,7 @@ models:
 
       - name: species
         data_type: varchar
-        description: Especie de la mascota en mayúsculas, sin espacios exteriores.
-        data_tests:
-          - not_null
+        description: Especie de la mascota en mayúsculas, sin espacios exteriores; vacíos, UNKNOWN y guiones se convierten en NULL.
 
       - name: primary_breed
         data_type: varchar
@@ -59,6 +59,7 @@ models:
       - name: ingested_at
         data_type: timestamp_ltz
         description: Fecha y hora de carga del registro en RAW.
+        data_tests: [not_null]
 
       - name: source_file
         data_type: varchar
@@ -86,7 +87,7 @@ models:
     columns:
       - name: report_number
         data_type: varchar
-        description: Número de informe policial en el formato del origen.
+        description: Número de informe policial YYYY-NNNNNN, ya en formato común en el origen de delitos.
         data_tests:
           - not_null
 
@@ -101,6 +102,8 @@ models:
         description: Identificador del delito concreto, que puede aparecer en varias filas.
         data_tests:
           - not_null
+          - dbt_utils.expression_is_true:
+              arguments: {expression: "<> '-'"}
 
       - name: offense_date
         data_type: timestamp_ntz
@@ -129,11 +132,11 @@ models:
         description: Dirección aproximada a nivel de bloque; NULL si está vacía u ocultada.
 
       - name: latitude
-        data_type: number(18,12)
+        data_type: number(18,5)
         description: Latitud publicada; NULL si no es convertible o contiene el marcador -1.
 
       - name: longitude
-        data_type: number(18,12)
+        data_type: number(18,5)
         description: Longitud publicada; NULL si no es convertible o contiene el marcador -1.
 
       - name: beat
@@ -166,6 +169,14 @@ models:
         data_type: varchar
         description: Descripción del código de delito NIBRS.
 
+      - name: nibrs_offense_code_description_original
+        data_type: varchar
+        description: Descripción NIBRS exacta de RAW, sin limpiar ni sustituir marcadores.
+
+      - name: nibrs_offense_code_original
+        data_type: varchar
+        description: Código NIBRS exacto de RAW, para trazabilidad.
+
       - name: nibrs_offense_code
         data_type: varchar
         description: Código del delito en la clasificación NIBRS.
@@ -181,6 +192,7 @@ models:
       - name: ingested_at
         data_type: timestamp_ltz
         description: Fecha y hora de carga del registro en RAW.
+        data_tests: [not_null]
 
       - name: source_file
         data_type: varchar
@@ -211,6 +223,8 @@ models:
         description: Identificador del registro de detención, que puede aparecer en varias filas.
         data_tests:
           - not_null
+          - dbt_utils.expression_is_true:
+              arguments: {expression: "<> '-'"}
 
       - name: arrest_occurred_date_time
         data_type: timestamp_ntz
@@ -218,7 +232,7 @@ models:
         data_tests:
           - not_null
 
-      - name: arrest_reported_date_time
+      - name: arrest_registered_at
         data_type: timestamp_ntz
         description: Fecha y hora de registro de la detención, sin conversión de zona horaria.
         data_tests:
@@ -264,9 +278,9 @@ models:
         data_type: varchar
         description: Descripción NIBRS asociada a la infracción de esta fila.
 
-      - name: offense_type
+      - name: nibrs_description_original
         data_type: varchar
-        description: Descripción de la infracción legal asociada a la detención.
+        description: Descripción NIBRS exacta de RAW. No se deduce del texto legal.
 
       - name: officer_age
         data_type: number(38,0)
@@ -278,9 +292,7 @@ models:
 
       - name: officer_id
         data_type: varchar
-        description: Identificador del agente.
-        data_tests:
-          - not_null
+        description: Identificador del agente; puede faltar en una versión de RAW.
 
       - name: officer_race
         data_type: varchar
@@ -300,7 +312,9 @@ models:
 
       - name: report_number
         data_type: varchar
-        description: Número de informe policial en el formato del origen.
+        description: >
+          Número de informe común con delitos. Solo transforma YYYY0000NNNNNN en YYYY-NNNNNN.
+          Los demás formatos se conservan para revisión; Reports comprueba el formato esperado.
         data_tests:
           - not_null
 
@@ -333,11 +347,11 @@ models:
         description: Dirección aproximada a nivel de bloque; NULL si está vacía u ocultada.
 
       - name: latitude
-        data_type: number(18,12)
+        data_type: number(18,5)
         description: Latitud publicada; NULL si no es convertible o contiene el marcador -1.
 
       - name: longitude
-        data_type: number(18,12)
+        data_type: number(18,5)
         description: Longitud publicada; NULL si no es convertible o contiene el marcador -1.
 
       - name: neighborhood
@@ -385,7 +399,8 @@ models:
       Zonas postales de King County y alrededores con atributos y geometría tipados.
       Textos descriptivos y CP en mayúsculas, sin espacios exteriores ni cadenas vacías.
       La versión cartográfica y los metadatos conservan su escritura de origen.
-      Conserva una fila por entidad del origen, sin unir piezas ni seleccionar una versión.
+      Conserva una fila por entidad con CP de prefijo 981, sin unir piezas ni seleccionar una versión.
+      El prefijo no equivale al límite municipal exacto de Seattle.
 
     data_tests:
       - dbt_utils.unique_combination_of_columns:

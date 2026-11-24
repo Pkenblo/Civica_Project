@@ -1,0 +1,249 @@
+Project seattle_gold {
+  database_type: 'Snowflake'
+  Note: 'Modelo lógico de Gold: 15 dimensiones, 2 hechos y 2 puentes; marts excluidos. Los dos puentes y dim_census_socioeconomic son ephemeral: CTE de dbt, no objetos de Snowflake. Las referencias son lógicas. La relación ZIP-ZCTA por código es una aproximación analítica, no una equivalencia geográfica ni una FK total.'
+}
+
+Table dim_date {
+  date_key number(8,0) [pk]
+  full_date date [not null, unique]
+  year integer
+  quarter_of_year integer
+  month_of_year integer
+  month_name varchar
+  iso_week integer
+  iso_week_year integer
+  day_of_month integer
+  day_of_week integer
+  day_name varchar
+  is_weekend boolean
+  year_month varchar
+}
+
+Table dim_postal_codes {
+  cp varchar [pk]
+  geography geography
+  boundary_version varchar
+}
+
+Table dim_census_socioeconomic {
+  Note: 'ephemeral: solo mediante ref() en dbt. ACS 2024 5-year (2020-2024), una fila por ZCTA. Relación aproximada por código con dim_postal_codes; puede haber códigos sin correspondencia. No sumar medianas ni repetir población al agregar eventos.'
+  cp varchar(5) [pk, note: 'Código ZCTA; no identifica un polígono ZIP equivalente.']
+  zcta_name varchar
+  median_household_income number(38,0)
+  income_margin_of_error number(38,0)
+  population number(38,0)
+  median_home_value number(38,0)
+  median_monthly_rent number(38,0)
+  income_top_coded boolean
+  home_value_top_coded boolean
+  rent_top_coded boolean
+  ingested_at timestamp_ntz
+  source_file varchar
+  batch_id varchar
+}
+
+Table dim_address {
+  address_id varchar [pk]
+  block_address varchar
+  latitude number(18,5)
+  longitude number(18,5)
+  neighborhood varchar
+  reporting_area varchar
+  census_block_2020 varchar
+  cp varchar
+  cp_status varchar [not null]
+  is_location_redacted boolean
+  has_missing_coordinates boolean
+  has_invalid_coordinates boolean
+}
+
+Table dim_police_area {
+  police_area_id varchar [pk]
+  precinct varchar
+  sector varchar
+  beat varchar
+}
+
+Table dim_report {
+  report_id varchar [pk]
+  report_number varchar [not null, unique]
+  report_date_time timestamp_ntz
+}
+
+Table dim_licenses {
+  license_number varchar [pk]
+  license_id varchar [not null, unique, note: 'Hash de Silver sensible al nombre del animal']
+  license_issue_date date
+  license_issue_date_key number(8,0)
+  animal_name varchar
+  species varchar
+  primary_breed varchar
+  secondary_breed varchar
+  cp varchar
+  ingested_at timestamp_ltz [not null]
+  species_group varchar [not null]
+}
+
+Table dim_nibrs {
+  Note: 'Catálogo compartido por delitos y cargos de detenciones. No establece correspondencias entre eventos.'
+  nibrs_key varchar [pk]
+  offense_code varchar [not null, unique]
+  offense_description varchar
+  group_ab varchar
+  crime_against_category varchar
+}
+
+Table dim_offense_categories {
+  Note: 'Una combinación de categoría y subcategoría de Seattle, independiente de NIBRS. Admite un nivel ausente. La clave procede de offense_categories.offense_category_id en Silver.'
+  offense_classification_id varchar [pk]
+  offense_category varchar
+  offense_sub_category varchar
+}
+
+Table dim_shooting_type {
+  shooting_type_id varchar [pk]
+  description varchar
+}
+
+Table fact_crimes {
+  Note: 'Una fila por delito lógico (report_id, offense_id). No unir directamente a fact_arrests por informe: puede multiplicar filas.'
+  crime_id varchar [pk]
+  report_id varchar [not null]
+  offense_id varchar [not null]
+  nibrs_key varchar
+  address_id varchar [not null]
+  police_area_id varchar
+  offense_classification_id varchar
+  offense_date_time timestamp_ntz
+  offense_date_key number(8,0)
+  report_date_key number(8,0)
+  ingested_at timestamp_ltz [not null]
+}
+
+Table bridge_crime_shooting_types {
+  Note: 'ephemeral: solo mediante ref() en dbt. Asociaciones observadas, no necesariamente vigentes. Varias etiquetas no son varios delitos.'
+  crime_id varchar [not null]
+  shooting_type_id varchar [not null]
+
+  indexes {
+    (crime_id, shooting_type_id) [pk]
+  }
+}
+
+Table dim_arrest_type {
+  arrest_type_id varchar [pk]
+  description varchar
+}
+
+Table dim_agent {
+  agent_key varchar [pk]
+  officer_id varchar
+  officer_gender varchar
+  officer_race varchar
+}
+
+Table dim_subject {
+  subject_key varchar [pk]
+  sk_person varchar
+  subject_gender varchar
+  subject_race varchar
+  ingested_at timestamp_ltz
+}
+
+Table dim_cad_profile {
+  cad_profile_id varchar [pk]
+  cad_clearance varchar
+  cad_initial_call_type varchar
+  cad_priority number
+}
+
+Table fact_arrests {
+  Note: 'Una fila por arrest_number. Edades, unidad y cargo del agente pertenecen al evento, no al perfil de la persona.'
+  arrest_number varchar [pk]
+  report_id varchar
+  address_id varchar [not null]
+  police_area_id varchar
+  arrest_type_id varchar
+  agent_key varchar
+  subject_key varchar
+  cad_profile_id varchar
+  arrest_occurred_date_time timestamp_ntz
+  arrest_occurred_date_key number(8,0)
+  arrest_registered_at timestamp_ntz
+  arrest_reported_date_key number(8,0)
+  officer_age number
+  subject_age_range varchar
+  officer_squad_at_arrest varchar
+  officer_title_at_arrest varchar
+  crisis_involved boolean
+  complaint_involved boolean
+  force_involved boolean
+  terry_stop boolean
+  demonstration boolean
+  ingested_at timestamp_ltz [not null]
+}
+
+Table bridge_arrest_offenses {
+  Note: 'Vista. Una asociación observada por detención y descripción NIBRS no nula. Solo una descripción con coincidencia exacta y única recibe nibrs_key.'
+  arrest_offense_id varchar [pk]
+  arrest_number varchar [not null]
+  nibrs_key varchar
+  nibrs_match_status varchar [not null, note: 'matched / ambiguous / unmatched']
+  unresolved_nibrs_description varchar
+}
+
+// Correspondencia analítica por código entre dos catálogos únicos; no FK total ni equivalencia de límites.
+Ref: dim_census_socioeconomic.cp - dim_postal_codes.cp
+Ref: dim_address.cp > dim_postal_codes.cp
+Ref: dim_licenses.cp > dim_postal_codes.cp
+Ref: dim_licenses.license_issue_date_key > dim_date.date_key
+Ref: fact_crimes.report_id > dim_report.report_id
+Ref: fact_crimes.nibrs_key > dim_nibrs.nibrs_key
+Ref: fact_crimes.address_id > dim_address.address_id
+Ref: fact_crimes.police_area_id > dim_police_area.police_area_id
+Ref: fact_crimes.offense_classification_id > dim_offense_categories.offense_classification_id
+Ref: fact_crimes.offense_date_key > dim_date.date_key
+Ref: fact_crimes.report_date_key > dim_date.date_key
+Ref: fact_arrests.report_id > dim_report.report_id
+Ref: fact_arrests.address_id > dim_address.address_id
+Ref: fact_arrests.police_area_id > dim_police_area.police_area_id
+Ref: fact_arrests.arrest_type_id > dim_arrest_type.arrest_type_id
+Ref: fact_arrests.agent_key > dim_agent.agent_key
+Ref: fact_arrests.subject_key > dim_subject.subject_key
+Ref: fact_arrests.cad_profile_id > dim_cad_profile.cad_profile_id
+Ref: fact_arrests.arrest_occurred_date_key > dim_date.date_key
+Ref: fact_arrests.arrest_reported_date_key > dim_date.date_key
+Ref: bridge_crime_shooting_types.crime_id > fact_crimes.crime_id
+Ref: bridge_crime_shooting_types.shooting_type_id > dim_shooting_type.shooting_type_id
+Ref: bridge_arrest_offenses.arrest_number > fact_arrests.arrest_number
+Ref: bridge_arrest_offenses.nibrs_key > dim_nibrs.nibrs_key
+
+TableGroup compartidas {
+  dim_date
+  dim_postal_codes
+  dim_census_socioeconomic
+  dim_address
+  dim_police_area
+  dim_report
+  dim_nibrs
+}
+
+TableGroup licencias {
+  dim_licenses
+}
+
+TableGroup delitos {
+  fact_crimes
+  dim_offense_categories
+  dim_shooting_type
+  bridge_crime_shooting_types
+}
+
+TableGroup detenciones {
+  fact_arrests
+  dim_arrest_type
+  dim_agent
+  dim_subject
+  dim_cad_profile
+  bridge_arrest_offenses
+}

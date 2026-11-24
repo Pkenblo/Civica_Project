@@ -5,3 +5,7 @@ dbt_packages/
 logs/
 dbt_internal_packages/
 Datos_ejemplo/
+.venv/
+__pycache__/
+*.py[cod]
+/scripts/state/

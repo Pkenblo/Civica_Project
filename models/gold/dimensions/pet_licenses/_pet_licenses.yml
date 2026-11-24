@@ -1,0 +1,13 @@
+version: 2
+
+models:
+  - name: dim_licenses
+    description: Última versión observada por número de licencia; no representa animales únicos ni licencias vigentes.
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments: {expression: "equal_null(license_issue_date_key, to_char(license_issue_date, 'YYYYMMDD')::number)"}
+    columns:
+      - {name: license_number, data_tests: [unique, not_null]}
+      - {name: license_id, description: Hash de Silver que puede cambiar con el nombre; no es la clave de Gold.}
+      - name: cp
+        description: CP informado por el propietario; no se deriva de una ubicación policial.

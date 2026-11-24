@@ -1,0 +1,63 @@
+version: 2
+
+unit_tests:
+  - name: stg_arrests_normaliza_descripciones_y_marcadores_demograficos
+    description: >
+      Conserva la descripción NIBRS original y convierte el guion demográfico en NULL.
+      Convierte solo informes con formato YYYY0000NNNNNN a YYYY-NNNNNN sin perder ceros iniciales.
+    model: stg_arrests
+    given:
+      - input: source('brz_arrests', 'arrests')
+        rows:
+          - ARREST_NUMBER: arrest-a
+            REPORT_NUMBER: '20260000000001'
+            NIBRS_DESCRIPTION: ' Simple Assault '
+            OFFICER_GENDER: ' Male '
+            OFFICER_RACE: ' White '
+            SUBJECT_AGE_RANGE: ' Adult '
+            SUBJECT_GENDER: ' Female '
+            SUBJECT_RACE: ' Asian '
+          - {ARREST_NUMBER: arrest-b, OFFICER_GENDER: '-', OFFICER_RACE: '-', SUBJECT_AGE_RANGE: '-', SUBJECT_GENDER: '-', SUBJECT_RACE: '-'}
+          - {ARREST_NUMBER: arrest-c, REPORT_NUMBER: '20260000912738 '}
+          - {ARREST_NUMBER: arrest-d, REPORT_NUMBER: '2026-123456'}
+          - {ARREST_NUMBER: arrest-e, REPORT_NUMBER: '20261234123456'}
+    expect:
+      rows:
+        - arrest_number: arrest-a
+          report_number: '2026-000001'
+          nibrs_description: SIMPLE ASSAULT
+          nibrs_description_original: ' Simple Assault '
+          officer_gender: MALE
+          officer_race: WHITE
+          subject_age_range: ADULT
+          subject_gender: FEMALE
+          subject_race: ASIAN
+        - {arrest_number: arrest-b, report_number: null, nibrs_description: null,
+           nibrs_description_original: null, officer_gender: null, officer_race: null,
+           subject_age_range: null, subject_gender: null, subject_race: null}
+        - {arrest_number: arrest-c, report_number: '2026-912738', nibrs_description: null,
+           nibrs_description_original: null, officer_gender: null, officer_race: null,
+           subject_age_range: null, subject_gender: null, subject_race: null}
+        - {arrest_number: arrest-d, report_number: '2026-123456', nibrs_description: null,
+           nibrs_description_original: null, officer_gender: null, officer_race: null,
+           subject_age_range: null, subject_gender: null, subject_race: null}
+        - {arrest_number: arrest-e, report_number: '20261234123456', nibrs_description: null,
+           nibrs_description_original: null, officer_gender: null, officer_race: null,
+           subject_age_range: null, subject_gender: null, subject_race: null}
+
+  - name: stg_crimes_conserva_formato_y_ceros_del_numero_de_informe
+    description: >
+      Comprueba que el informe de delitos ya usa YYYY-NNNNNN, conserva ceros iniciales
+      y elimina espacios exteriores. No inventa números para nulos.
+    model: stg_crimes
+    given:
+      - input: source('brz_crimes', 'crimes')
+        rows:
+          - {REPORT_NUMBER: ' 2026-000001 '}
+          - {REPORT_NUMBER: '2026-912738'}
+          - {REPORT_NUMBER: null}
+    expect:
+      rows:
+        - {report_number: '2026-000001'}
+        - {report_number: '2026-912738'}
+        - {report_number: null}

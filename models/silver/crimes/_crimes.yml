@@ -1,0 +1,116 @@
+version: 2
+
+models:
+  - name: crimes
+    description: >-
+      Última fila de negocio por pareja informe-delito, sin sus etiquetas de tiroteo.
+      Incremental delete+insert con corte global de ingesta; reemplaza la fila completa,
+      incluidos sus nulos. offense_id no se presupone único entre informes.
+    columns:
+      - name: crime_id
+        description: Clave generada sobre report_id y offense_id.
+        data_tests: [unique, not_null]
+      - name: report_id
+        description: Informe al que pertenece el delito.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: "ref('reports')", field: report_id}
+      - name: offense_id
+        description: Identificador del delito en el contexto del informe.
+        data_tests: [not_null]
+      - name: offense_date
+        description: Fecha del delito publicada por el origen.
+      - name: ingested_at
+        description: Fecha de ingesta de la versión publicada y cursor incremental.
+        data_tests: [not_null]
+      - name: nibrs_key
+        description: Clasificación NIBRS resuelta por código, independiente de la categoría de Seattle.
+        data_tests:
+          - relationships:
+              arguments: {to: "ref('nibrs')", field: nibrs_key}
+      - name: offense_category_id
+        description: Combinación de categoría y subcategoría de Seattle; nula si faltan ambas.
+        data_tests:
+          - relationships:
+              arguments: {to: "ref('offense_categories')", field: offense_category_id}
+      - name: address_id
+        description: Ubicación compartida; UNKNOWN o REDACTED cuando corresponde.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: "ref('full_address')", field: address_id}
+      - name: police_area_id
+        description: Combinación publicada de distrito, sector y beat.
+        data_tests:
+          - relationships:
+              arguments: {to: "ref('police_add')", field: police_area_id}
+
+  - name: crime_shooting_types
+    description: >-
+      Una asociación histórica observada entre delito y tipo de tiroteo.
+      La ausencia de una etiqueta en una ingesta posterior no se interpreta como baja.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments: {combination_of_columns: [crime_id, shooting_type_id]}
+    columns:
+      - name: crime_id
+        description: Delito publicado al que se asocia la etiqueta.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: "ref('crimes')", field: crime_id}
+      - name: shooting_type_id
+        description: Tipo de tiroteo observado para el delito.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: "ref('shooting_types')", field: shooting_type_id}
+
+  - name: nibrs
+    description: >-
+      Última clasificación recibida por código NIBRS, compartida por delitos y cargos
+      de detenciones. Una descripción puede faltar o corresponder a varios códigos;
+      no es una clave ni se fuerza su unicidad.
+    columns:
+      - name: nibrs_key
+        description: Clave generada sobre offense_code.
+        data_tests: [unique, not_null]
+      - name: offense_code
+        description: Código NIBRS normalizado de origen.
+        data_tests: [not_null]
+      - name: offense_description
+        description: Descripción de la última fila recibida para el código.
+      - name: group_ab
+        description: Grupo NIBRS A o B informado por el origen.
+      - name: crime_against_category
+        description: Clasificación NIBRS según el objeto del delito, independiente de Seattle.
+
+  - name: offense_categories
+    description: >-
+      Una combinación observada de categoría y subcategoría de Seattle, independiente
+      de NIBRS. Admite que falte uno de los niveles; si faltan ambos, no genera fila.
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "offense_category is not null or offense_sub_category is not null"
+          config:
+            severity: error
+    columns:
+      - name: offense_category_id
+        description: Clave generada sobre categoría y subcategoría, distinguiendo los nulos.
+        data_tests: [unique, not_null]
+      - name: offense_category
+        description: Categoría publicada; nula si solo se informa la subcategoría.
+      - name: offense_sub_category
+        description: Subcategoría publicada; nula si solo se informa la categoría.
+
+  - name: shooting_types
+    description: Una etiqueta no nula de tiroteo observada en staging.
+    columns:
+      - name: shooting_type_id
+        description: Clave generada sobre la etiqueta normalizada.
+        data_tests: [unique, not_null]
+      - name: description
+        description: Etiqueta de tiroteo publicada por el origen.
+        data_tests: [not_null]

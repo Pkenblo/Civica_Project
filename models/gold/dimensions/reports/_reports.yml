@@ -1,0 +1,8 @@
+version: 2
+
+models:
+  - name: dim_report
+    description: Informe identificado en delitos o detenciones. La fecha del informe procede solo de delitos.
+    columns:
+      - {name: report_id, data_tests: [unique, not_null]}
+      - {name: ingested_at, description: Ingesta publicada por Silver.}

@@ -1,0 +1,76 @@
+version: 2
+
+models:
+  - name: full_address
+    description: >-
+      Una ubicación compartida por bloque, coordenadas, barrio, área de reporte y
+      bloque censal, sin contexto de evento. UNKNOWN representa ausencia de datos y
+      REDACTED una ubicación censurada; ambas filas existen siempre sin geografía ni CP.
+      Los indicadores de calidad se agregan entre observaciones y no forman parte de
+      la identidad. El CP solo se asigna al interior de una única zona de la cartografía activa.
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments: {expression: "(cp_status = 'matched') = (cp is not null)"}
+    columns:
+      - name: address_id
+        description: Clave de los seis atributos geográficos, o UNKNOWN o REDACTED; independiente del CP.
+        data_tests: [unique, not_null]
+      - name: block_address
+        description: Dirección de bloque publicada; no equivale a una dirección exacta.
+      - name: latitude
+        description: Latitud normalizada a cinco decimales e interpretada como EPSG:4326.
+      - name: longitude
+        description: Longitud normalizada a cinco decimales e interpretada como EPSG:4326.
+      - name: neighborhood
+        description: Barrio publicado por el origen.
+      - name: reporting_area
+        description: Área de reporte publicada por el origen.
+      - name: census_block_2020
+        description: Bloque censal de 2020 publicado por el origen.
+      - name: is_location_redacted
+        description: Indica la fila abstracta REDACTED; no se recupera una ubicación histórica.
+      - name: has_missing_coordinates
+        description: Alguna observación tiene coordenadas ausentes; true en las filas abstractas.
+      - name: has_invalid_coordinates
+        description: Alguna observación tiene coordenadas inválidas; false en las filas abstractas.
+      - name: cp_status
+        description: Resultado de la evaluación postal; solo matched permite publicar cp.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [matched, redacted, missing_coordinates, invalid_coordinates, no_match, ambiguous, boundary]
+      - name: cp
+        description: Código postal asignado espacialmente; nulo si no hay correspondencia inequívoca en el interior.
+        data_tests:
+          - relationships:
+              arguments: {to: "ref('postal_codes')", field: cp}
+
+  - name: police_add
+    description: >-
+      Una combinación publicada de distrito, sector y beat procedente de delitos o
+      detenciones. Conserva combinaciones parciales y omite la completamente nula.
+    columns:
+      - name: police_area_id
+        description: Clave generada sobre precinct, sector y beat.
+        data_tests: [unique, not_null]
+      - name: precinct
+        description: Distrito policial publicado.
+      - name: sector
+        description: Sector policial publicado.
+      - name: beat
+        description: Beat publicado; no se presupone único fuera de su combinación.
+
+  - name: postal_codes
+    description: >-
+      Un código postal de la versión cartográfica activa, con sus piezas disueltas
+      en una geometría. El ámbito con prefijo 981 se filtra en staging.
+      Tabla estática, excluible con tag:static_model. No incorpora los CP de licencias.
+    columns:
+      - name: cp
+        description: Código postal textual, conservando ceros iniciales.
+        data_tests: [unique, not_null]
+      - name: geography
+        description: Geometría geográfica resultante de ST_UNION_AGG para el código.
+      - name: boundary_version
+        description: Identificador de descarga seleccionado por zipcode_boundary_version, no vigencia histórica.
